@@ -1,0 +1,23 @@
+namespace GLSLX {
+  @entry
+  def main {
+    var doc = dynamic.document
+    var input = doc.getElementById("input")
+    var output = doc.getElementById("output")
+    var compile = => {
+      var log = Log.new
+      var tokens = tokenize(log, Source.new("<stdin>", input.value))
+      var global Global = null
+      if log.isEmpty {
+        global = parse(log, tokens)
+      }
+      if log.isEmpty {
+        output.value = "\n".join(tokens.map<string>(t => t.kind.toString))
+      } else {
+        output.value = log.toString
+      }
+    }
+    input.oninput = compile
+    compile()
+  }
+}

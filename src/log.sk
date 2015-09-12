@@ -1,0 +1,109 @@
+namespace GLSLX {
+  enum DiagnosticKind {
+    ERROR
+    WARNING
+  }
+
+  class Diagnostic {
+    var kind DiagnosticKind
+    var range Range
+    var text string
+    var noteRange Range = null
+    var noteText = ""
+  }
+
+  namespace Diagnostic {
+    def format(kind string, range Range, text string) string {
+      if range == null {
+        return kind + ": " + text + "\n"
+      }
+      var formatted = range.format(0)
+      return range.locationString + ": " + kind + ": " + text + "\n" + formatted.line + "\n" + formatted.range + "\n"
+    }
+  }
+
+  class Log {
+    var diagnostics List<Diagnostic> = []
+    var warningCount = 0
+    var errorCount = 0
+
+    def toString string {
+      var builder = StringBuilder.new
+
+      # Emit the log assuming an infinite terminal width
+      for diagnostic in diagnostics {
+        builder.append(Diagnostic.format(diagnostic.kind == .ERROR ? "error" : "warning", diagnostic.range, diagnostic.text))
+
+        # Append notes after the diagnostic they apply to
+        if diagnostic.noteRange != null {
+          builder.append(Diagnostic.format("note", diagnostic.noteRange, diagnostic.noteText))
+        }
+      }
+
+      return builder.toString
+    }
+
+    def isEmpty bool {
+      return diagnostics.isEmpty
+    }
+
+    def hasErrors bool {
+      return errorCount != 0
+    }
+
+    def hasWarnings bool {
+      return warningCount != 0
+    }
+
+    def error(range Range, text string) {
+      diagnostics.append(Diagnostic.new(.ERROR, range, text))
+      errorCount++
+    }
+
+    def warning(range Range, text string) {
+      diagnostics.append(Diagnostic.new(.WARNING, range, text))
+      warningCount++
+    }
+
+    def note(range Range, text string) {
+      var last = diagnostics.last
+      last.noteRange = range
+      last.noteText = text
+    }
+  }
+
+  class Log {
+    def syntaxErrorExtraData(range Range, text string) {
+      error(range, "Syntax error \"" + text + "\"")
+    }
+
+    def syntaxErrorReservedWord(range Range) {
+      error(range, "\"" + range.toString + "\" is a reserved word")
+    }
+
+    def syntaxErrorUnexpectedToken(token Token) {
+      error(token.range, "Unexpected " + token.kind.toString)
+    }
+
+    def syntaxErrorExpectedToken(range Range, expected TokenKind) {
+      error(range, "Expected " + expected.toString)
+    }
+
+    def syntaxErrorExpectedToken(range Range, found TokenKind, expected TokenKind) {
+      error(range, "Expected " + expected.toString + " but found " + found.toString)
+    }
+
+    def syntaxErrorBadSymbolReference(range Range) {
+      error(range, "There is no symbol called \"" + range.toString + "\" in the current scope")
+    }
+
+    def syntaxErrorDuplicateSymbolDefinition(range Range, previous Range) {
+      error(range, "There is already a symbol called \"" + range.toString + " in the current scope")
+      note(previous, "The previous definition of \"" + previous.toString + "\" is here")
+    }
+
+    def syntaxErrorOutsideLoop(range Range) {
+      error(range, "This cannot be used outside a loop")
+    }
+  }
+}

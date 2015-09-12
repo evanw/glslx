@@ -1,0 +1,583 @@
+namespace GLSLX {
+  enum NodeKind {
+    # Other
+    VARIABLE
+
+    # Statements
+    BLOCK
+    BREAK
+    CONTINUE
+    DISCARD
+    DO_WHILE
+    EXPRESSION
+    FOR
+    IF
+    RETURN
+    VARIABLES
+    WHILE
+
+    # Expressions
+    CALL
+    DOT
+    HOOK
+    NAME
+    SEQUENCE
+    TYPE
+
+    # Literals
+    BOOL
+    FLOAT
+    INT
+
+    # Unary prefix
+    COMPLEMENT
+    NEGATIVE
+    NOT
+    POSITIVE
+
+    # Unary prefix assign
+    PREFIX_DECREMENT
+    PREFIX_INCREMENT
+
+    # Unary postfix assign
+    POSTFIX_DECREMENT
+    POSTFIX_INCREMENT
+
+    # Binary
+    ADD
+    BITWISE_AND
+    BITWISE_OR
+    BITWISE_XOR
+    DIVIDE
+    EQUAL
+    GREATER_THAN
+    GREATER_THAN_OR_EQUAL
+    INDEX
+    LESS_THAN
+    LESS_THAN_OR_EQUAL
+    LOGICAL_AND
+    LOGICAL_OR
+    MULTIPLY
+    NOT_EQUAL
+    REMAINDER
+    SHIFT_LEFT
+    SHIFT_RIGHT
+    SUBTRACT
+
+    # Binary assignment
+    ASSIGN
+    ASSIGN_ADD
+    ASSIGN_BITWISE_AND
+    ASSIGN_BITWISE_OR
+    ASSIGN_BITWISE_XOR
+    ASSIGN_DIVIDE
+    ASSIGN_MULTIPLY
+    ASSIGN_REMAINDER
+    ASSIGN_SHIFT_LEFT
+    ASSIGN_SHIFT_RIGHT
+    ASSIGN_SUBTRACT
+
+    def isStatement bool {
+      return self as int >= BLOCK && self as int <= WHILE
+    }
+
+    def isExpression bool {
+      return self as int >= CALL && self as int <= ASSIGN_SUBTRACT
+    }
+
+    def isUnary bool {
+      return self as int >= COMPLEMENT && self as int <= PREFIX_DECREMENT
+    }
+
+    def isUnaryPrefix bool {
+      return self as int >= COMPLEMENT && self as int <= PREFIX_INCREMENT
+    }
+
+    def isUnaryPostfix bool {
+      return self as int >= POSTFIX_DECREMENT && self as int <= POSTFIX_INCREMENT
+    }
+
+    def isUnaryAssign bool {
+      return self as int >= PREFIX_DECREMENT && self as int <= POSTFIX_INCREMENT
+    }
+
+    def isBinary bool {
+      return self as int >= ADD && self as int <= ASSIGN_SUBTRACT
+    }
+
+    def isBinaryAssign bool {
+      return self as int >= ASSIGN && self as int <= ASSIGN_SUBTRACT
+    }
+  }
+
+  class Node {
+    const id = _createID
+    var kind NodeKind
+    var range Range = null
+    var symbol Symbol = null
+    var resolvedType Type = null
+    var _literal = 0.0
+    var _text string = null
+    var _parent Node = null
+    var _firstChild Node = null
+    var _lastChild Node = null
+    var _previousSibling Node = null
+    var _nextSibling Node = null
+
+    def parent Node {
+      return _parent
+    }
+
+    def firstChild Node {
+      return _firstChild
+    }
+
+    def lastChild Node {
+      return _lastChild
+    }
+
+    def previousSibling Node {
+      return _previousSibling
+    }
+
+    def nextSibling Node {
+      return _nextSibling
+    }
+
+    # This is cheaper than childCount == 0
+    def hasChildren bool {
+      return _firstChild != null
+    }
+
+    def childCount int {
+      var count = 0
+      for child = _firstChild; child != null; child = child._nextSibling {
+        count++
+      }
+      return count
+    }
+
+    def withType(value Type) Node {
+      resolvedType = value
+      return self
+    }
+
+    def withSymbol(value Symbol) Node {
+      symbol = value
+      return self
+    }
+
+    def withLiteral(value double) Node {
+      _literal = value
+      return self
+    }
+
+    def withText(value string) Node {
+      _text = value
+      return self
+    }
+
+    def withRange(value Range) Node {
+      range = value
+      return self
+    }
+
+    def appendChild(node Node) Node {
+      if node == null {
+        return self
+      }
+
+      assert(node != self)
+      assert(node._parent == null)
+      assert(node._previousSibling == null)
+      assert(node._nextSibling == null)
+      node._parent = self
+
+      if hasChildren {
+        node._previousSibling = _lastChild
+        _lastChild._nextSibling = node
+        _lastChild = node
+      } else {
+        _lastChild = _firstChild = node
+      }
+
+      return self
+    }
+
+    def remove Node {
+      assert(_parent != null)
+
+      if _previousSibling != null {
+        assert(_previousSibling._nextSibling == self)
+        _previousSibling._nextSibling = _nextSibling
+      } else {
+        assert(_parent._firstChild == self)
+        _parent._firstChild = _nextSibling
+      }
+
+      if _nextSibling != null {
+        assert(_nextSibling._previousSibling == self)
+        _nextSibling._previousSibling = _previousSibling
+      } else {
+        assert(_parent._lastChild == self)
+        _parent._lastChild = _previousSibling
+      }
+
+      _parent = null
+      _previousSibling = null
+      _nextSibling = null
+      return self
+    }
+
+    def replaceWith(node Node) Node {
+      assert(node != self)
+      assert(_parent != null)
+      assert(node._parent == null)
+      assert(node._previousSibling == null)
+      assert(node._nextSibling == null)
+
+      node._parent = _parent
+      node._previousSibling = _previousSibling
+      node._nextSibling = _nextSibling
+
+      if _previousSibling != null {
+        assert(_previousSibling._nextSibling == self)
+        _previousSibling._nextSibling = node
+      } else {
+        assert(_parent._firstChild == self)
+        _parent._firstChild = node
+      }
+
+      if _nextSibling != null {
+        assert(_nextSibling._previousSibling == self)
+        _nextSibling._previousSibling = node
+      } else {
+        assert(_parent._lastChild == self)
+        _parent._lastChild = node
+      }
+
+      _parent = null
+      _previousSibling = null
+      _nextSibling = null
+      return self
+    }
+  }
+
+  class Node {
+    def isEmptySequence bool {
+      return kind == .SEQUENCE && !hasChildren
+    }
+
+    def hasNoSideEffects bool {
+      assert(kind.isExpression)
+      switch kind {
+        case .BOOL, .FLOAT, .INT, .NAME { return true }
+        case .HOOK { return hookTest.hasNoSideEffects && hookTrue.hasNoSideEffects && hookFalse.hasNoSideEffects }
+        case .DOT { return dotTarget.hasNoSideEffects }
+        default {
+          if kind.isUnary { return !kind.isUnaryAssign && unaryValue.hasNoSideEffects }
+          if kind.isBinary { return !kind.isBinaryAssign && binaryLeft.hasNoSideEffects && binaryRight.hasNoSideEffects }
+        }
+      }
+      return false
+    }
+  }
+
+  namespace Node {
+    def createVariable(symbol VariableSymbol) Node {
+      return new(.VARIABLE).withSymbol(symbol)
+    }
+
+    def createBlock Node {
+      return new(.BLOCK)
+    }
+
+    def createBreak Node {
+      return new(.BREAK)
+    }
+
+    def createContinue Node {
+      return new(.CONTINUE)
+    }
+
+    def createDiscard Node {
+      return new(.DISCARD)
+    }
+
+    def createDoWhile(body Node, test Node) Node {
+      assert(body.kind.isStatement)
+      assert(test.kind.isExpression)
+      return new(.DO_WHILE).appendChild(body).appendChild(test)
+    }
+
+    def createExpression(value Node) Node {
+      assert(value.kind.isExpression)
+      return new(.EXPRESSION).appendChild(value)
+    }
+
+    def createFor(setup Node, test Node, update Node, body Node) Node {
+      assert(setup == null || setup.kind.isExpression || setup.kind == .VARIABLES)
+      assert(test == null || test.kind.isExpression)
+      assert(update == null || update.kind.isExpression)
+      assert(body.kind.isStatement)
+      return new(.FOR)
+        .appendChild(setup == null ? createSequence : setup)
+        .appendChild(test == null ? createSequence : test)
+        .appendChild(update == null ? createSequence : update)
+        .appendChild(body)
+    }
+
+    def createIf(test Node, yes Node, no Node) Node {
+      assert(test.kind.isExpression)
+      assert(yes.kind.isStatement)
+      assert(no == null || no.kind.isStatement)
+      return new(.IF).appendChild(test).appendChild(yes).appendChild(no)
+    }
+
+    def createReturn(value Node) Node {
+      assert(value == null || value.kind.isExpression)
+      return new(.RETURN).appendChild(value)
+    }
+
+    def createVariables Node {
+      return new(.VARIABLES)
+    }
+
+    def createWhile(test Node, body Node) Node {
+      assert(test.kind.isExpression)
+      assert(body.kind.isStatement)
+      return new(.WHILE).appendChild(test).appendChild(body)
+    }
+
+    def createCall(value Node) Node {
+      assert(value.kind.isExpression)
+      return new(.CALL).appendChild(value)
+    }
+
+    def createDot(value Node, text string) Node {
+      assert(value.kind.isExpression)
+      assert(text != null)
+      return new(.DOT).appendChild(value).withText(text)
+    }
+
+    def createHook(test Node, yes Node, no Node) Node {
+      assert(test.kind.isExpression)
+      assert(yes.kind.isExpression)
+      assert(no.kind.isExpression)
+      return new(.HOOK).appendChild(test).appendChild(yes).appendChild(no)
+    }
+
+    def createName(symbol Symbol) Node {
+      return new(.NAME).withSymbol(symbol)
+    }
+
+    def createSequence Node {
+      return new(.SEQUENCE)
+    }
+
+    def createType(type Type) Node {
+      return new(.TYPE).withType(type)
+    }
+
+    def createBool(value bool) Node {
+      return new(.BOOL).withLiteral(value as double).withType(.BOOL)
+    }
+
+    def createInt(value int) Node {
+      return new(.INT).withLiteral(value).withType(.INT)
+    }
+
+    def createFloat(value double) Node {
+      return new(.FLOAT).withLiteral(value).withType(.FLOAT)
+    }
+
+    def createUnary(kind NodeKind, value Node) Node {
+      assert(kind.isUnary)
+      return new(kind).appendChild(value)
+    }
+
+    def createBinary(kind NodeKind, left Node, right Node) Node {
+      assert(kind.isBinary)
+      return new(kind).appendChild(left).appendChild(right)
+    }
+  }
+
+  class Node {
+    def doWhileBody Node {
+      assert(kind == .DO_WHILE)
+      assert(childCount == 2)
+      assert(_firstChild.kind.isStatement)
+      return _firstChild
+    }
+
+    def doWhileTest Node {
+      assert(kind == .DO_WHILE)
+      assert(childCount == 2)
+      assert(_lastChild.kind.isExpression)
+      return _lastChild
+    }
+
+    def expressionValue Node {
+      assert(kind == .EXPRESSION)
+      assert(childCount == 1)
+      assert(_firstChild.kind.isExpression)
+      return _firstChild
+    }
+
+    def forSetup Node {
+      assert(kind == .FOR)
+      assert(childCount == 4)
+      assert(_firstChild.kind.isExpression || _firstChild.kind == .VARIABLES)
+      return _firstChild.isEmptySequence ? null : _firstChild
+    }
+
+    def forTest Node {
+      assert(kind == .FOR)
+      assert(childCount == 4)
+      assert(_firstChild._nextSibling.kind.isExpression || _firstChild._nextSibling.kind == .VARIABLES)
+      return _firstChild._nextSibling.isEmptySequence ? null : _firstChild._nextSibling
+    }
+
+    def forUpdate Node {
+      assert(kind == .FOR)
+      assert(childCount == 4)
+      assert(_lastChild._previousSibling.kind.isExpression)
+      return _lastChild._previousSibling.isEmptySequence ? null : _lastChild._previousSibling
+    }
+
+    def forBody Node {
+      assert(kind == .FOR)
+      assert(childCount == 4)
+      assert(_lastChild.kind.isStatement)
+      return _lastChild
+    }
+
+    def ifTest Node {
+      assert(kind == .IF)
+      assert(childCount == 2 || childCount == 3)
+      assert(_firstChild.kind.isExpression)
+      return _firstChild
+    }
+
+    def ifTrue Node {
+      assert(kind == .IF)
+      assert(childCount == 2 || childCount == 3)
+      assert(_firstChild._nextSibling.kind.isStatement)
+      return _firstChild._nextSibling
+    }
+
+    def ifFalse Node {
+      assert(kind == .IF)
+      assert(childCount == 2 || childCount == 3)
+      assert(_firstChild._nextSibling._nextSibling == null || _firstChild._nextSibling._nextSibling.kind.isStatement)
+      return _firstChild._nextSibling._nextSibling
+    }
+
+    def returnValue Node {
+      assert(kind == .RETURN)
+      assert(childCount <= 1)
+      assert(_firstChild == null || _firstChild.kind.isExpression)
+      return _firstChild
+    }
+
+    def whileTest Node {
+      assert(kind == .WHILE)
+      assert(childCount == 2)
+      assert(_firstChild.kind.isExpression)
+      return _firstChild
+    }
+
+    def whileBlock Node {
+      assert(kind == .WHILE)
+      assert(childCount == 2)
+      assert(_lastChild.kind.isStatement)
+      return _lastChild
+    }
+
+    def callValue Node {
+      assert(kind == .CALL)
+      assert(childCount >= 1)
+      assert(_firstChild.kind.isExpression)
+      return _firstChild
+    }
+
+    def dotTarget Node {
+      assert(kind == .DOT)
+      assert(childCount == 1)
+      assert(_firstChild.kind.isExpression)
+      return _firstChild
+    }
+
+    def hookTest Node {
+      assert(kind == .HOOK)
+      assert(childCount == 3)
+      assert(_firstChild.kind.isExpression)
+      return _firstChild
+    }
+
+    def hookTrue Node {
+      assert(kind == .HOOK)
+      assert(childCount == 3)
+      assert(_firstChild._nextSibling.kind.isExpression)
+      return _firstChild._nextSibling
+    }
+
+    def hookFalse Node {
+      assert(kind == .HOOK)
+      assert(childCount == 3)
+      assert(_lastChild.kind.isExpression)
+      return _lastChild
+    }
+
+    def asString string {
+      assert(kind == .DOT || kind == .NAME)
+      assert(_text != null)
+      return _text
+    }
+
+    def asBool bool {
+      assert(kind == .BOOL)
+      return _literal as bool
+    }
+
+    def asFloat double {
+      assert(kind == .FLOAT)
+      return _literal
+    }
+
+    def asInt int {
+      assert(kind == .INT)
+      return _literal as int
+    }
+
+    def unaryValue Node {
+      assert(kind.isUnary)
+      assert(childCount == 1)
+      assert(_firstChild.kind.isExpression)
+      return _firstChild
+    }
+
+    def binaryLeft Node {
+      assert(kind.isBinary)
+      assert(childCount == 2)
+      assert(_firstChild.kind.isExpression)
+      return _firstChild
+    }
+
+    def binaryRight Node {
+      assert(kind.isBinary)
+      assert(childCount == 2)
+      assert(_lastChild.kind.isExpression)
+      return _lastChild
+    }
+  }
+
+  namespace Node {
+    def _createID int {
+      _nextID++
+      return _nextID
+    }
+
+    var _nextID = 0
+  }
+}

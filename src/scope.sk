@@ -1,0 +1,26 @@
+namespace GLSLX {
+  enum ScopeKind {
+    FUNCTION
+    GLOBAL
+    LOCAL
+    LOOP
+  }
+
+  class Scope {
+    const kind ScopeKind
+    const parent Scope
+    const symbols StringMap<Symbol> = {}
+
+    def define(symbol Symbol) {
+      assert(!(symbol.name in symbols))
+      symbols[symbol.name] = symbol
+    }
+
+    def find(name string) Symbol {
+      var symbol = symbols.get(name, null)
+      if symbol != null { return symbol }
+      if parent != null { return parent.find(name) }
+      return null
+    }
+  }
+}

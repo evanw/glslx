@@ -1,0 +1,150 @@
+namespace GLSLX {
+  class FormattedRange {
+    var line string
+    var range string
+  }
+
+  class Range {
+    var source Source
+    var start int
+    var end int
+
+    def toString string {
+      return source.contents.slice(start, end)
+    }
+
+    def locationString string {
+      var location = source.indexToLineColumn(start)
+      return source.name + ":" + (location.line + 1).toString + ":" + (location.column + 1).toString
+    }
+
+    def format(maxLength int) FormattedRange {
+      assert(source != null)
+      var start = source.indexToLineColumn(self.start)
+      var end = source.indexToLineColumn(self.end)
+      var line = source.contentsOfLine(start.line)
+      var startColumn = start.column
+      var endColumn = end.line == start.line ? end.column : line.count
+
+      # Use a unicode iterator to count the actual code points so they don't get sliced through the middle
+      var iterator = Unicode.StringIterator.INSTANCE.reset(line, 0)
+      var codePoints List<int> = []
+      var a = 0
+      var b = 0
+
+      # Expand tabs into spaces
+      while true {
+        if iterator.index == startColumn {
+          a = codePoints.count
+        }
+        if iterator.index == endColumn {
+          b = codePoints.count
+        }
+        var codePoint = iterator.nextCodePoint
+        if codePoint < 0 {
+          break
+        }
+        if codePoint == '\t' {
+          for space in 0..8 - codePoints.count % 8 {
+            codePoints.append(' ')
+          }
+        } else {
+          codePoints.append(codePoint)
+        }
+      }
+
+      # Ensure the line length doesn't exceed maxLength
+      var count = codePoints.count
+      if maxLength > 0 && count > maxLength {
+        var centeredWidth = Math.min(b - a, maxLength / 2)
+        var centeredStart = Math.max((maxLength - centeredWidth) / 2, 3)
+
+        # Left aligned
+        if a < centeredStart {
+          line = string.fromCodePoints(codePoints.slice(0, maxLength - 3)) + "..."
+          if b > maxLength - 3 {
+            b = maxLength - 3
+          }
+        }
+
+        # Right aligned
+        else if count - a < maxLength - centeredStart {
+          var offset = count - maxLength
+          line = "..." + string.fromCodePoints(codePoints.slice(offset + 3, count))
+          a -= offset
+          b -= offset
+        }
+
+        # Center aligned
+        else {
+          var offset = a - centeredStart
+          line = "..." + string.fromCodePoints(codePoints.slice(offset + 3, offset + maxLength - 3)) + "..."
+          a -= offset
+          b -= offset
+          if b > maxLength - 3 {
+            b = maxLength - 3
+          }
+        }
+      } else {
+        line = string.fromCodePoints(codePoints)
+      }
+
+      return FormattedRange.new(line, " ".repeat(a) + (b - a < 2 ? "^" : "~".repeat(b - a)))
+    }
+
+    def fromStart(count int) Range {
+      assert(count >= 0 && count <= end - start)
+      return Range.new(source, start, start + count)
+    }
+
+    def fromEnd(count int) Range {
+      assert(count >= 0 && count <= end - start)
+      return Range.new(source, end - count, end)
+    }
+
+    def slice(offsetStart int, offsetEnd int) Range {
+      assert(offsetStart >= 0 && offsetStart <= offsetEnd && offsetEnd <= end - start)
+      return Range.new(source, start + offsetStart, start + offsetEnd)
+    }
+
+    def lineColumn LineColumn {
+      return source.indexToLineColumn(start)
+    }
+
+    def rangeAtEnd Range {
+      return Range.new(source, end, end)
+    }
+  }
+
+  namespace Range {
+    def span(start Range, end Range) Range {
+      assert(start.source == end.source)
+      assert(start.start <= end.end)
+      return Range.new(start.source, start.start, end.end)
+    }
+
+    def inner(start Range, end Range) Range {
+      assert(start.source == end.source)
+      assert(start.end <= end.start)
+      return Range.new(start.source, start.end, end.start)
+    }
+
+    def before(outer Range, inner Range) Range {
+      assert(outer.source == inner.source)
+      assert(outer.start <= inner.start)
+      assert(outer.end >= inner.end)
+      return Range.new(outer.source, outer.start, inner.start)
+    }
+
+    def after(outer Range, inner Range) Range {
+      assert(outer.source == inner.source)
+      assert(outer.start <= inner.start)
+      assert(outer.end >= inner.end)
+      return Range.new(outer.source, inner.end, outer.end)
+    }
+
+    def equal(left Range, right Range) bool {
+      return left.source == right.source && left.start == right.start && left.end == right.end
+    }
+  }
+}

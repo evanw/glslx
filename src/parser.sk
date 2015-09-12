@@ -1,0 +1,653 @@
+namespace GLSLX {
+  var pratt = createExpressionParser
+
+  def typeParselet(type Type) fn(ParserContext, Token) Node {
+    return (context, token) => Node.createType(type).withRange(token.range)
+  }
+
+  def unaryPrefix(kind NodeKind) fn(ParserContext, Token, Node) Node {
+    assert(kind.isUnaryPrefix)
+    return (context, token, value) => Node.createUnary(kind, value).withRange(Range.span(token.range, value.range))
+  }
+
+  def unaryPostfix(kind NodeKind) fn(ParserContext, Node, Token) Node {
+    assert(kind.isUnaryPostfix)
+    return (context, value, token) => Node.createUnary(kind, value).withRange(Range.span(value.range, token.range))
+  }
+
+  def binaryParselet(kind NodeKind) fn(ParserContext, Node, Token, Node) Node {
+    assert(kind.isBinary)
+    return (context, left, token, right) => Node.createBinary(kind, left, right).withRange(Range.span(left.range, right.range))
+  }
+
+  def createExpressionParser Pratt {
+    var pratt = Pratt.new
+
+    pratt.literal(.TRUE, (context, token) => Node.createBool(true).withRange(token.range))
+    pratt.literal(.FALSE, (context, token) => Node.createBool(false).withRange(token.range))
+    pratt.literal(.INT_LITERAL, (context, token) => Node.createInt((token.range.toString as dynamic) | 0).withRange(token.range))
+    pratt.literal(.FLOAT_LITERAL, (context, token) => Node.createFloat(+(token.range.toString as dynamic)).withRange(token.range))
+
+    pratt.literal(.BOOL, typeParselet(.BOOL))
+    pratt.literal(.BVEC2, typeParselet(.BVEC2))
+    pratt.literal(.BVEC3, typeParselet(.BVEC3))
+    pratt.literal(.BVEC4, typeParselet(.BVEC4))
+    pratt.literal(.FLOAT, typeParselet(.FLOAT))
+    pratt.literal(.INT, typeParselet(.INT))
+    pratt.literal(.IVEC2, typeParselet(.IVEC2))
+    pratt.literal(.IVEC3, typeParselet(.IVEC3))
+    pratt.literal(.IVEC4, typeParselet(.IVEC4))
+    pratt.literal(.MAT2, typeParselet(.MAT2))
+    pratt.literal(.MAT3, typeParselet(.MAT3))
+    pratt.literal(.MAT4, typeParselet(.MAT4))
+    pratt.literal(.VEC2, typeParselet(.VEC2))
+    pratt.literal(.VEC3, typeParselet(.VEC3))
+    pratt.literal(.VEC4, typeParselet(.VEC4))
+    pratt.literal(.VOID, typeParselet(.VOID))
+
+    pratt.prefix(.COMPLEMENT, .UNARY_PREFIX, unaryPrefix(.COMPLEMENT))
+    pratt.prefix(.DECREMENT, .UNARY_PREFIX, unaryPrefix(.PREFIX_DECREMENT))
+    pratt.prefix(.INCREMENT, .UNARY_PREFIX, unaryPrefix(.PREFIX_INCREMENT))
+    pratt.prefix(.MINUS, .UNARY_PREFIX, unaryPrefix(.NEGATIVE))
+    pratt.prefix(.NOT, .UNARY_PREFIX, unaryPrefix(.NOT))
+    pratt.prefix(.PLUS, .UNARY_PREFIX, unaryPrefix(.POSITIVE))
+
+    pratt.postfix(.DECREMENT, .UNARY_POSTFIX, unaryPostfix(.POSTFIX_DECREMENT))
+    pratt.postfix(.INCREMENT, .UNARY_POSTFIX, unaryPostfix(.POSTFIX_INCREMENT))
+
+    pratt.infix(.DIVIDE, .MULTIPLY, binaryParselet(.DIVIDE))
+    pratt.infix(.EQUAL, .COMPARE, binaryParselet(.EQUAL))
+    pratt.infix(.GREATER_THAN, .COMPARE, binaryParselet(.GREATER_THAN))
+    pratt.infix(.GREATER_THAN_OR_EQUAL, .COMPARE, binaryParselet(.GREATER_THAN_OR_EQUAL))
+    pratt.infix(.LESS_THAN, .COMPARE, binaryParselet(.LESS_THAN))
+    pratt.infix(.LESS_THAN_OR_EQUAL, .COMPARE, binaryParselet(.LESS_THAN_OR_EQUAL))
+    pratt.infix(.MINUS, .ADD, binaryParselet(.SUBTRACT))
+    pratt.infix(.MULTIPLY, .MULTIPLY, binaryParselet(.MULTIPLY))
+    pratt.infix(.NOT_EQUAL, .COMPARE, binaryParselet(.NOT_EQUAL))
+    pratt.infix(.PLUS, .ADD, binaryParselet(.ADD))
+    pratt.infix(.REMAINDER, .MULTIPLY, binaryParselet(.REMAINDER))
+    pratt.infix(.SHIFT_LEFT, .SHIFT, binaryParselet(.SHIFT_LEFT))
+    pratt.infix(.SHIFT_RIGHT, .SHIFT, binaryParselet(.SHIFT_RIGHT))
+    pratt.infix(.LOGICAL_OR, .LOGICAL_OR, binaryParselet(.LOGICAL_OR))
+    pratt.infix(.LOGICAL_AND, .LOGICAL_AND, binaryParselet(.LOGICAL_AND))
+    pratt.infix(.BITWISE_AND, .BITWISE_AND, binaryParselet(.BITWISE_AND))
+    pratt.infix(.BITWISE_OR, .BITWISE_OR, binaryParselet(.BITWISE_OR))
+    pratt.infix(.BITWISE_XOR, .BITWISE_XOR, binaryParselet(.BITWISE_XOR))
+
+    pratt.infixRight(.ASSIGN, .ASSIGN, binaryParselet(.ASSIGN))
+    pratt.infixRight(.ASSIGN_ADD, .ASSIGN, binaryParselet(.ASSIGN_ADD))
+    pratt.infixRight(.ASSIGN_BITWISE_AND, .ASSIGN, binaryParselet(.ASSIGN_BITWISE_AND))
+    pratt.infixRight(.ASSIGN_BITWISE_OR, .ASSIGN, binaryParselet(.ASSIGN_BITWISE_OR))
+    pratt.infixRight(.ASSIGN_BITWISE_XOR, .ASSIGN, binaryParselet(.ASSIGN_BITWISE_XOR))
+    pratt.infixRight(.ASSIGN_DIVIDE, .ASSIGN, binaryParselet(.ASSIGN_DIVIDE))
+    pratt.infixRight(.ASSIGN_MULTIPLY, .ASSIGN, binaryParselet(.ASSIGN_MULTIPLY))
+    pratt.infixRight(.ASSIGN_REMAINDER, .ASSIGN, binaryParselet(.ASSIGN_REMAINDER))
+    pratt.infixRight(.ASSIGN_SHIFT_LEFT, .ASSIGN, binaryParselet(.ASSIGN_SHIFT_LEFT))
+    pratt.infixRight(.ASSIGN_SHIFT_RIGHT, .ASSIGN, binaryParselet(.ASSIGN_SHIFT_RIGHT))
+    pratt.infixRight(.ASSIGN_SUBTRACT, .ASSIGN, binaryParselet(.ASSIGN_SUBTRACT))
+
+    # Name
+    pratt.literal(.IDENTIFIER, (context, token) => {
+      var name = token.range.toString
+      var symbol = context.scope.find(name)
+      if symbol == null {
+        context.log.syntaxErrorBadSymbolReference(token.range)
+        return null
+      }
+      return Node.createName(symbol).withRange(token.range)
+    })
+
+    # Sequence
+    pratt.infix(.COMMA, .COMMA, (context, left, token, right) => {
+      if left.kind != .SEQUENCE {
+        left = Node.createSequence.appendChild(left).withRange(left.range)
+      }
+      left.appendChild(right)
+      return left.withRange(context.spanSince(left.range))
+    })
+
+    # Dot
+    pratt.parselet(.DOT, .MEMBER).infix = (context, left) => {
+      context.next
+      var name = context.current.range
+      if !context.expect(.IDENTIFIER) {
+        return null
+      }
+      return Node.createDot(left, name.toString).withRange(context.spanSince(left.range))
+    }
+
+    # Group
+    pratt.parselet(.LEFT_PARENTHESIS, .LOWEST).prefix = (context) => {
+      context.next
+      var value = pratt.parse(context, .LOWEST)
+      if value == null || !context.expect(.RIGHT_PARENTHESIS) {
+        return null
+      }
+      return value
+    }
+
+    # Call
+    pratt.parselet(.LEFT_PARENTHESIS, .UNARY_POSTFIX).infix = (context, left) => {
+      context.next
+      var node = Node.createCall(left)
+      if !parseCommaSeparatedList(context, node, .RIGHT_PARENTHESIS) {
+        return null
+      }
+      return node.withRange(context.spanSince(left.range))
+    }
+
+    # Index
+    pratt.parselet(.LEFT_BRACKET, .MEMBER).infix = (context, left) => {
+      context.next
+      var value = pratt.parse(context, .LOWEST)
+      if value == null || !context.expect(.RIGHT_BRACKET) {
+        return null
+      }
+      return Node.createBinary(.INDEX, left, value).withRange(context.spanSince(left.range))
+    }
+
+    # Hook
+    pratt.parselet(.QUESTION, .ASSIGN).infix = (context, left) => {
+      context.next
+      var middle = pratt.parse(context, .COMMA)
+      if middle == null || !context.expect(.COLON) {
+        return null
+      }
+      var right = pratt.parse(context, .COMMA)
+      if right == null {
+        return null
+      }
+      return Node.createHook(left, middle, right).withRange(context.spanSince(left.range))
+    }
+
+    return pratt
+  }
+
+  def parseCommaSeparatedList(context ParserContext, parent Node, stop TokenKind) bool {
+    var isFirst = true
+    while !context.eat(stop) {
+      if !isFirst && !context.expect(.COMMA) {
+        return false
+      }
+      var value = pratt.parse(context, .COMMA)
+      if value == null {
+        return false
+      }
+      parent.appendChild(value)
+      isFirst = false
+    }
+    return true
+  }
+
+  def parseDoWhile(context ParserContext) Node {
+    var token = context.next
+    context.pushScope(Scope.new(.LOOP, context.scope))
+    var body = parseStatement(context)
+    if body == null || !context.expect(.WHILE) || !context.expect(.LEFT_PARENTHESIS) {
+      return null
+    }
+    var test = pratt.parse(context, .LOWEST)
+    if test == null {
+      return null
+    }
+    if !context.expect(.RIGHT_PARENTHESIS) || !context.expect(.SEMICOLON) {
+      return null
+    }
+    context.popScope
+    return Node.createDoWhile(body, test).withRange(context.spanSince(token.range))
+  }
+
+  def parseFor(context ParserContext) Node {
+    var token = context.next
+    context.pushScope(Scope.new(.LOOP, context.scope))
+    if !context.expect(.LEFT_PARENTHESIS) {
+      return null
+    }
+
+    # Setup
+    var setup Node = null
+    if !context.eat(.SEMICOLON) {
+      setup = pratt.parse(context, .LOWEST)
+      if setup == null {
+        return null
+      }
+      if !context.expect(.SEMICOLON) {
+        return null
+      }
+    }
+
+    # Test
+    var test Node = null
+    if !context.eat(.SEMICOLON) {
+      test = pratt.parse(context, .LOWEST)
+      if test == null {
+        return null
+      }
+      if !context.expect(.SEMICOLON) {
+        return null
+      }
+    }
+
+    # Update
+    var update Node = null
+    if !context.eat(.RIGHT_PARENTHESIS) {
+      update = pratt.parse(context, .LOWEST)
+      if update == null {
+        return null
+      }
+      if !context.expect(.RIGHT_PARENTHESIS) {
+        return null
+      }
+    }
+
+    # Body
+    var body = parseStatement(context)
+    if body == null {
+      return null
+    }
+    context.popScope
+    return Node.createFor(setup, test, update, body).withRange(context.spanSince(token.range))
+  }
+
+  def parseIf(context ParserContext) Node {
+    var token = context.next
+    if !context.expect(.LEFT_PARENTHESIS) {
+      return null
+    }
+    var test = pratt.parse(context, .LOWEST)
+    if test == null {
+      return null
+    }
+    if !context.expect(.RIGHT_PARENTHESIS) {
+      return null
+    }
+    var yes = parseStatement(context)
+    if yes == null {
+      return null
+    }
+    var no Node = null
+    if context.eat(.ELSE) {
+      no = parseStatement(context)
+      if no == null {
+        return null
+      }
+    }
+    return Node.createIf(test, yes, no).withRange(context.spanSince(token.range))
+  }
+
+  def parseWhile(context ParserContext) Node {
+    var token = context.next
+    context.pushScope(Scope.new(.LOOP, context.scope))
+    if !context.expect(.LEFT_PARENTHESIS) {
+      return null
+    }
+    var test = pratt.parse(context, .LOWEST)
+    if test == null {
+      return null
+    }
+    if !context.expect(.RIGHT_PARENTHESIS) {
+      return null
+    }
+    var body = parseStatement(context)
+    if body == null {
+      return null
+    }
+    context.popScope
+    return Node.createWhile(test, body).withRange(context.spanSince(token.range))
+  }
+
+  def parseReturn(context ParserContext) Node {
+    var token = context.next
+    var value Node = null
+    if !context.eat(.SEMICOLON) {
+      value = pratt.parse(context, .LOWEST)
+      if value == null {
+        return null
+      }
+      if !context.expect(.SEMICOLON) {
+        return null
+      }
+    }
+    return Node.createReturn(value).withRange(context.spanSince(token.range))
+  }
+
+  def checkForLoopAndSemicolon(context ParserContext, range Range, node Node) Node {
+    for scope = context.scope; scope != null; scope = scope.parent {
+      if scope.kind == .LOOP {
+        return checkForSemicolon(context, range, node)
+      }
+    }
+    context.log.syntaxErrorOutsideLoop(range)
+    return null
+  }
+
+  def checkForSemicolon(context ParserContext, range Range, node Node) Node {
+    if !context.expect(.SEMICOLON) {
+      return null
+    }
+    return node.withRange(context.spanSince(range))
+  }
+
+  def parseStatement(context ParserContext) Node {
+    var token = context.current
+
+    switch token.kind {
+      case .BREAK { return checkForLoopAndSemicolon(context, context.next.range, Node.createBreak) }
+      case .CONTINUE { return checkForLoopAndSemicolon(context, context.next.range, Node.createContinue) }
+      case .DISCARD { return checkForSemicolon(context, context.next.range, Node.createDiscard) }
+      case .RETURN { return parseReturn(context) }
+      case .DO { return parseDoWhile(context) }
+      case .FOR { return parseFor(context) }
+      case .IF { return parseIf(context) }
+      case .LEFT_BRACE { return parseBlock(context) }
+      case .WHILE { return parseWhile(context) }
+    }
+
+    # Try to parse a variable
+    var flags = parseFlags(context)
+    var type Node = null
+    if flags != 0 {
+      type = parseType(context, .REPORT_ERRORS)
+      if type == null {
+        return null
+      }
+    } else {
+      type = parseType(context, .IGNORE_ERRORS)
+    }
+    if type != null {
+      var name = context.current.range
+      if !context.expect(.IDENTIFIER) {
+        return null
+      }
+      var variables = Node.createVariables
+      if !parseVariables(flags, type, name, context, variable => variables.appendChild(Node.createVariable(variable).withRange(context.spanSince(variable.range)))) {
+        return null
+      }
+      if !context.expect(.SEMICOLON) {
+        return null
+      }
+      return variables.withRange(context.spanSince(token.range))
+    }
+
+    # Parse an expression
+    var value = pratt.parse(context, .LOWEST)
+    if value == null {
+      return null
+    }
+    return checkForSemicolon(context, token.range, Node.createExpression(value))
+  }
+
+  def parseBlock(context ParserContext) Node {
+    var token = context.current
+    var block = Node.createBlock
+    context.pushScope(Scope.new(.LOCAL, context.scope))
+
+    if !context.expect(.LEFT_BRACE) {
+      return null
+    }
+
+    while !context.peek(.RIGHT_BRACE) && !context.peek(.END_OF_FILE) {
+      var statement = parseStatement(context)
+      if statement == null {
+        return null
+      }
+      block.appendChild(statement)
+    }
+
+    if !context.expect(.RIGHT_BRACE) {
+      return null
+    }
+
+    context.popScope
+    return block.withRange(context.spanSince(token.range))
+  }
+
+  def parseFlags(context ParserContext) int {
+    var flags = 0
+    while true {
+      switch context.current.kind {
+        # Keyword modifiers
+        case .ATTRIBUTE { flags |= Symbol.ATTRIBUTE }
+        case .CONST     { flags |= Symbol.CONST }
+        case .HIGHP     { flags |= Symbol.HIGHP }
+        case .IN        { flags |= Symbol.IN }
+        case .INOUT     { flags |= Symbol.INOUT }
+        case .LOWP      { flags |= Symbol.LOWP }
+        case .MEDIUMP   { flags |= Symbol.MEDIUMP }
+        case .OUT       { flags |= Symbol.OUT }
+        case .UNIFORM   { flags |= Symbol.UNIFORM }
+        case .VARYING   { flags |= Symbol.VARYING }
+
+        # Non-standard modifiers
+        case .IDENTIFIER {
+          if context.scope.kind != .GLOBAL { return flags }
+          switch context.current.range.toString {
+            case "fragment" { flags |= Symbol.FRAGMENT }
+            case "vertex" { flags |= Symbol.VERTEX }
+            default { return flags }
+          }
+        }
+
+        default { return flags }
+      }
+      context.next
+    }
+  }
+
+  enum ParseTypeMode {
+    IGNORE_ERRORS
+    REPORT_ERRORS
+  }
+
+  def parseType(context ParserContext, mode ParseTypeMode) Node {
+    var token = context.current
+    var type Type = null
+
+    switch token.kind {
+      case .BOOL        { type = .BOOL }
+      case .BVEC2       { type = .BVEC2 }
+      case .BVEC3       { type = .BVEC3 }
+      case .BVEC4       { type = .BVEC4 }
+      case .FLOAT       { type = .FLOAT }
+      case .INT         { type = .INT }
+      case .IVEC2       { type = .IVEC2 }
+      case .IVEC3       { type = .IVEC3 }
+      case .IVEC4       { type = .IVEC4 }
+      case .MAT2        { type = .MAT2 }
+      case .MAT3        { type = .MAT3 }
+      case .MAT4        { type = .MAT4 }
+      case .SAMPLER2D   { type = .SAMPLER2D }
+      case .SAMPLERCUBE { type = .SAMPLERCUBE }
+      case .VEC2        { type = .VEC2 }
+      case .VEC3        { type = .VEC3 }
+      case .VEC4        { type = .VEC4 }
+      case .VOID        { type = .VOID }
+
+      case .IDENTIFIER {
+        if mode == .REPORT_ERRORS {
+          context.unexpectedToken
+        }
+        return null
+      }
+
+      default {
+        if mode == .REPORT_ERRORS {
+          context.unexpectedToken
+        }
+        return null
+      }
+    }
+
+    context.next
+    return Node.createType(type).withRange(context.spanSince(token.range))
+  }
+
+  def parseStruct(context ParserContext) ObjectSymbol {
+    context.unexpectedToken
+    return null
+  }
+
+  def parseFunction(flags int, type Node, name Range, context ParserContext) FunctionSymbol {
+    var previous = context.scope.symbols.get(name.toString, null)
+    if previous != null {
+      context.log.syntaxErrorDuplicateSymbolDefinition(name, previous.range)
+      return null
+    }
+
+    var function = FunctionSymbol.new(name, name.toString, Scope.new(.FUNCTION, context.scope))
+    function.flags |= flags
+    function.returnType = type
+    context.scope.define(function)
+    context.pushScope(function.scope)
+
+    # Takes no arguments
+    if context.eat(.VOID) {
+      if !context.expect(.RIGHT_PARENTHESIS) {
+        return null
+      }
+    }
+
+    # Takes arguments
+    else if !context.eat(.RIGHT_PARENTHESIS) {
+      while true {
+        # Parse leading flags
+        var argumentFlags = parseFlags(context)
+
+        # Parse the type
+        var argumentType = parseType(context, .REPORT_ERRORS)
+        if argumentType == null {
+          return null
+        }
+
+        # Parse the identifier
+        var argumentName = context.current.range
+        if !context.expect(.IDENTIFIER) {
+          return null
+        }
+
+        # Check for duplicates
+        var previousArgument = context.scope.symbols.get(argumentName.toString, null)
+        if previousArgument != null {
+          context.log.syntaxErrorDuplicateSymbolDefinition(argumentName, previousArgument.range)
+          return null
+        }
+
+        # Create the argument
+        var argument = VariableSymbol.new(argumentName, argumentName.toString, context.scope)
+        context.scope.define(argument)
+        argument.flags |= argumentFlags
+        argument.type = argumentType
+        function.arguments.append(argument)
+
+        # Parse another argument?
+        if !context.eat(.COMMA) {
+          break
+        }
+      }
+
+      if !context.expect(.RIGHT_PARENTHESIS) {
+        return null
+      }
+    }
+
+    if !context.eat(.SEMICOLON) {
+      function.body = parseBlock(context)
+      if function.body == null {
+        return null
+      }
+    }
+
+    context.popScope
+    return function
+  }
+
+  def parseVariables(flags int, type Node, name Range, context ParserContext, callback fn(VariableSymbol)) bool {
+    while true {
+      var previous = context.scope.symbols.get(name.toString, null)
+      if previous != null {
+        context.log.syntaxErrorDuplicateSymbolDefinition(name, previous.range)
+        return false
+      }
+
+      var variable = VariableSymbol.new(name, name.toString, context.scope)
+      variable.flags |= flags
+      variable.type = type
+      context.scope.define(variable)
+
+      if context.eat(.ASSIGN) {
+        variable.value = pratt.parse(context, .COMMA)
+        if variable.value == null {
+          return false
+        }
+      }
+
+      callback(variable)
+
+      if !context.eat(.COMMA) {
+        return true
+      }
+
+      name = context.current.range
+      if !context.expect(.IDENTIFIER) {
+        return false
+      }
+    }
+  }
+
+  def parseGlobalStatement(context ParserContext, global Global) bool {
+    # Parse a struct
+    if context.current.kind == .STRUCT {
+      var object = parseStruct(context)
+      if object != null {
+        global.objects.append(object)
+        return true
+      }
+      return false
+    }
+
+    # Parse leading flags
+    var flags = parseFlags(context)
+
+    # Parse the type
+    var type = parseType(context, .REPORT_ERRORS)
+    if type == null {
+      return false
+    }
+
+    # Parse the identifier
+    var name = context.current.range
+    if !context.expect(.IDENTIFIER) {
+      return false
+    }
+
+    # Parse a function
+    if context.eat(.LEFT_PARENTHESIS) {
+      var function = parseFunction(flags, type, name, context)
+      if function != null {
+        global.functions.append(function)
+        return true
+      }
+      return false
+    }
+
+    # Parse a variable
+    if !parseVariables(flags, type, name, context, variable => global.variables.append(variable)) {
+      return false
+    }
+    return context.expect(.SEMICOLON)
+  }
+
+  def parse(log Log, tokens List<Token>) Global {
+    var context = ParserContext.new(log, tokens)
+    var global = Global.new
+
+    context.pushScope(global.scope)
+    while !context.eat(.END_OF_FILE) {
+      if !parseGlobalStatement(context, global) {
+        return null
+      }
+    }
+
+    return global
+  }
+}

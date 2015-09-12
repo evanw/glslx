@@ -1,0 +1,364 @@
+namespace GLSLX {
+  enum TokenKind {
+    # Standard keywords
+    ATTRIBUTE
+    BOOL
+    BREAK
+    BVEC2
+    BVEC3
+    BVEC4
+    CONST
+    CONTINUE
+    DISCARD
+    DO
+    ELSE
+    FALSE
+    FLOAT
+    FOR
+    HIGHP
+    IF
+    IN
+    INOUT
+    INT
+    INVARIANT
+    IVEC2
+    IVEC3
+    IVEC4
+    LOWP
+    MAT2
+    MAT3
+    MAT4
+    MEDIUMP
+    OUT
+    PRECISION
+    RETURN
+    SAMPLER2D
+    SAMPLERCUBE
+    STRUCT
+    TRUE
+    UNIFORM
+    VARYING
+    VEC2
+    VEC3
+    VEC4
+    VOID
+    WHILE
+
+    # Unary
+    COMPLEMENT
+    DECREMENT
+    INCREMENT
+    NOT
+
+    # Binary
+    BITWISE_AND
+    BITWISE_OR
+    BITWISE_XOR
+    DIVIDE
+    EQUAL
+    GREATER_THAN
+    GREATER_THAN_OR_EQUAL
+    LESS_THAN
+    LESS_THAN_OR_EQUAL
+    LOGICAL_AND
+    LOGICAL_OR
+    MINUS
+    MULTIPLY
+    NOT_EQUAL
+    PLUS
+    REMAINDER
+    SHIFT_LEFT
+    SHIFT_RIGHT
+
+    # Binary assignment
+    ASSIGN
+    ASSIGN_ADD
+    ASSIGN_BITWISE_AND
+    ASSIGN_BITWISE_OR
+    ASSIGN_BITWISE_XOR
+    ASSIGN_DIVIDE
+    ASSIGN_MULTIPLY
+    ASSIGN_REMAINDER
+    ASSIGN_SHIFT_LEFT
+    ASSIGN_SHIFT_RIGHT
+    ASSIGN_SUBTRACT
+
+    # Other operators
+    COLON
+    COMMA
+    DOT
+    LEFT_BRACE
+    LEFT_BRACKET
+    LEFT_PARENTHESIS
+    QUESTION
+    RIGHT_BRACE
+    RIGHT_BRACKET
+    RIGHT_PARENTHESIS
+    SEMICOLON
+
+    # Literals
+    FLOAT_LITERAL
+    IDENTIFIER
+    INT_LITERAL
+
+    # This is always at the end of the token stream
+    END_OF_FILE
+  }
+
+  namespace TokenKind {
+    def fromKeyword(text string) TokenKind {
+      assert(text in _keywords)
+      return _keywords[text]
+    }
+  }
+
+  class Token {
+    var range Range
+    var kind TokenKind
+  }
+
+  def tokenize(log Log, source Source) List<Token> {
+    var parts List<string> = (source.contents as dynamic).split(_tokenRegex)
+    var tokens List<Token> = []
+    var start = 0
+
+    for i in 0..parts.count {
+      var part = parts[i]
+      var count = part.count
+      var end = start + count
+      var range = Range.new(source, start, end)
+
+      if i % 2 != 0 {
+        var c = part[0]
+
+        # Identifier
+        if c >= 'A' && c <= 'Z' || c >= 'a' && c <= 'z' || c == '_' {
+          var keyword = _keywords.get(part, .END_OF_FILE)
+          if keyword != .END_OF_FILE {
+            tokens.append(Token.new(range, keyword))
+          } else if isReservedWord(part) {
+            log.syntaxErrorReservedWord(range)
+          } else {
+            tokens.append(Token.new(range, .IDENTIFIER))
+          }
+        }
+
+        # Number
+        else if c >= '0' && c <= '9' || c == '.' && count > 1 {
+          tokens.append(Token.new(range, _intRegex.test(part) ? .INT_LITERAL : .FLOAT_LITERAL))
+        }
+
+        # Operator
+        else {
+          var kind = _operators.get(part, .END_OF_FILE)
+          if kind != .END_OF_FILE {
+            tokens.append(Token.new(range, kind))
+          }
+        }
+      }
+
+      else if part != "" {
+        log.syntaxErrorExtraData(range, part)
+        break
+      }
+
+      start = end
+    }
+
+    tokens.append(Token.new(Range.new(source, start, start), .END_OF_FILE))
+    return tokens
+  }
+
+  def isKeywordOrReservedWord(text string) bool {
+    return isKeyword(text) || isReservedWord(text)
+  }
+
+  def isKeyword(text string) bool {
+    return text in _keywords
+  }
+
+  def isReservedWord(text string) bool {
+    return text in _reservedWords
+  }
+
+  const _tokenRegex = dynamic.RegExp.new(
+    "(" +
+    "[ \t\r\n]|" + # Whitespace
+    "/\\*(?:.|\n)*?\\*/|" + # Multi-line comment
+    "//.*|" + # Single-line comment
+    "&&|\\|\\||\\+\\+|--|<<=?|>>=?|[()[\\]{}\\.,?:;]|[+\\-*/%=!<>&|^~]=?|" + # Operator
+
+    # Float literal
+    "\\.[0-9]+(?:[eE]?[+-]?[0-9]+)?\\b|" + # Floating-point constant
+    "[0-9]+\\.[0-9]*(?:[eE][+-]?[0-9]+)?\\b|" + # Floating-point constant
+    "[0-9]+[eE][+-]?[0-9]+\\b|" + # Floating-point constant
+
+    # int literals
+    "[1-9][0-9]*\\b|" + # Decimal int literal
+    "0[0-7]*\\b|" + # Octal int literal
+    "0[xX][0-9A-Fa-f]+\\b|" + # Hexadecimal int literal
+
+    "[A-Za-z_][A-Za-z0-9_]*\\b" + # Identifier
+    ")"
+  )
+
+  const _intRegex = dynamic.RegExp.new(
+    "^(" +
+    "[1-9][0-9]*|" +
+    "0[0-7]*|" +
+    "0[xX][0-9A-Fa-f]+" +
+    ")$"
+  )
+
+  const _keywords StringMap<TokenKind> = {
+    # Standard keywords
+    "attribute": .ATTRIBUTE,
+    "bool": .BOOL,
+    "break": .BREAK,
+    "bvec2": .BVEC2,
+    "bvec3": .BVEC3,
+    "bvec4": .BVEC4,
+    "const": .CONST,
+    "continue": .CONTINUE,
+    "discard": .DISCARD,
+    "do": .DO,
+    "else": .ELSE,
+    "false": .FALSE,
+    "float": .FLOAT,
+    "for": .FOR,
+    "highp": .HIGHP,
+    "if": .IF,
+    "in": .IN,
+    "inout": .INOUT,
+    "int": .INT,
+    "invariant": .INVARIANT,
+    "ivec2": .IVEC2,
+    "ivec3": .IVEC3,
+    "ivec4": .IVEC4,
+    "lowp": .LOWP,
+    "mat2": .MAT2,
+    "mat3": .MAT3,
+    "mat4": .MAT4,
+    "mediump": .MEDIUMP,
+    "out": .OUT,
+    "precision": .PRECISION,
+    "return": .RETURN,
+    "sampler2D": .SAMPLER2D,
+    "samplerCube": .SAMPLERCUBE,
+    "struct": .STRUCT,
+    "true": .TRUE,
+    "uniform": .UNIFORM,
+    "varying": .VARYING,
+    "vec2": .VEC2,
+    "vec3": .VEC3,
+    "vec4": .VEC4,
+    "void": .VOID,
+    "while": .WHILE,
+  }
+
+  const _operators StringMap<TokenKind> = {
+    # Unary
+    "~": .COMPLEMENT,
+    "--": .DECREMENT,
+    "++": .INCREMENT,
+    "!": .NOT,
+
+    # Binary
+    "&": .BITWISE_AND,
+    "|": .BITWISE_OR,
+    "^": .BITWISE_XOR,
+    "/": .DIVIDE,
+    "==": .EQUAL,
+    ">": .GREATER_THAN,
+    ">=": .GREATER_THAN_OR_EQUAL,
+    "<": .LESS_THAN,
+    "<=": .LESS_THAN_OR_EQUAL,
+    "&&": .LOGICAL_AND,
+    "||": .LOGICAL_OR,
+    "-": .MINUS,
+    "*": .MULTIPLY,
+    "!=": .NOT_EQUAL,
+    "+": .PLUS,
+    "%": .REMAINDER,
+    "<<": .SHIFT_LEFT,
+    ">>": .SHIFT_RIGHT,
+
+    # Binary assignment
+    "=": .ASSIGN,
+    "+=": .ASSIGN_ADD,
+    "&=": .ASSIGN_BITWISE_AND,
+    "|=": .ASSIGN_BITWISE_OR,
+    "^=": .ASSIGN_BITWISE_XOR,
+    "/=": .ASSIGN_DIVIDE,
+    "*=": .ASSIGN_MULTIPLY,
+    "%=": .ASSIGN_REMAINDER,
+    "<<=": .ASSIGN_SHIFT_LEFT,
+    ">>=": .ASSIGN_SHIFT_RIGHT,
+    "-=": .ASSIGN_SUBTRACT,
+
+    # Other
+    ":": .COLON,
+    ",": .COMMA,
+    ".": .DOT,
+    "{": .LEFT_BRACE,
+    "[": .LEFT_BRACKET,
+    "(": .LEFT_PARENTHESIS,
+    "?": .QUESTION,
+    "}": .RIGHT_BRACE,
+    "]": .RIGHT_BRACKET,
+    ")": .RIGHT_PARENTHESIS,
+    ";": .SEMICOLON,
+  }
+
+  const _reservedWords = {
+    "asm": 0,
+    "cast": 0,
+    "class": 0,
+    "default": 0,
+    "double": 0,
+    "dvec2": 0,
+    "dvec3": 0,
+    "dvec4": 0,
+    "enum": 0,
+    "extern": 0,
+    "external": 0,
+    "fixed": 0,
+    "flat": 0,
+    "fvec2": 0,
+    "fvec3": 0,
+    "fvec4": 0,
+    "goto": 0,
+    "half": 0,
+    "hvec2": 0,
+    "hvec3": 0,
+    "hvec4": 0,
+    "inline": 0,
+    "input": 0,
+    "interface": 0,
+    "long": 0,
+    "namespace": 0,
+    "noinline": 0,
+    "output": 0,
+    "packed": 0,
+    "public": 0,
+    "sampler1D": 0,
+    "sampler1DShadow": 0,
+    "sampler2DRect": 0,
+    "sampler2DRectShadow": 0,
+    "sampler2DShadow": 0,
+    "sampler3D": 0,
+    "sampler3DRect": 0,
+    "short": 0,
+    "sizeof": 0,
+    "static": 0,
+    "superp": 0,
+    "switch": 0,
+    "template": 0,
+    "this": 0,
+    "typedef": 0,
+    "union": 0,
+    "unsigned": 0,
+    "using": 0,
+    "volatile": 0,
+  }
+}

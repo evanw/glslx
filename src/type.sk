@@ -1,0 +1,26 @@
+namespace GLSLX {
+  class Type {
+    const symbol Symbol
+  }
+
+  namespace Type {
+    const BOOL = Type.new(ObjectSymbol.new(null, "bool", null))
+    const BVEC2 = Type.new(ObjectSymbol.new(null, "bvec2", null))
+    const BVEC3 = Type.new(ObjectSymbol.new(null, "bvec3", null))
+    const BVEC4 = Type.new(ObjectSymbol.new(null, "bvec4", null))
+    const FLOAT = Type.new(ObjectSymbol.new(null, "float", null))
+    const INT = Type.new(ObjectSymbol.new(null, "int", null))
+    const IVEC2 = Type.new(ObjectSymbol.new(null, "ivec2", null))
+    const IVEC3 = Type.new(ObjectSymbol.new(null, "ivec3", null))
+    const IVEC4 = Type.new(ObjectSymbol.new(null, "ivec4", null))
+    const MAT2 = Type.new(ObjectSymbol.new(null, "mat2", null))
+    const MAT3 = Type.new(ObjectSymbol.new(null, "mat3", null))
+    const MAT4 = Type.new(ObjectSymbol.new(null, "mat4", null))
+    const SAMPLER2D = Type.new(ObjectSymbol.new(null, "sampler2D", null))
+    const SAMPLERCUBE = Type.new(ObjectSymbol.new(null, "samplerCube", null))
+    const VEC2 = Type.new(ObjectSymbol.new(null, "vec2", null))
+    const VEC3 = Type.new(ObjectSymbol.new(null, "vec3", null))
+    const VEC4 = Type.new(ObjectSymbol.new(null, "vec4", null))
+    const VOID = Type.new(ObjectSymbol.new(null, "void", null))
+  }
+}

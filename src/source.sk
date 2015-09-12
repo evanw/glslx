@@ -1,0 +1,66 @@
+namespace GLSLX {
+  class LineColumn {
+    var line int # 0-based index
+    var column int # 0-based index
+  }
+
+  class Source {
+    var name string
+    var contents string
+
+    # This maps line numbers to indices within contents
+    var _lineOffsets List<int> = null
+
+    def entireRange Range {
+      return Range.new(self, 0, contents.count)
+    }
+
+    def lineCount int {
+      _computeLineOffsets
+      return _lineOffsets.count - 1 # Ignore the line offset at 0
+    }
+
+    def contentsOfLine(line int) string {
+      _computeLineOffsets
+      if line < 0 || line >= _lineOffsets.count {
+        return ""
+      }
+      var start = _lineOffsets[line]
+      var end = line + 1 < _lineOffsets.count ? _lineOffsets[line + 1] - 1 : contents.count
+      return contents.slice(start, end)
+    }
+
+    def indexToLineColumn(index int) LineColumn {
+      _computeLineOffsets
+
+      # Binary search to find the line
+      var count = _lineOffsets.count
+      var line = 0
+      while count > 0 {
+        var step = count / 2
+        var i = line + step
+        if _lineOffsets[i] <= index {
+          line = i + 1
+          count = count - step - 1
+        } else {
+          count = step
+        }
+      }
+
+      # Use the line to compute the column
+      var column = line > 0 ? index - _lineOffsets[line - 1] : index
+      return LineColumn.new(line - 1, column)
+    }
+
+    def _computeLineOffsets {
+      if _lineOffsets == null {
+        _lineOffsets = [0]
+        for i in 0..contents.count {
+          if contents[i] == '\n' {
+            _lineOffsets.append(i + 1)
+          }
+        }
+      }
+    }
+  }
+}
