@@ -83,6 +83,18 @@ namespace GLSLX {
     var returnType Node = null
     var block Node = null
     var previousOverload FunctionSymbol = null
+
+    def hasSameSignatureAs(function FunctionSymbol) bool {
+      if returnType.resolvedType != function.returnType.resolvedType || arguments.count != function.arguments.count {
+        return false
+      }
+      for i in 0..arguments.count {
+        if arguments[i].type.resolvedType != function.arguments[i].type.resolvedType {
+          return false
+        }
+      }
+      return true
+    }
   }
 
   enum VariableKind {

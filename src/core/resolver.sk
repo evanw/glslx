@@ -427,6 +427,7 @@ class GLSLX.Resolver {
         _checkConversion(arguments[i], overload.arguments[i].type.resolvedType)
       }
     }
+    node.callTarget.symbol = overload
     node.resolvedType = overload.returnType.resolvedType
   }
 

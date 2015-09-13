@@ -473,8 +473,10 @@ namespace GLSLX.Parser {
       if statement == null {
         return null
       }
-      checkStatementLocation(context, statement)
-      block.appendChild(statement)
+      if statement.kind != .OBSOLETE {
+        checkStatementLocation(context, statement)
+        block.appendChild(statement)
+      }
     }
 
     if !context.expect(.RIGHT_BRACE) {
@@ -570,22 +572,10 @@ namespace GLSLX.Parser {
   }
 
   def parseFunction(flags int, type Node, name Range, context ParserContext) Node {
-    var function = FunctionSymbol.new(name, name.toString, Scope.new(.FUNCTION, context.scope))
+    var originalScope = context.scope
+    var function = FunctionSymbol.new(name, name.toString, Scope.new(.FUNCTION, originalScope))
     function.flags |= flags
     function.returnType = type
-
-    # Merge adjacent function symbols to support overloading
-    var previous = context.scope.symbols.get(name.toString, null)
-    if previous == null {
-      context.scope.define(function)
-    } else if previous.isFunction {
-      function.previousOverload = previous.asFunction
-      context.scope.redefine(function)
-    } else {
-      context.log.syntaxErrorDuplicateSymbolDefinition(name, previous.range)
-      return null
-    }
-
     context.pushScope(function.scope)
 
     # Takes no arguments
@@ -633,7 +623,37 @@ namespace GLSLX.Parser {
       }
     }
 
-    if !context.eat(.SEMICOLON) {
+    var previous = originalScope.symbols.get(name.toString, null)
+    var hasBlock = !context.eat(.SEMICOLON)
+    var isObsolete = false
+
+    # Merge adjacent function symbols to support overloading
+    if previous == null {
+      originalScope.define(function)
+    } else if previous.isFunction {
+      for link = previous.asFunction; link != null; link = link.previousOverload {
+        if link.hasSameSignatureAs(function) {
+          if link.block != null || !hasBlock {
+            context.log.syntaxErrorDuplicateSymbolDefinition(function.range, link.range)
+          } else {
+            link.flags |= function.flags
+            link.block = function.block
+            function = link
+          }
+          isObsolete = true
+          break
+        }
+      }
+      if !isObsolete {
+        function.previousOverload = previous.asFunction
+        originalScope.redefine(function)
+      }
+    } else {
+      context.log.syntaxErrorDuplicateSymbolDefinition(name, previous.range)
+      return null
+    }
+
+    if hasBlock {
       function.block = parseBlock(context)
       if function.block == null {
         return null
@@ -641,7 +661,7 @@ namespace GLSLX.Parser {
     }
 
     context.popScope
-    return Node.createFunction(function).withRange(context.spanSince(type.range))
+    return isObsolete ? Node.createObsolete : Node.createFunction(function).withRange(context.spanSince(type.range))
   }
 
   def parseVariables(flags int, type Node, name Range, context ParserContext) Node {
@@ -700,8 +720,10 @@ namespace GLSLX.Parser {
       if statement == null {
         break
       }
-      checkStatementLocation(context, statement)
-      global.appendChild(statement)
+      if statement.kind != .OBSOLETE {
+        checkStatementLocation(context, statement)
+        global.appendChild(statement)
+      }
     }
   }
 }
