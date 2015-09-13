@@ -339,8 +339,8 @@ namespace GLSLX {
       return new(.RETURN).appendChild(value)
     }
 
-    def createVariables Node {
-      return new(.VARIABLES)
+    def createVariables(type Node) Node {
+      return new(.VARIABLES).appendChild(type)
     }
 
     def createWhile(test Node, body Node) Node {
@@ -480,6 +480,13 @@ namespace GLSLX {
       return _firstChild
     }
 
+    def variablesType Node {
+      assert(kind == .VARIABLES)
+      assert(childCount > 1)
+      assert(_firstChild.kind.isExpression)
+      return _firstChild
+    }
+
     def whileTest Node {
       assert(kind == .WHILE)
       assert(childCount == 2)
@@ -487,7 +494,7 @@ namespace GLSLX {
       return _firstChild
     }
 
-    def whileBlock Node {
+    def whileBody Node {
       assert(kind == .WHILE)
       assert(childCount == 2)
       assert(_lastChild.kind.isStatement)

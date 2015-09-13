@@ -1,5 +1,5 @@
 namespace GLSLX {
-  var pratt = createExpressionParser
+  var pratt Pratt = null
 
   def typeParselet(type Type) fn(ParserContext, Token) Node {
     return (context, token) => Node.createType(type).withRange(token.range)
@@ -359,7 +359,7 @@ namespace GLSLX {
       if !context.expect(.IDENTIFIER) {
         return null
       }
-      var variables = Node.createVariables
+      var variables = Node.createVariables(type)
       if !parseVariables(flags, type, name, context, variable => variables.appendChild(Node.createVariable(variable).withRange(context.spanSince(variable.range)))) {
         return null
       }
@@ -534,9 +534,9 @@ namespace GLSLX {
 
         # Create the argument
         var argument = VariableSymbol.new(argumentName, argumentName.toString, context.scope)
-        context.scope.define(argument)
         argument.flags |= argumentFlags
         argument.type = argumentType
+        context.scope.define(argument)
         function.arguments.append(argument)
 
         # Parse another argument?
@@ -640,6 +640,10 @@ namespace GLSLX {
   def parse(log Log, tokens List<Token>) Global {
     var context = ParserContext.new(log, tokens)
     var global = Global.new
+
+    if pratt == null {
+      pratt = createExpressionParser
+    }
 
     context.pushScope(global.scope)
     while !context.eat(.END_OF_FILE) {

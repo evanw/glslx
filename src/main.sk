@@ -12,7 +12,7 @@ namespace GLSLX {
         global = parse(log, tokens)
       }
       if log.isEmpty {
-        output.value = "\n".join(tokens.map<string>(t => t.kind.toString))
+        output.value = Emitter.new(global).toString
       } else {
         output.value = log.toString
       }

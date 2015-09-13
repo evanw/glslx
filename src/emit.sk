@@ -1,0 +1,310 @@
+namespace GLSLX {
+  class Emitter {
+    var _code = ""
+    var _indent = ""
+
+    def new(global Global) {
+      for variable in global.variables {
+        _emit(variable)
+      }
+      for function in global.functions {
+        _emit(function)
+      }
+    }
+
+    def _increaseIndent {
+      _indent += "  "
+    }
+
+    def _decreaseIndent {
+      _indent = _indent.slice(2)
+    }
+
+    def _emit(node Node) {
+      assert(node.kind.isStatement)
+
+      switch node.kind {
+        case .BLOCK {
+          _emit("{\n")
+          _increaseIndent
+          for child = node.firstChild; child != null; child = child.nextSibling {
+            _emit(_indent)
+            _emit(child)
+            _emit("\n")
+          }
+          _decreaseIndent
+          _emit(_indent + "}")
+        }
+
+        case .BREAK {
+          _emit("break;")
+        }
+
+        case .CONTINUE {
+          _emit("continue;")
+        }
+
+        case .DISCARD {
+          _emit("discard;")
+        }
+
+        case .DO_WHILE {
+          _emit("do ")
+          _emit(node.doWhileBody)
+          _emit(" while (")
+          _emit(node.doWhileTest, .LOWEST)
+          _emit(");")
+        }
+
+        case .EXPRESSION {
+          _emit(node.expressionValue, .LOWEST)
+          _emit(";")
+        }
+
+        case .FOR {
+          _emit("for (")
+          if node.forSetup != null { _emit(node.forSetup, .LOWEST) }
+          _emit("; ")
+          if node.forTest != null { _emit(node.forTest, .LOWEST) }
+          _emit("; ")
+          if node.forUpdate != null { _emit(node.forUpdate, .LOWEST) }
+          _emit(") ")
+          _emit(node.forBody)
+        }
+
+        case .IF {
+          _emit("if (")
+          _emit(node.ifTest, .LOWEST)
+          _emit(") ")
+          _emit(node.ifTrue)
+          if node.ifFalse != null {
+            _emit(" else ")
+            _emit(node.ifFalse)
+          }
+        }
+
+        case .RETURN {
+          _emit("return")
+          if node.returnValue != null {
+            _emit(" ")
+            _emit(node.returnValue, .LOWEST)
+          }
+          _emit(";")
+        }
+
+        case .VARIABLES {
+          _emit(node.variablesType, .LOWEST)
+          for child = node.variablesType.nextSibling; child != null; child = child.nextSibling {
+            var symbol = child.symbol as VariableSymbol
+            _emit(child.previousSibling.previousSibling == null ? " " : ", ")
+            _emit(symbol.name)
+            if symbol.value != null {
+              _emit(" = ")
+              _emit(symbol.value, .COMMA)
+            }
+          }
+          _emit(";")
+        }
+
+        case .WHILE {
+          _emit("while (")
+          _emit(node.whileTest, .LOWEST)
+          _emit(") ")
+          _emit(node.whileBody)
+        }
+
+        default {
+          _emit(node.kind.toString)
+        }
+      }
+    }
+
+    def _emitCommaSeparatedExpressions(node Node) {
+      for child = node; child != null; child = child.nextSibling {
+        if child != node {
+          _emit(", ")
+        }
+        _emit(child, .COMMA)
+      }
+    }
+
+    def _emit(node Node, precedence Precedence) {
+      assert(node.kind.isExpression)
+
+      switch node.kind {
+        case .CALL {
+          _emit(node.callValue, .UNARY_POSTFIX)
+          _emit("(")
+          _emitCommaSeparatedExpressions(node.callValue.nextSibling)
+          _emit(")")
+        }
+
+        case .DOT {
+          _emit(node.dotTarget, .MEMBER)
+          _emit(".")
+          _emit(node.symbol != null ? node.symbol.name : node.asString)
+        }
+
+        case .HOOK {
+          if Precedence.ASSIGN as int < precedence as int {
+            _emit("(")
+          }
+          _emit(node.hookTest, .LOGICAL_OR)
+          _emit(" ? ")
+          _emit(node.hookTrue, .ASSIGN)
+          _emit(" : ")
+          _emit(node.hookFalse, .ASSIGN)
+          if Precedence.ASSIGN as int < precedence as int {
+            _emit(")")
+          }
+        }
+
+        case .NAME {
+          _emit(node.symbol.name)
+        }
+
+        case .SEQUENCE {
+          if Precedence.COMMA as int <= precedence as int {
+            _emit("(")
+          }
+          _emitCommaSeparatedExpressions(node.firstChild)
+          if Precedence.COMMA as int <= precedence as int {
+            _emit(")")
+          }
+        }
+
+        case .TYPE {
+          _emit(node.resolvedType.symbol.name)
+        }
+
+        case .BOOL {
+          _emit(node.asBool.toString)
+        }
+
+        case .FLOAT {
+          var text = node.asFloat.toString
+          if !("." in text) {
+            text += ".0"
+          }
+          _emit(text)
+        }
+
+        case .INT {
+          _emit(node.asInt.toString)
+        }
+
+        case .COMPLEMENT { _emitUnaryPrefix("~", node, precedence) }
+        case .NEGATIVE { _emitUnaryPrefix("-", node, precedence) }
+        case .NOT { _emitUnaryPrefix("!", node, precedence) }
+        case .POSITIVE { _emitUnaryPrefix("+", node, precedence) }
+
+        case .PREFIX_DECREMENT { _emitUnaryPrefix("--", node, precedence) }
+        case .PREFIX_INCREMENT { _emitUnaryPrefix("++", node, precedence) }
+
+        case .POSTFIX_DECREMENT { _emitUnaryPostfix("--", node, precedence) }
+        case .POSTFIX_INCREMENT { _emitUnaryPostfix("++", node, precedence) }
+
+        case .ADD { _emitBinary("+", node, precedence, .ADD) }
+        case .BITWISE_AND { _emitBinary("&", node, precedence, .BITWISE_AND) }
+        case .BITWISE_OR { _emitBinary("|", node, precedence, .BITWISE_OR) }
+        case .BITWISE_XOR { _emitBinary("^", node, precedence, .BITWISE_XOR) }
+        case .DIVIDE { _emitBinary("/", node, precedence, .MULTIPLY) }
+        case .EQUAL { _emitBinary("==", node, precedence, .COMPARE) }
+        case .GREATER_THAN { _emitBinary(">", node, precedence, .COMPARE) }
+        case .GREATER_THAN_OR_EQUAL { _emitBinary(">=", node, precedence, .COMPARE) }
+        case .INDEX { _emitBinary("[]", node, precedence, .ASSIGN) }
+        case .LESS_THAN { _emitBinary("<", node, precedence, .COMPARE) }
+        case .LESS_THAN_OR_EQUAL { _emitBinary("<=", node, precedence, .COMPARE) }
+        case .LOGICAL_AND { _emitBinary("&&", node, precedence, .LOGICAL_AND) }
+        case .LOGICAL_OR { _emitBinary("||", node, precedence, .LOGICAL_OR) }
+        case .MULTIPLY { _emitBinary("*", node, precedence, .MULTIPLY) }
+        case .NOT_EQUAL { _emitBinary("!=", node, precedence, .COMPARE) }
+        case .REMAINDER { _emitBinary("%", node, precedence, .MULTIPLY) }
+        case .SHIFT_LEFT { _emitBinary("<<", node, precedence, .SHIFT) }
+        case .SHIFT_RIGHT { _emitBinary(">>", node, precedence, .SHIFT) }
+        case .SUBTRACT { _emitBinary("-", node, precedence, .ADD) }
+
+        case .ASSIGN { _emitBinary("=", node, precedence, .ASSIGN) }
+        case .ASSIGN_ADD { _emitBinary("+=", node, precedence, .ASSIGN) }
+        case .ASSIGN_BITWISE_AND { _emitBinary("&=", node, precedence, .ASSIGN) }
+        case .ASSIGN_BITWISE_OR { _emitBinary("|=", node, precedence, .ASSIGN) }
+        case .ASSIGN_BITWISE_XOR { _emitBinary("^=", node, precedence, .ASSIGN) }
+        case .ASSIGN_DIVIDE { _emitBinary("/=", node, precedence, .ASSIGN) }
+        case .ASSIGN_MULTIPLY { _emitBinary("*=", node, precedence, .ASSIGN) }
+        case .ASSIGN_REMAINDER { _emitBinary("%=", node, precedence, .ASSIGN) }
+        case .ASSIGN_SHIFT_LEFT { _emitBinary("<<=", node, precedence, .ASSIGN) }
+        case .ASSIGN_SHIFT_RIGHT { _emitBinary(">>=", node, precedence, .ASSIGN) }
+        case .ASSIGN_SUBTRACT { _emitBinary("-=", node, precedence, .ASSIGN) }
+
+        default {
+          _emit(node.kind.toString)
+        }
+      }
+    }
+
+    def _emitUnaryPrefix(operator string, node Node, precedence Precedence) {
+      _emit(operator)
+      _emit(node.unaryValue, .UNARY_PREFIX)
+    }
+
+    def _emitUnaryPostfix(operator string, node Node, precedence Precedence) {
+      _emit(node.unaryValue, .UNARY_POSTFIX)
+      _emit(operator)
+    }
+
+    def _emitBinary(operator string, node Node, outer Precedence, inner Precedence) {
+      var isRightAssociative = node.kind.isBinaryAssign
+      if inner as int < outer as int {
+        _emit("(")
+      }
+      _emit(node.binaryLeft, ((inner as int) + (isRightAssociative as int)) as Precedence)
+      _emit(" " + operator + " ")
+      _emit(node.binaryRight, ((inner as int) + (!isRightAssociative as int)) as Precedence)
+      if inner as int < outer as int {
+        _emit(")")
+      }
+    }
+
+    def _emit(variable VariableSymbol) {
+      _emit(variable.type, .LOWEST)
+      _emit(" ")
+      _emit(variable.name)
+      if variable.value != null {
+        _emit(" = ")
+        _emit(variable.value, .COMMA)
+      }
+      _emit(";\n")
+    }
+
+    def _emit(function FunctionSymbol) {
+      _emit(function.returnType, .LOWEST)
+      _emit(" ")
+      _emit(function.name)
+      _emit("(")
+      for argument in function.arguments {
+        if argument != function.arguments.first {
+          _emit(", ")
+        }
+        _emit(argument.type, .LOWEST)
+        _emit(" ")
+        _emit(argument.name)
+      }
+      _emit(")")
+      if function.body != null {
+        _emit(" ")
+        _emit(function.body)
+        _emit("\n")
+      } else {
+        _emit(";\n")
+      }
+    }
+
+    def _emit(text string) {
+      _code += text
+    }
+
+    def toString string {
+      return _code
+    }
+  }
+}
