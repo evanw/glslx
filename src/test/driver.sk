@@ -12,6 +12,11 @@ namespace GLSLX.Tests {
       expectString(trimNewlines(_expected), trimNewlines(output))
     }
 
+    def trimLocalVariables CompilerTest {
+      _options.trimLocalVariables = true
+      return self
+    }
+
     def compactSyntaxTree CompilerTest {
       _options.compactSyntaxTree = true
       return self

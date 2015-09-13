@@ -415,5 +415,44 @@ bool main(int i) {
 }
 ").compactSyntaxTree
 
+# Check for unused variable removal
+test("
+int foo(int a) {
+  int b = a;
+  return a + b;
+}
+
+int main(int i) {
+  int j = i;
+  return i + foo(i);
+}
+", "
+int foo(int a) {
+  int b = a;
+  return a + b;
+}
+
+int main(int i) {
+  return i + foo(i);
+}
+").trimLocalVariables
+
+# Don't remove unused variables when the initializer has side effects
+test("
+int foo();
+
+int main(int i) {
+  int j = foo();
+  return i;
+}
+", "
+int foo();
+
+int main(int i) {
+  int j = foo();
+  return i;
+}
+").trimLocalVariables
+
   }
 }

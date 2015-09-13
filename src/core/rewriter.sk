@@ -7,9 +7,9 @@ namespace GLSLX.Rewriter {
         rewriter._compact(global)
       }
 
-      if options.inlineConstants {
+      if options.trimLocalVariables {
         rewriter._scanLocalVariables(global)
-        rewriter._inlineConstants(global)
+        rewriter._trimLocalVariables(global)
       }
 
       if !rewriter._codeWasChanged {
@@ -76,6 +76,7 @@ namespace GLSLX.Rewriter {
 class GLSLX.Rewriter {
   var _codeWasChanged = false
   var _localVariables List<VariableSymbol> = []
+  var _useCounts IntMap<int> = {}
   var _mutationCounts IntMap<int> = {}
 
   def _reportCodeChange {
@@ -95,6 +96,7 @@ class GLSLX.Rewriter {
         }
         if variable.kind == .LOCAL {
           _localVariables.append(variable)
+          _useCounts[variable.id] = 0
           _mutationCounts[variable.id] = 0
         }
       }
@@ -107,37 +109,44 @@ class GLSLX.Rewriter {
       }
 
       case .NAME {
+        # Track uses
+        var id = node.symbol.id
+        var count = _useCounts.get(id, -1)
+        if count != -1 {
+          _useCounts[id] = count + 1
+        }
+
+        # Track mutations
         if node.isUsedInStorage {
-          var symbol = node.symbol
-          var count = _mutationCounts.get(symbol.id, -1)
+          count = _mutationCounts.get(id, -1)
           if count != -1 {
-            _mutationCounts[symbol.id] = count + 1
+            _mutationCounts[id] = count + 1
           }
         }
       }
     }
   }
 
-  def _inlineConstants(node Node) {
+  def _trimLocalVariables(node Node) {
     for child = node.firstChild, next Node = null; child != null; child = next {
       next = child.nextSibling
-      _inlineConstants(child)
+      _trimLocalVariables(child)
     }
 
     switch node.kind {
       case .VARIABLE {
-        if _isConstant(node.symbol) {
+        if _isConstant(node.symbol) || _isUnused(node.symbol) && node.variableInitializer.hasNoSideEffects {
           node.remove
           _reportCodeChange
         } else if node.variableInitializer != null {
-          _inlineConstants(node.variableInitializer)
+          _trimLocalVariables(node.variableInitializer)
         }
       }
 
       case .FUNCTION {
         var function = node.symbol.asFunction
         if function.block != null {
-          _inlineConstants(function.block)
+          _trimLocalVariables(function.block)
         }
       }
 
@@ -159,6 +168,10 @@ class GLSLX.Rewriter {
         }
       }
     }
+  }
+
+  def _isUnused(symbol Symbol) bool {
+    return _useCounts.get(symbol.id, -1) == 0
   }
 
   def _isConstant(symbol Symbol) bool {
