@@ -332,10 +332,12 @@ class GLSLX.Rewriter {
         # Also turn if statements without else blocks into shorter conditional expressions when possible
         if node.ifFalse == null && node.ifTrue.kind == .EXPRESSION {
           var yes = node.ifTrue.expressionValue
-          var isAssignToLocalName = yes.kind == .ASSIGN && yes.binaryLeft.kind == .NAME && yes.binaryLeft.symbol.asVariable.kind == .LOCAL
-          if yes.resolvedType == .INT || yes.resolvedType == .FLOAT || isAssignToLocalName {
+
+          # Only check assignments to local names in case global names aren't renamed (then it will be longer, not shorter)
+          var isAssignToArgumentOrLocalName = yes.kind == .ASSIGN && yes.binaryLeft.kind == .NAME && yes.binaryLeft.symbol.isArgumentOrLocalVariable
+          if yes.resolvedType == .INT || yes.resolvedType == .FLOAT || isAssignToArgumentOrLocalName {
             var value =
-              isAssignToLocalName ? yes.binaryLeft.clone :
+              isAssignToArgumentOrLocalName ? yes.binaryLeft.clone :
               yes.resolvedType == .INT ? Node.createInt(0) :
               Node.createFloat(0)
             node.replaceWith(Node.createExpression(Node.createHook(node.ifTest.remove, yes.remove, value).withType(yes.resolvedType)))

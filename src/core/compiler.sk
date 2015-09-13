@@ -1,4 +1,5 @@
 class GLSLX.CompilerOptions {
+  var renameInternalSymbols = false
   var trimLocalVariables = false
   var compactSyntaxTree = false
   var removeWhitespace = false
@@ -25,10 +26,10 @@ namespace GLSLX.Compiler {
     for symbol in scope.symbols.values {
       if symbol.isFunction {
         for function = symbol.asFunction; function != null; function = function.previousOverload {
-          function.flags |= Symbol.IS_IMPORTED
+          function.flags |= Symbol.IMPORTED
         }
       } else {
-        symbol.flags |= Symbol.IS_IMPORTED
+        symbol.flags |= Symbol.IMPORTED
       }
     }
 
@@ -48,6 +49,7 @@ namespace GLSLX.Compiler {
     removeImportedSymbols(global)
 
     Rewriter.rewrite(global, options)
+    Renamer.rename(global, options)
     return Emitter.emit(global, options)
   }
 

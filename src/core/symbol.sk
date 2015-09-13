@@ -17,7 +17,8 @@ namespace GLSLX {
     const VERTEX   = 1 << 12
 
     # Internal compiler flags
-    const IS_IMPORTED = 1 << 13
+    const EXPORTED = 1 << 13
+    const IMPORTED = 1 << 14
   }
 
   class Symbol {
@@ -39,17 +40,20 @@ namespace GLSLX {
     def isOut bool       { return (flags & OUT) != 0 }
     def isUniform bool   { return (flags & UNIFORM) != 0 }
     def isVarying bool   { return (flags & VARYING) != 0 }
+    def isExported bool  { return (flags & (ATTRIBUTE | EXPORTED | UNIFORM | VARYING)) != 0 }
 
     # Non-standard modifiers
     def isFragment bool { return (flags & FRAGMENT) != 0 }
     def isVertex bool   { return (flags & VERTEX) != 0 }
 
     # Internal compiler flags
-    def isImported bool { return (flags & IS_IMPORTED) != 0 }
+    def isImported bool { return (flags & IMPORTED) != 0 }
+    def isImportedOrExported bool  { return isImported || isExported }
 
     def isStruct bool { return self is StructSymbol }
     def isFunction bool { return self is FunctionSymbol }
     def isVariable bool { return self is VariableSymbol }
+    def isArgumentOrLocalVariable bool { return isVariable && (asVariable.kind == .ARGUMENT || asVariable.kind == .LOCAL) }
 
     def asStruct StructSymbol {
       assert(isStruct)
@@ -84,8 +88,8 @@ namespace GLSLX {
     var block Node = null
     var previousOverload FunctionSymbol = null
 
-    def hasSameSignatureAs(function FunctionSymbol) bool {
-      if returnType.resolvedType != function.returnType.resolvedType || arguments.count != function.arguments.count {
+    def hasSameArgumentTypesAs(function FunctionSymbol) bool {
+      if arguments.count != function.arguments.count {
         return false
       }
       for i in 0..arguments.count {

@@ -12,6 +12,11 @@ namespace GLSLX.Tests {
       expectString(trimNewlines(_expected), trimNewlines(output))
     }
 
+    def renameInternalSymbols CompilerTest {
+      _options.renameInternalSymbols = true
+      return self
+    }
+
     def trimLocalVariables CompilerTest {
       _options.trimLocalVariables = true
       return self

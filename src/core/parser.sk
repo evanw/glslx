@@ -574,7 +574,7 @@ namespace GLSLX.Parser {
   def parseFunction(flags int, type Node, name Range, context ParserContext) Node {
     var originalScope = context.scope
     var function = FunctionSymbol.new(name, name.toString, Scope.new(.FUNCTION, originalScope))
-    function.flags |= flags
+    function.flags |= flags | (function.name == "main" ? Symbol.EXPORTED : 0)
     function.returnType = type
     context.pushScope(function.scope)
 
@@ -632,8 +632,11 @@ namespace GLSLX.Parser {
       originalScope.define(function)
     } else if previous.isFunction {
       for link = previous.asFunction; link != null; link = link.previousOverload {
-        if link.hasSameSignatureAs(function) {
-          if link.block != null || !hasBlock {
+        if link.hasSameArgumentTypesAs(function) {
+          if link.returnType.resolvedType != function.returnType.resolvedType {
+            context.log.syntaxErrorDifferentReturnType(function.returnType.range, function.name,
+              function.returnType.resolvedType, link.returnType.resolvedType, link.returnType.range)
+          } else if link.block != null || !hasBlock {
             context.log.syntaxErrorDuplicateSymbolDefinition(function.range, link.range)
           } else {
             link.flags |= function.flags

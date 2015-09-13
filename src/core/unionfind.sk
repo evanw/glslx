@@ -1,0 +1,30 @@
+class GLSLX.UnionFind {
+  var parents List<int> = []
+
+  def allocate int {
+    var index = parents.count
+    parents.append(index)
+    return index
+  }
+
+  def allocate(count int) UnionFind {
+    for i in 0..count {
+      parents.append(parents.count)
+    }
+    return self
+  }
+
+  def union(left int, right int) {
+    parents[find(left)] = find(right)
+  }
+
+  def find(index int) int {
+    assert(index >= 0 && index < parents.count)
+    var parent = parents[index]
+    if parent != index {
+      parent = find(parent)
+      parents[index] = parent
+    }
+    return parent
+  }
+}

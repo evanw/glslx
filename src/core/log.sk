@@ -199,6 +199,11 @@ namespace GLSLX {
     def semanticErrorBadStorage(range Range) {
       error(range, "Cannot store to this location")
     }
+
+    def syntaxErrorDifferentReturnType(range Range, name string, type Type, expected Type, previous Range) {
+      error(range, "Cannot change the return type of \"" + name + "\" to type \"" + type.toString + "\"")
+      note(previous, "The forward declaration of \"" + name + "\" has a return type of \"" + expected.toString + "\"")
+    }
   }
 
   namespace Log {

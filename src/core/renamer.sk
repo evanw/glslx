@@ -1,0 +1,183 @@
+namespace GLSLX.Renamer {
+  def rename(global Node, options CompilerOptions) {
+    if options.renameInternalSymbols {
+      Renamer.new._rename(global)
+    }
+  }
+
+  class SymbolInfo {
+    const symbol Symbol
+    const label int
+    var useCount = 0
+  }
+
+  const _first = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_$"
+  const _rest = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_$0123456789"
+
+  def _numberToName(number int) string {
+    var name = _first.get(number % _first.count)
+    number = number / _first.count
+    while number > 0 {
+      number--
+      name += _rest.get(number % _rest.count)
+      number = number / _rest.count
+    }
+    return name
+  }
+}
+
+class GLSLX.Renamer {
+  var _functionList List<SymbolInfo> = []
+  var _symbolInfoList List<SymbolInfo> = []
+  var _symbolInfoMap IntMap<SymbolInfo> = {}
+  var _functionSignatureUnionFind = UnionFind.new
+  var _localVariableUnionFind = UnionFind.new
+  var _namingGroupsUnionFind = UnionFind.new
+  var _nextSymbolName = 0
+  var _enclosingFunctionLabel = -1
+
+  def _rename(global Node) {
+    # Gather information
+    _scanForSymbols(global)
+
+    # Compact names of unrelated things
+    _aliasArgumentAndLocalVariablesFromDifferentFunctions
+    _aliasFunctionsWithDifferentSignatures
+
+    # Do the renaming
+    var groups = _extractGroups(_namingGroupsUnionFind, symbol => !symbol.isImportedOrExported)
+    groups.sort((a, b) => _countUses(b) <=> _countUses(a))
+    for group in groups {
+      var name = _generateSymbolName
+      for info in group {
+        info.symbol.name = name
+      }
+    }
+  }
+
+  def _scanForSymbols(node Node) {
+    if node.symbol != null {
+      _recordSymbol(node.symbol)
+    }
+
+    for child = node.firstChild; child != null; child = child.nextSibling {
+      _scanForSymbols(child)
+    }
+
+    switch node.kind {
+      case .VARIABLE {
+        var variable = node.symbol.asVariable
+        _scanForSymbols(variable.type)
+        if variable.value != null {
+          _scanForSymbols(variable.value)
+        }
+      }
+
+      case .FUNCTION {
+        var function = node.symbol.asFunction
+        _enclosingFunctionLabel = _symbolInfoMap[node.symbol.id].label
+        _scanForSymbols(function.returnType)
+        for argument in function.arguments {
+          _recordSymbol(argument)
+          _scanForSymbols(argument.type)
+        }
+        if function.block != null {
+          _scanForSymbols(function.block)
+        }
+        _enclosingFunctionLabel = -1
+      }
+    }
+  }
+
+  def _recordSymbol(symbol Symbol) {
+    var info = _symbolInfoMap.get(symbol.id, null)
+
+    if info == null {
+      info = SymbolInfo.new(symbol, _symbolInfoList.count)
+      _symbolInfoList.append(info)
+      _symbolInfoMap[symbol.id] = info
+      _functionSignatureUnionFind.allocate
+      _localVariableUnionFind.allocate
+      _namingGroupsUnionFind.allocate
+
+      # Group all functions with the same type signature together
+      if symbol.isFunction && !symbol.isImportedOrExported {
+        var found = false
+        for other in _functionList {
+          if symbol.asFunction.hasSameArgumentTypesAs(other.symbol.asFunction) {
+            _functionSignatureUnionFind.union(info.label, other.label)
+            found = true
+          }
+        }
+        if !found {
+          _functionList.append(info)
+        }
+      }
+    }
+
+    if symbol.isArgumentOrLocalVariable {
+      _localVariableUnionFind.union(_enclosingFunctionLabel, info.label)
+    }
+
+    info.useCount++
+  }
+
+  def _generateSymbolName string {
+    while true {
+      var name = _numberToName(_nextSymbolName)
+      _nextSymbolName++
+      if name in Tokenizer.keywords || name in Tokenizer.reservedWords || name.startsWith("gl_") {
+        continue
+      }
+      return name
+    }
+  }
+
+  def _extractGroups(unionFind UnionFind, filter fn(Symbol) bool) List<List<SymbolInfo>> {
+    var labelToGroup IntMap<List<SymbolInfo>> = {}
+    for info in _symbolInfoList {
+      if !filter(info.symbol) {
+        continue
+      }
+      var label = unionFind.find(info.label)
+      var group = labelToGroup.get(label, null)
+      if group == null {
+        group = []
+        labelToGroup[label] = group
+      }
+      group.append(info)
+    }
+    return labelToGroup.values
+  }
+
+  def _aliasArgumentAndLocalVariablesFromDifferentFunctions {
+    _zipTogetherInOrder(_extractGroups(_localVariableUnionFind, symbol => symbol.isArgumentOrLocalVariable))
+  }
+
+  def _aliasFunctionsWithDifferentSignatures {
+    _zipTogetherInOrder(_extractGroups(_functionSignatureUnionFind, symbol => symbol.isFunction))
+  }
+
+  def _zipTogetherInOrder(groups List<List<SymbolInfo>>) {
+    var labels List<int> = []
+    for group in groups {
+      group.sort((a, b) => b.useCount <=> a.useCount)
+      for i in 0..group.count {
+        var info = group[i]
+        if i < labels.count {
+          _namingGroupsUnionFind.union(info.label, labels[i])
+        } else {
+          labels.append(info.label)
+        }
+      }
+    }
+  }
+
+  def _countUses(group List<SymbolInfo>) int {
+    var total = 0
+    for info in group {
+      total += info.useCount
+    }
+    return total
+  }
+}
