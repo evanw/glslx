@@ -423,13 +423,12 @@ class GLSLX.Resolver {
 
     if type in BOOL_AND_INT_AND_FLOAT_TYPES {
       var count = _componentCount(type)
-      var baseType = _componentBaseType(type)
 
       # Visit each argument and make sure it's useful toward construction
       var providedCount = 0
       for argument in arguments {
         var argumentType = argument.resolvedType
-        if _componentBaseType(argumentType) != baseType {
+        if !(argumentType in BOOL_AND_INT_AND_FLOAT_TYPES) {
           if argumentType != .ERROR {
             _log.semanticErrorBadConstructorValue(argument.range, argumentType, type)
           }
