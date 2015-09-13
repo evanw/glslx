@@ -1,8 +1,29 @@
 namespace GLSLX {
   const API = "
-bool gl_FrontFacing;
-vec4 gl_FragColor;
-vec4 gl_FragCoord;
+highp vec4 gl_Position; // should be written to
+mediump float gl_PointSize; // may be written to
+
+const bool gl_FrontFacing;
+const mediump vec2 gl_PointCoord;
+const mediump vec4 gl_FragCoord;
+mediump vec4 gl_FragColor;
+
+const int gl_MaxVertexAttribs;
+const int gl_MaxVertexUniformVectors;
+const int gl_MaxVaryingVectors;
+const int gl_MaxVertexTextureImageUnits;
+const int gl_MaxCombinedTextureImageUnits;
+const int gl_MaxTextureImageUnits;
+const int gl_MaxFragmentUniformVectors;
+const int gl_MaxDrawBuffers;
+
+struct gl_DepthRangeParameters {
+  float near; // n
+  float far; // f
+  float diff; // f - n
+};
+
+uniform gl_DepthRangeParameters gl_DepthRange;
 
 // Angle and Trigonometry Functions
 float acos(float x);
@@ -76,21 +97,14 @@ vec4 sqrt(vec4 x);
 float abs(float x);
 float ceil(float x);
 float clamp(float x, float minVal, float maxVal);
-float clamp(float x, float minVal, float maxVal);
 float floor(float x);
 float fract(float x);
 float max(float x, float y);
-float max(float x, float y);
-float min(float x, float y);
 float min(float x, float y);
 float mix(float x, float y, float a);
-float mix(float x, float y, float a);
-float mod(float x, float y);
 float mod(float x, float y);
 float sign(float x);
 float smoothstep(float edge0, float edge1, float x);
-float smoothstep(float edge0, float edge1, float x);
-float step(float edge, float x);
 float step(float edge, float x);
 vec2 abs(vec2 x);
 vec2 ceil(vec2 x);

@@ -1,26 +1,31 @@
 namespace GLSLX {
   class Type {
     const symbol Symbol
+
+    def toString string {
+      return symbol.name
+    }
   }
 
   namespace Type {
-    const BOOL = ObjectSymbol.new(null, "bool", null).resolvedType
-    const BVEC2 = ObjectSymbol.new(null, "bvec2", null).resolvedType
-    const BVEC3 = ObjectSymbol.new(null, "bvec3", null).resolvedType
-    const BVEC4 = ObjectSymbol.new(null, "bvec4", null).resolvedType
-    const FLOAT = ObjectSymbol.new(null, "float", null).resolvedType
-    const INT = ObjectSymbol.new(null, "int", null).resolvedType
-    const IVEC2 = ObjectSymbol.new(null, "ivec2", null).resolvedType
-    const IVEC3 = ObjectSymbol.new(null, "ivec3", null).resolvedType
-    const IVEC4 = ObjectSymbol.new(null, "ivec4", null).resolvedType
-    const MAT2 = ObjectSymbol.new(null, "mat2", null).resolvedType
-    const MAT3 = ObjectSymbol.new(null, "mat3", null).resolvedType
-    const MAT4 = ObjectSymbol.new(null, "mat4", null).resolvedType
-    const SAMPLER2D = ObjectSymbol.new(null, "sampler2D", null).resolvedType
-    const SAMPLERCUBE = ObjectSymbol.new(null, "samplerCube", null).resolvedType
-    const VEC2 = ObjectSymbol.new(null, "vec2", null).resolvedType
-    const VEC3 = ObjectSymbol.new(null, "vec3", null).resolvedType
-    const VEC4 = ObjectSymbol.new(null, "vec4", null).resolvedType
-    const VOID = ObjectSymbol.new(null, "void", null).resolvedType
+    const BOOL = StructSymbol.new(null, "bool", null).resolvedType
+    const BVEC2 = StructSymbol.new(null, "bvec2", null).resolvedType
+    const BVEC3 = StructSymbol.new(null, "bvec3", null).resolvedType
+    const BVEC4 = StructSymbol.new(null, "bvec4", null).resolvedType
+    const ERROR = StructSymbol.new(null, "<error>", null).resolvedType
+    const FLOAT = StructSymbol.new(null, "float", null).resolvedType
+    const INT = StructSymbol.new(null, "int", null).resolvedType
+    const IVEC2 = StructSymbol.new(null, "ivec2", null).resolvedType
+    const IVEC3 = StructSymbol.new(null, "ivec3", null).resolvedType
+    const IVEC4 = StructSymbol.new(null, "ivec4", null).resolvedType
+    const MAT2 = StructSymbol.new(null, "mat2", null).resolvedType
+    const MAT3 = StructSymbol.new(null, "mat3", null).resolvedType
+    const MAT4 = StructSymbol.new(null, "mat4", null).resolvedType
+    const SAMPLER2D = StructSymbol.new(null, "sampler2D", null).resolvedType
+    const SAMPLERCUBE = StructSymbol.new(null, "samplerCube", null).resolvedType
+    const VEC2 = StructSymbol.new(null, "vec2", null).resolvedType
+    const VEC3 = StructSymbol.new(null, "vec3", null).resolvedType
+    const VEC4 = StructSymbol.new(null, "vec4", null).resolvedType
+    const VOID = StructSymbol.new(null, "void", null).resolvedType
   }
 }

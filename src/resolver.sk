@@ -1,0 +1,547 @@
+namespace GLSLX.Resolver {
+  def resolve(log Log, node Node) {
+    Resolver.new(log)._resolve(node)
+  }
+}
+
+class GLSLX.Resolver {
+  const _log Log
+  var _returnType Type = null
+
+  def _resolve(node Node) {
+    if node.resolvedType != null {
+      return
+    }
+
+    node.resolvedType = .ERROR
+
+    var kind = node.kind
+    switch kind {
+      case .GLOBAL {
+        _resolveChildren(node)
+      }
+
+      case .VARIABLE {
+        var symbol = node.symbol.asVariable
+        _resolve(symbol.type)
+
+        var type = symbol.type.resolvedType
+        if type == .VOID {
+          _log.semanticErrorBadVariableType(symbol.type.range, type)
+          type = .ERROR
+        }
+
+        if symbol.value != null {
+          _resolveAsExpression(symbol.value)
+          _checkConversion(symbol.value, type)
+        }
+      }
+
+      case .BLOCK {
+        _resolveChildren(node)
+      }
+
+      case .BREAK, .CONTINUE, .DISCARD {
+      }
+
+      case .DO_WHILE {
+        _resolve(node.doWhileBody)
+        _resolve(node.doWhileTest)
+        _checkConversion(node.doWhileTest, .BOOL)
+      }
+
+      case .EXPRESSION {
+        _resolve(node.expressionValue)
+      }
+
+      case .FOR {
+        if node.forSetup != null {
+          _resolveAsExpression(node.forSetup)
+        }
+        if node.forTest != null {
+          _resolveAsExpression(node.forTest)
+          _checkConversion(node.forTest, .BOOL)
+        }
+        if node.forUpdate != null {
+          _resolveAsExpression(node.forUpdate)
+        }
+        _resolve(node.forBody)
+      }
+
+      case .FUNCTION {
+        var symbol = node.symbol.asFunction
+        for argument in symbol.arguments {
+          _resolve(argument.type)
+        }
+        _resolve(symbol.returnType)
+        if symbol.block != null {
+          _returnType = symbol.returnType.resolvedType
+          _resolve(symbol.block)
+          _returnType = null
+        }
+      }
+
+      case .IF {
+        _resolve(node.ifTest)
+        _checkConversion(node.ifTest, .BOOL)
+        _resolve(node.ifTrue)
+        if node.ifFalse != null {
+          _resolve(node.ifFalse)
+        }
+      }
+
+      case .RETURN {
+        if node.returnValue != null {
+          _resolve(node.returnValue)
+          _checkConversion(node.returnValue, _returnType)
+        } else {
+          node.resolvedType = .VOID
+          _checkConversion(node, _returnType)
+        }
+      }
+
+      case .STRUCT {
+        _resolveChildren(node)
+      }
+
+      case .VARIABLES {
+        _resolveChildren(node)
+      }
+
+      case .WHILE {
+        _resolve(node.whileTest)
+        _checkConversion(node.whileTest, .BOOL)
+        _resolve(node.whileBody)
+      }
+
+      case .CALL {
+        _resolveCall(node)
+      }
+
+      case .DOT {
+        _resolveDot(node)
+      }
+
+      case .HOOK {
+        var test = node.hookTest
+        var no = node.hookFalse
+        var yes = node.hookTrue
+
+        _resolveAsExpression(test)
+        _checkConversion(test, .BOOL)
+        _resolveAsExpression(yes)
+        _resolveAsExpression(no)
+
+        if yes.resolvedType != no.resolvedType {
+          _log.semanticErrorBadHookTypes(Range.span(yes.range, no.range), yes.resolvedType, no.resolvedType)
+        }
+      }
+
+      case .NAME {
+        var symbol = node.symbol
+
+        if symbol.isVariable {
+          _resolve(symbol.asVariable.type)
+          node.resolvedType = symbol.asVariable.type.resolvedType
+        }
+
+        else if symbol.isFunction && !node.isCallTarget {
+          _log.semanticErrorMustCallFunction(node.range, symbol.name)
+        }
+
+        else {
+          node.resolvedType = symbol.resolvedType
+        }
+      }
+
+      case .SEQUENCE {
+        for child = node.firstChild; child != null; child = child.nextSibling {
+          _resolveAsExpression(child)
+        }
+        node.resolvedType = node.lastChild.resolvedType
+      }
+
+      default {
+        if kind.isUnary { _resolveUnary(node) }
+        else if kind.isBinary { _resolveBinary(node) }
+        else { assert(false) }
+      }
+    }
+  }
+
+  def _resolveUnary(node Node) {
+    var value = node.unaryValue
+    _resolveAsExpression(value)
+    var valueType = value.resolvedType
+
+    switch node.kind {
+      case .NEGATIVE, .POSITIVE, .PREFIX_DECREMENT, .PREFIX_INCREMENT, .POSTFIX_DECREMENT, .POSTFIX_INCREMENT {
+        node.resolvedType =
+          valueType in INT_AND_FLOAT_TYPES ? valueType :
+          .ERROR
+      }
+
+      case .NOT {
+        node.resolvedType =
+          valueType == .BOOL ? .BOOL :
+          .ERROR
+      }
+    }
+
+    if node.resolvedType == .ERROR && valueType != .ERROR {
+      _log.semanticErrorBadUnary(node.internalRange, node.internalRange.toString, valueType)
+    }
+  }
+
+  def _resolveBinary(node Node) {
+    _resolveAsExpression(node.binaryLeft)
+    _resolveAsExpression(node.binaryRight)
+
+    var left = node.binaryLeft
+    var right = node.binaryRight
+    _resolveAsExpression(left)
+    _resolveAsExpression(right)
+    var leftType = left.resolvedType
+    var rightType = right.resolvedType
+    var isSame = leftType == rightType
+
+    switch node.kind {
+      case .ADD, .SUBTRACT, .MULTIPLY, .DIVIDE {
+        node.resolvedType =
+          isSame && leftType in BOOL_AND_INT_AND_FLOAT_TYPES ? leftType :
+
+          leftType in FLOAT_TYPES && rightType == .FLOAT ? leftType :
+          leftType in INT_TYPES && rightType == .INT ? leftType :
+          leftType == .VEC2 && rightType == .MAT2 || leftType == .VEC3 && rightType == .MAT3 || leftType == .VEC3 && rightType == .MAT3 ? leftType :
+
+          leftType == .FLOAT && rightType in FLOAT_TYPES ? rightType :
+          leftType == .INT && rightType in INT_TYPES ? rightType :
+          leftType == .MAT2 && rightType == .VEC2 || leftType == .MAT3 && rightType == .VEC3 || leftType == .MAT3 && rightType == .VEC3 ? rightType :
+
+          .ERROR
+      }
+
+      case .EQUAL, .NOT_EQUAL {
+        node.resolvedType =
+          isSame ? .BOOL :
+          .ERROR
+      }
+
+      case .LOGICAL_AND, .LOGICAL_OR, .LOGICAL_XOR {
+        node.resolvedType =
+          isSame && leftType == .BOOL ? .BOOL :
+          .ERROR
+      }
+
+      case .LESS_THAN, .LESS_THAN_OR_EQUAL, .GREATER_THAN, .GREATER_THAN_OR_EQUAL {
+        node.resolvedType =
+          isSame && (leftType == .FLOAT || leftType == .INT) ? .BOOL :
+          .ERROR
+      }
+
+      case .ASSIGN {
+        _checkConversion(right, leftType)
+        return
+      }
+
+      case .ASSIGN_ADD, .ASSIGN_SUBTRACT, .ASSIGN_MULTIPLY, .ASSIGN_DIVIDE {
+        node.resolvedType =
+          isSame && leftType in BOOL_AND_INT_AND_FLOAT_TYPES ? leftType :
+
+          leftType in FLOAT_TYPES && rightType == .FLOAT ? leftType :
+          leftType in INT_TYPES && rightType == .INT ? leftType :
+          leftType == .VEC2 && rightType == .MAT2 || leftType == .VEC3 && rightType == .MAT3 || leftType == .VEC3 && rightType == .MAT3 ? leftType :
+
+          .ERROR
+      }
+
+      case .INDEX {
+        if rightType == .INT {
+          switch leftType {
+            case .BVEC2, .BVEC3, .BVEC4 { node.resolvedType = .BOOL }
+            case .IVEC2, .IVEC3, .IVEC4 { node.resolvedType = .INT }
+            case .VEC2, .VEC3, .VEC4 { node.resolvedType = .FLOAT }
+
+            case .MAT2 { node.resolvedType = .VEC2 }
+            case .MAT3 { node.resolvedType = .VEC3 }
+            case .MAT4 { node.resolvedType = .VEC4 }
+          }
+        }
+      }
+    }
+
+    if node.resolvedType == .ERROR && leftType != .ERROR && rightType != .ERROR {
+      _log.semanticErrorBadBinary(node.internalRange, node.internalRange.toString, leftType, rightType)
+    }
+  }
+
+  def _resolveCall(node Node) {
+    var callTarget = node.callTarget
+    _resolve(callTarget)
+
+    var type = callTarget.resolvedType
+    var symbol = type.symbol
+    var arguments List<Node> = []
+    var hasError = false
+
+    for child = callTarget.nextSibling; child != null; child = child.nextSibling {
+      _resolveAsExpression(child)
+      arguments.append(child)
+      if child.resolvedType == .ERROR {
+        hasError = true
+      }
+    }
+
+    if hasError {
+      return
+    }
+
+    if symbol != null {
+      if symbol.isFunction {
+        _resolveFunctionOverloads(symbol.asFunction, node, arguments)
+        return
+      }
+
+      if symbol.isStruct {
+        _resolveConstructor(type, node, arguments)
+        return
+      }
+    }
+
+    if type != .ERROR {
+      _log.semanticErrorBadCall(callTarget.range, type)
+    }
+  }
+
+  def _componentCount(type Type) int {
+    switch type {
+      case .BOOL, .FLOAT, .INT { return 1 }
+      case .BVEC2, .VEC2, .IVEC2 { return 2 }
+      case .BVEC3, .VEC3, .IVEC3 { return 3 }
+      case .BVEC4, .VEC4, .IVEC4, .MAT2 { return 4 }
+      case .MAT3 { return 9 }
+      case .MAT4 { return 16 }
+      default { return 0 }
+    }
+  }
+
+  def _componentBaseType(type Type) Type {
+    switch type {
+      case .BOOL, .BVEC2, .BVEC3, .BVEC4 { return .BOOL }
+      case .FLOAT, .VEC2, .VEC3, .VEC4, .MAT2, .MAT3, .MAT4 { return .FLOAT }
+      case .INT, .IVEC2, .IVEC3, .IVEC4 { return .INT }
+      default { return null }
+    }
+  }
+
+  def _resolveDot(node Node) {
+    var dotTarget = node.dotTarget
+    var name = node.asString
+    var range = node.internalRange
+    _resolveAsExpression(dotTarget)
+
+    var type = dotTarget.resolvedType
+    var isAssignTarget = node.isAssignTarget
+    switch type {
+      case .BVEC2 { node.resolvedType = _validateSwizzle(range, type, name, SWIZZLE_STRINGS_2, SWIZZLE_TYPES_B, isAssignTarget) }
+      case .IVEC2 { node.resolvedType = _validateSwizzle(range, type, name, SWIZZLE_STRINGS_2, SWIZZLE_TYPES_I, isAssignTarget) }
+      case .VEC2 { node.resolvedType = _validateSwizzle(range, type, name, SWIZZLE_STRINGS_2, SWIZZLE_TYPES_F, isAssignTarget) }
+
+      case .BVEC3 { node.resolvedType = _validateSwizzle(range, type, name, SWIZZLE_STRINGS_3, SWIZZLE_TYPES_B, isAssignTarget) }
+      case .IVEC3 { node.resolvedType = _validateSwizzle(range, type, name, SWIZZLE_STRINGS_3, SWIZZLE_TYPES_I, isAssignTarget) }
+      case .VEC3 { node.resolvedType = _validateSwizzle(range, type, name, SWIZZLE_STRINGS_3, SWIZZLE_TYPES_F, isAssignTarget) }
+
+      case .BVEC4 { node.resolvedType = _validateSwizzle(range, type, name, SWIZZLE_STRINGS_4, SWIZZLE_TYPES_B, isAssignTarget) }
+      case .IVEC4 { node.resolvedType = _validateSwizzle(range, type, name, SWIZZLE_STRINGS_4, SWIZZLE_TYPES_I, isAssignTarget) }
+      case .VEC4 { node.resolvedType = _validateSwizzle(range, type, name, SWIZZLE_STRINGS_4, SWIZZLE_TYPES_F, isAssignTarget) }
+
+      default {
+        if type.symbol != null && type.symbol.isStruct {
+          for variable in type.symbol.asStruct.variables {
+            if variable.name == name {
+              node.symbol = variable
+              _resolve(variable.type)
+              node.resolvedType = variable.type.resolvedType
+              break
+            }
+          }
+        }
+
+        if node.symbol == null {
+          _log.semanticErrorBadMember(range, type, name)
+        }
+      }
+    }
+  }
+
+  def _resolveFunctionOverloads(overloaded FunctionSymbol, node Node, arguments List<Node>) {
+    var overloads List<FunctionSymbol> = []
+
+    for overload = overloaded; overload != null; overload = overload.previousOverload {
+      overloads.append(overload)
+    }
+
+    # Narrow down by argument count
+    if overloads.count != 1 {
+      overloads = overloads.clone
+      overloads.removeIf(overload => overload.arguments.count != arguments.count)
+
+      # Narrow down by argument types
+      if overloads.count != 1 {
+        overloads.removeIf(overload => {
+          for i in 0..arguments.count {
+            if overload.arguments[i].type.resolvedType != arguments[i].resolvedType {
+              return true
+            }
+          }
+          return false
+        })
+      }
+    }
+
+    # Match failure
+    if overloads.count != 1 {
+      _log.semanticErrorBadOverloadMatch(node.callTarget.range, overloaded.name)
+      return
+    }
+
+    # Match success
+    var overload = overloads.first
+    if overload.arguments.count != arguments.count {
+      _log.semanticErrorArgumentCountFunction(node.internalRange, overload.arguments.count,
+        arguments.count, overload.name, overload.range)
+    } else {
+      for i in 0..arguments.count {
+        _checkConversion(arguments[i], overload.arguments[i].type.resolvedType)
+      }
+    }
+    node.resolvedType = overload.returnType.resolvedType
+  }
+
+  def _resolveConstructor(type Type, node Node, arguments List<Node>) {
+    node.resolvedType = type
+
+    if type in BOOL_AND_INT_AND_FLOAT_TYPES {
+      var count = _componentCount(type)
+      var baseType = _componentBaseType(type)
+
+      # Visit each argument and make sure it's useful toward construction
+      var providedCount = 0
+      for argument in arguments {
+        var argumentType = argument.resolvedType
+        if _componentBaseType(argumentType) != baseType {
+          if argumentType != .ERROR {
+            _log.semanticErrorBadConstructorValue(argument.range, argumentType, type)
+          }
+          return
+        }
+        providedCount += _componentCount(argumentType)
+      }
+
+      # Validate the count
+      if providedCount != count && providedCount != 1 &&
+          (providedCount != 2 || type != .MAT2) &&
+          (providedCount != 3 || type != .MAT3) &&
+          (providedCount != 4 || type != .MAT4) {
+        _log.semanticErrorBadConstructorCount(node.internalRange, type, providedCount)
+        return
+      }
+
+      return
+    }
+
+    var symbol = type.symbol.asStruct
+    var variables = symbol.variables
+    var variableCount = variables.count
+    var argumentCount = arguments.count
+
+    # Validate argument count
+    if variableCount != argumentCount {
+      _log.semanticErrorArgumentCountConstructor(node.internalRange, variableCount, argumentCount, symbol.name, symbol.range)
+      return
+    }
+
+    # Validate argument types
+    for i in 0..variableCount {
+      _checkConversion(arguments[i], variables[i].type.resolvedType)
+    }
+  }
+
+  const SWIZZLE_STRINGS_2 = ["xy", "st", "rg"]
+  const SWIZZLE_STRINGS_3 = ["xyz", "stp", "rgb"]
+  const SWIZZLE_STRINGS_4 = ["xyzw", "stpq", "rgba"]
+
+  const SWIZZLE_TYPES_B List<Type> = [.BOOL, .BVEC2, .BVEC3, .BVEC4]
+  const SWIZZLE_TYPES_F List<Type> = [.FLOAT, .VEC2, .VEC3, .VEC4]
+  const SWIZZLE_TYPES_I List<Type> = [.INT, .IVEC2, .IVEC3, .IVEC4]
+
+  const INT_TYPES List<Type> = [
+    .INT, .IVEC2, .IVEC3, .IVEC4,
+  ]
+
+  const FLOAT_TYPES List<Type> = [
+    .FLOAT, .VEC2, .VEC3, .VEC4,
+    .MAT2, .MAT3, .MAT4,
+  ]
+
+  const INT_AND_FLOAT_TYPES List<Type> = [
+    .FLOAT, .VEC2, .VEC3, .VEC4,
+    .INT, .IVEC2, .IVEC3, .IVEC4,
+    .MAT2, .MAT3, .MAT4,
+  ]
+
+  const BOOL_AND_INT_AND_FLOAT_TYPES List<Type> = [
+    .BOOL, .BVEC2, .BVEC3, .BVEC4,
+    .FLOAT, .VEC2, .VEC3, .VEC4,
+    .INT, .IVEC2, .IVEC3, .IVEC4,
+    .MAT2, .MAT3, .MAT4,
+  ]
+
+  def _validateSwizzle(range Range, type Type, name string, swizzleStrings List<string>, swizzleTypes List<Type>, isAssignTarget bool) Type {
+    var count = name.count
+    if count > 4 {
+      _log.semanticErrorBadSwizzle(range, type, name)
+      return .ERROR
+    }
+
+    for set in swizzleStrings {
+      if name.get(0) in set {
+        for i in 1..count {
+          if !(name.get(i) in set) {
+            _log.semanticErrorBadSwizzle(range, type, name)
+            return .ERROR
+          }
+          if isAssignTarget && name.get(i) in name.slice(0, i) {
+            _log.semanticErrorBadSwizzleAssignment(range, name.get(i))
+            return .ERROR
+          }
+        }
+        return swizzleTypes[count - 1]
+      }
+    }
+
+    _log.semanticErrorBadSwizzle(range, type, name)
+    return .ERROR
+  }
+
+  def _resolveAsExpression(node Node) {
+    _resolve(node)
+    if node.kind == .TYPE && node.resolvedType != .ERROR {
+      _log.semanticErrorUnexpectedType(node.range, node.resolvedType)
+      node.resolvedType = .ERROR
+    }
+  }
+
+  def _resolveChildren(node Node) {
+    for child = node.firstChild; child != null; child = child.nextSibling {
+      _resolve(child)
+    }
+  }
+
+  def _checkConversion(node Node, type Type) {
+    if node.resolvedType != type && node.resolvedType != .ERROR {
+      _log.semanticErrorBadConversion(node.range, node.resolvedType, type)
+      node.resolvedType = .ERROR
+    }
+  }
+}

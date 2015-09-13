@@ -5,6 +5,7 @@ namespace GLSLX {
     COMMA
     ASSIGN
     LOGICAL_OR
+    LOGICAL_XOR
     LOGICAL_AND
     BITWISE_OR
     BITWISE_XOR

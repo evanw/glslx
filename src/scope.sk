@@ -4,6 +4,7 @@ namespace GLSLX {
     GLOBAL
     LOCAL
     LOOP
+    STRUCT
   }
 
   class Scope {

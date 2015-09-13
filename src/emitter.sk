@@ -18,20 +18,39 @@ namespace GLSLX {
       _indent = _indent.slice(2)
     }
 
+    def _emitFlags(symbol Symbol) {
+      if symbol.isAttribute { _emit("attribute ") }
+      if symbol.isConst { _emit("const ") }
+      if symbol.isUniform { _emit("uniform ") }
+      if symbol.isVarying { _emit("varying ") }
+
+      if symbol.isHighp { _emit("highp ") }
+      if symbol.isLowp { _emit("lowp ") }
+      if symbol.isMediump { _emit("mediump ") }
+
+      if symbol.isIn { _emit("in ") }
+      if symbol.isInout { _emit("inout ") }
+      if symbol.isOut { _emit("out ") }
+    }
+
     def _emit(node Node) {
       assert(node.kind.isStatement)
 
       switch node.kind {
         case .BLOCK {
-          _emit("{\n")
-          _increaseIndent
-          for child = node.firstChild; child != null; child = child.nextSibling {
-            _emit(_indent)
-            _emit(child)
-            _emit("\n")
+          if !node.hasChildren && node.parent != null {
+            _emit(";")
+          } else {
+            _emit("{\n")
+            _increaseIndent
+            for child = node.firstChild; child != null; child = child.nextSibling {
+              _emit(_indent)
+              _emit(child)
+              _emit("\n")
+            }
+            _decreaseIndent
+            _emit(_indent + "}")
           }
-          _decreaseIndent
-          _emit(_indent + "}")
         }
 
         case .BREAK {
@@ -72,6 +91,7 @@ namespace GLSLX {
 
         case .FUNCTION {
           var function = node.symbol as FunctionSymbol
+          _emitFlags(function)
           _emit(function.returnType, .LOWEST)
           _emit(" ")
           _emit(function.name)
@@ -80,14 +100,15 @@ namespace GLSLX {
             if argument != function.arguments.first {
               _emit(", ")
             }
+            _emitFlags(argument)
             _emit(argument.type, .LOWEST)
             _emit(" ")
             _emit(argument.name)
           }
           _emit(")")
-          if function.body != null {
+          if function.block != null {
             _emit(" ")
-            _emit(function.body)
+            _emit(function.block)
           } else {
             _emit(";")
           }
@@ -113,7 +134,22 @@ namespace GLSLX {
           _emit(";")
         }
 
+        case .STRUCT {
+          var symbol = node.symbol.asStruct
+          _emitFlags(symbol)
+          _emit("struct " + symbol.name + " {\n")
+          _increaseIndent
+          for child = node.firstChild; child != null; child = child.nextSibling {
+            _emit(_indent)
+            _emit(child)
+            _emit("\n")
+          }
+          _decreaseIndent
+          _emit(_indent + "};")
+        }
+
         case .VARIABLES {
+          _emitFlags(node.variablesType.nextSibling.symbol)
           _emit(node.variablesType, .LOWEST)
           for child = node.variablesType.nextSibling; child != null; child = child.nextSibling {
             var variable = child.symbol as VariableSymbol
@@ -154,9 +190,9 @@ namespace GLSLX {
 
       switch node.kind {
         case .CALL {
-          _emit(node.callValue, .UNARY_POSTFIX)
+          _emit(node.callTarget, .UNARY_POSTFIX)
           _emit("(")
-          _emitCommaSeparatedExpressions(node.callValue.nextSibling)
+          _emitCommaSeparatedExpressions(node.callTarget.nextSibling)
           _emit(")")
         }
 
@@ -244,6 +280,7 @@ namespace GLSLX {
         case .LESS_THAN_OR_EQUAL { _emitBinary("<=", node, precedence, .COMPARE) }
         case .LOGICAL_AND { _emitBinary("&&", node, precedence, .LOGICAL_AND) }
         case .LOGICAL_OR { _emitBinary("||", node, precedence, .LOGICAL_OR) }
+        case .LOGICAL_XOR { _emitBinary("^^", node, precedence, .LOGICAL_XOR) }
         case .MULTIPLY { _emitBinary("*", node, precedence, .MULTIPLY) }
         case .NOT_EQUAL { _emitBinary("!=", node, precedence, .COMPARE) }
         case .REMAINDER { _emitBinary("%", node, precedence, .MULTIPLY) }

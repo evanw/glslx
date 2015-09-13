@@ -7,17 +7,17 @@ namespace GLSLX.Parser {
 
   def unaryPrefix(kind NodeKind) fn(ParserContext, Token, Node) Node {
     assert(kind.isUnaryPrefix)
-    return (context, token, value) => Node.createUnary(kind, value).withRange(Range.span(token.range, value.range))
+    return (context, token, value) => Node.createUnary(kind, value).withRange(Range.span(token.range, value.range)).withInternalRange(token.range)
   }
 
   def unaryPostfix(kind NodeKind) fn(ParserContext, Node, Token) Node {
     assert(kind.isUnaryPostfix)
-    return (context, value, token) => Node.createUnary(kind, value).withRange(Range.span(value.range, token.range))
+    return (context, value, token) => Node.createUnary(kind, value).withRange(Range.span(value.range, token.range)).withInternalRange(token.range)
   }
 
   def binaryParselet(kind NodeKind) fn(ParserContext, Node, Token, Node) Node {
     assert(kind.isBinary)
-    return (context, left, token, right) => Node.createBinary(kind, left, right).withRange(Range.span(left.range, right.range))
+    return (context, left, token, right) => Node.createBinary(kind, left, right).withRange(Range.span(left.range, right.range)).withInternalRange(token.range)
   }
 
   def createExpressionParser Pratt {
@@ -69,6 +69,7 @@ namespace GLSLX.Parser {
     pratt.infix(.SHIFT_LEFT, .SHIFT, binaryParselet(.SHIFT_LEFT))
     pratt.infix(.SHIFT_RIGHT, .SHIFT, binaryParselet(.SHIFT_RIGHT))
     pratt.infix(.LOGICAL_OR, .LOGICAL_OR, binaryParselet(.LOGICAL_OR))
+    pratt.infix(.LOGICAL_XOR, .LOGICAL_XOR, binaryParselet(.LOGICAL_XOR))
     pratt.infix(.LOGICAL_AND, .LOGICAL_AND, binaryParselet(.LOGICAL_AND))
     pratt.infix(.BITWISE_AND, .BITWISE_AND, binaryParselet(.BITWISE_AND))
     pratt.infix(.BITWISE_OR, .BITWISE_OR, binaryParselet(.BITWISE_OR))
@@ -113,7 +114,7 @@ namespace GLSLX.Parser {
       if !context.expect(.IDENTIFIER) {
         return null
       }
-      return Node.createDot(left, name.toString).withRange(context.spanSince(left.range))
+      return Node.createDot(left, name.toString).withRange(context.spanSince(left.range)).withInternalRange(name)
     }
 
     # Group
@@ -128,22 +129,22 @@ namespace GLSLX.Parser {
 
     # Call
     pratt.parselet(.LEFT_PARENTHESIS, .UNARY_POSTFIX).infix = (context, left) => {
-      context.next
+      var token = context.next
       var node = Node.createCall(left)
       if !parseCommaSeparatedList(context, node, .RIGHT_PARENTHESIS) {
         return null
       }
-      return node.withRange(context.spanSince(left.range))
+      return node.withRange(context.spanSince(left.range)).withInternalRange(context.spanSince(token.range))
     }
 
     # Index
     pratt.parselet(.LEFT_BRACKET, .MEMBER).infix = (context, left) => {
-      context.next
+      var token = context.next
       var value = pratt.parse(context, .LOWEST)
       if value == null || !context.expect(.RIGHT_BRACKET) {
         return null
       }
-      return Node.createBinary(.INDEX, left, value).withRange(context.spanSince(left.range))
+      return Node.createBinary(.INDEX, left, value).withRange(context.spanSince(left.range)).withInternalRange(context.spanSince(token.range))
     }
 
     # Hook
@@ -311,6 +312,57 @@ namespace GLSLX.Parser {
     return Node.createReturn(value).withRange(context.spanSince(token.range))
   }
 
+  def parseStruct(context ParserContext, flags int) Node {
+    var name = context.current.range
+    if !context.expect(.IDENTIFIER) {
+      return null
+    }
+
+    var symbol = StructSymbol.new(name, name.toString, Scope.new(.STRUCT, context.scope))
+    symbol.flags |= flags
+    if !tryToDefineUniquelyInScope(context, symbol) {
+      return null
+    }
+
+    var struct = Node.createStruct(symbol)
+
+    if !context.expect(.LEFT_BRACE) {
+      return null
+    }
+
+    context.pushScope(symbol.scope)
+    while !context.peek(.RIGHT_BRACE) && !context.peek(.END_OF_FILE) {
+      var statement = parseStatement(context)
+      if statement == null {
+        return null
+      }
+
+      if statement.kind != .VARIABLES {
+        context.log.syntaxErrorInsideStruct(statement.range)
+        return null
+      }
+
+      struct.appendChild(statement)
+
+      for child = statement.variablesType.nextSibling; child != null; child = child.nextSibling {
+        var variable = child.symbol.asVariable
+        symbol.variables.append(variable)
+
+        if variable.value != null {
+          context.log.syntaxErrorStructVariableInitializer(variable.value.range)
+          return null
+        }
+      }
+    }
+    context.popScope
+
+    if !context.expect(.RIGHT_BRACE) || !context.expect(.SEMICOLON) {
+      return null
+    }
+
+    return struct
+  }
+
   def checkForLoopAndSemicolon(context ParserContext, range Range, node Node) Node {
     for scope = context.scope; scope != null; scope = scope.parent {
       if scope.kind == .LOOP {
@@ -335,17 +387,25 @@ namespace GLSLX.Parser {
       case .BREAK { return checkForLoopAndSemicolon(context, context.next.range, Node.createBreak) }
       case .CONTINUE { return checkForLoopAndSemicolon(context, context.next.range, Node.createContinue) }
       case .DISCARD { return checkForSemicolon(context, context.next.range, Node.createDiscard) }
-      case .RETURN { return parseReturn(context) }
       case .DO { return parseDoWhile(context) }
       case .FOR { return parseFor(context) }
       case .IF { return parseIf(context) }
       case .LEFT_BRACE { return parseBlock(context) }
+      case .RETURN { return parseReturn(context) }
+      case .SEMICOLON { return Node.createBlock.withRange(context.next.range) }
       case .WHILE { return parseWhile(context) }
     }
 
     # Try to parse a variable
     var flags = parseFlags(context)
     var type Node = null
+    if context.eat(.STRUCT) {
+      var struct = parseStruct(context, flags)
+      if struct == null {
+        return null
+      }
+      return struct.withRange(context.spanSince(token.range))
+    }
     if flags != 0 {
       type = parseType(context, .REPORT_ERRORS)
       if type == null {
@@ -356,6 +416,13 @@ namespace GLSLX.Parser {
     }
     if type != null {
       var name = context.current.range
+      if flags == 0 && !context.peek(.IDENTIFIER) {
+        var value = pratt.resume(context, .LOWEST, type)
+        if value == null {
+          return null
+        }
+        return checkForSemicolon(context, token.range, Node.createExpression(value))
+      }
       if !context.expect(.IDENTIFIER) {
         return null
       }
@@ -377,6 +444,21 @@ namespace GLSLX.Parser {
     return checkForSemicolon(context, token.range, Node.createExpression(value))
   }
 
+  def checkStatementLocation(context ParserContext, node Node) {
+    if node.kind == .VARIABLES {
+      return
+    }
+
+    var isOutsideFunction = context.scope.kind == .GLOBAL || context.scope.kind == .STRUCT
+    var shouldBeOutsideFunction = node.kind == .STRUCT || node.kind == .FUNCTION
+
+    if shouldBeOutsideFunction && !isOutsideFunction {
+      context.log.syntaxErrorInsideFunction(node.range)
+    } else if !shouldBeOutsideFunction && isOutsideFunction {
+      context.log.syntaxErrorOutsideFunction(node.range)
+    }
+  }
+
   def parseBlock(context ParserContext) Node {
     var token = context.current
     var block = Node.createBlock
@@ -391,6 +473,7 @@ namespace GLSLX.Parser {
       if statement == null {
         return null
       }
+      checkStatementLocation(context, statement)
       block.appendChild(statement)
     }
 
@@ -464,10 +547,14 @@ namespace GLSLX.Parser {
       case .VOID        { type = .VOID }
 
       case .IDENTIFIER {
-        if mode == .REPORT_ERRORS {
-          context.unexpectedToken
+        var symbol = context.scope.find(token.range.toString)
+        if symbol == null || !symbol.isStruct {
+          if mode == .REPORT_ERRORS {
+            context.unexpectedToken
+          }
+          return null
         }
-        return null
+        type = symbol.resolvedType
       }
 
       default {
@@ -492,12 +579,8 @@ namespace GLSLX.Parser {
     if previous == null {
       context.scope.define(function)
     } else if previous.isFunction {
-      var overloaded = OverloadedFunctionSymbol.new(null, function.name, context.scope)
-      overloaded.symbols.append(previous.asFunction)
-      overloaded.symbols.append(function)
-      context.scope.redefine(overloaded)
-    } else if previous.isOverloadedFunction {
-      previous.asOverloadedFunction.symbols.append(function)
+      function.previousOverload = previous.asFunction
+      context.scope.redefine(function)
     } else {
       context.log.syntaxErrorDuplicateSymbolDefinition(name, previous.range)
       return null
@@ -551,8 +634,8 @@ namespace GLSLX.Parser {
     }
 
     if !context.eat(.SEMICOLON) {
-      function.body = parseBlock(context)
-      if function.body == null {
+      function.block = parseBlock(context)
+      if function.block == null {
         return null
       }
     }
@@ -595,9 +678,6 @@ namespace GLSLX.Parser {
   def tryToDefineUniquelyInScope(context ParserContext, symbol Symbol) bool {
     var previous = context.scope.symbols.get(symbol.name, null)
     if previous != null {
-      if previous.isOverloadedFunction {
-        previous = previous.asOverloadedFunction.symbols.first
-      }
       context.log.syntaxErrorDuplicateSymbolDefinition(symbol.range, previous.range)
       return false
     }
@@ -617,6 +697,7 @@ namespace GLSLX.Parser {
       if statement == null {
         break
       }
+      checkStatementLocation(context, statement)
       global.appendChild(statement)
     }
   }

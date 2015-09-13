@@ -15,6 +15,7 @@ namespace GLSLX {
     FUNCTION
     IF
     RETURN
+    STRUCT
     VARIABLES
     WHILE
 
@@ -59,6 +60,7 @@ namespace GLSLX {
     LESS_THAN_OR_EQUAL
     LOGICAL_AND
     LOGICAL_OR
+    LOGICAL_XOR
     MULTIPLY
     NOT_EQUAL
     REMAINDER
@@ -116,6 +118,7 @@ namespace GLSLX {
     const id = _createID
     var kind NodeKind
     var range Range = null
+    var internalRange Range = null
     var symbol Symbol = null
     var resolvedType Type = null
     var _literal = 0.0
@@ -181,6 +184,11 @@ namespace GLSLX {
 
     def withRange(value Range) Node {
       range = value
+      return self
+    }
+
+    def withInternalRange(value Range) Node {
+      internalRange = value
       return self
     }
 
@@ -266,6 +274,14 @@ namespace GLSLX {
   }
 
   class Node {
+    def isCallTarget bool {
+      return parent != null && parent.kind == .CALL && parent.callTarget == self
+    }
+
+    def isAssignTarget bool {
+      return parent != null && (parent.kind.isUnaryAssign || parent.kind.isBinaryAssign && parent.binaryLeft == self)
+    }
+
     def isEmptySequence bool {
       return kind == .SEQUENCE && !hasChildren
     }
@@ -347,6 +363,10 @@ namespace GLSLX {
     def createReturn(value Node) Node {
       assert(value == null || value.kind.isExpression)
       return new(.RETURN).appendChild(value)
+    }
+
+    def createStruct(symbol StructSymbol) Node {
+      return new(.STRUCT).withSymbol(symbol)
     }
 
     def createVariables(type Node) Node {
@@ -511,7 +531,7 @@ namespace GLSLX {
       return _lastChild
     }
 
-    def callValue Node {
+    def callTarget Node {
       assert(kind == .CALL)
       assert(childCount >= 1)
       assert(_firstChild.kind.isExpression)

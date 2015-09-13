@@ -103,7 +103,103 @@ namespace GLSLX {
     }
 
     def syntaxErrorOutsideLoop(range Range) {
-      error(range, "This cannot be used outside a loop")
+      error(range, "This statement cannot be used outside a loop")
+    }
+
+    def syntaxErrorStructVariableInitializer(range Range) {
+      error(range, "Cannot initialize struct variables")
+    }
+
+    def syntaxErrorInsideStruct(range Range) {
+      error(range, "This statement cannot be used inside a struct")
+    }
+
+    def syntaxErrorInsideFunction(range Range) {
+      error(range, "This statement cannot be used inside a function")
+    }
+
+    def syntaxErrorOutsideFunction(range Range) {
+      error(range, "This statement cannot be used outside a function")
+    }
+  }
+
+  class Log {
+    def semanticErrorBadConversion(range Range, from Type, to Type) {
+      error(range, "Cannot convert from type \"" + from.toString + "\" to type \"" + to.toString + "\"")
+    }
+
+    def semanticErrorUnexpectedType(range Range, type Type) {
+      error(range, "Unexpected type \"" + type.toString + "\"")
+    }
+
+    def semanticErrorBadVariableType(range Range, type Type) {
+      error(range, "Cannot create a variable of type \"" + type.toString + "\"")
+    }
+
+    def semanticErrorBadMember(range Range, type Type, name string) {
+      error(range, "Cannot find \"" + name + "\" on type \"" + type.toString + "\"")
+    }
+
+    def semanticErrorBadSwizzle(range Range, type Type, name string) {
+      error(range, "Invalid swizzle \"" + name + "\" on type \"" + type.toString + "\"")
+    }
+
+    def semanticErrorBadSwizzleAssignment(range Range, field string) {
+      error(range, "The field \"" + field + "\" cannot be specified multiple times when used as a storage location")
+    }
+
+    def semanticErrorMustCallFunction(range Range, name string) {
+      error(range, "The function \"" + name + "\" must be called")
+    }
+
+    def semanticErrorBadCall(range Range, type Type) {
+      error(range, "Cannot call type \"" + type.toString + "\"")
+    }
+
+    def semanticErrorBadConstructorValue(range Range, type Type, constructor Type) {
+      error(range, "Cannot use value of type \"" + type.toString + "\" when constructing type \"" + constructor.toString + "\"")
+    }
+
+    def semanticErrorBadConstructorCount(range Range, type Type, count int) {
+      error(range, "Cannot construct type \"" + type.toString + "\" with " + count.toString + " value" + plural(count))
+    }
+
+    def semanticErrorArgumentCountFunction(range Range, expected int, found int, name string, function Range) {
+      error(range, "Expected " + expected.toString + " argument" + plural(expected) + " but found " +
+        found.toString + " argument" + plural(found) + " when calling function \"" + name + "\"")
+      if function != null {
+        note(function, "The definition of function \"" + name + "\" is here")
+      }
+    }
+
+    def semanticErrorArgumentCountConstructor(range Range, expected int, found int, name string, struct Range) {
+      error(range, "Expected " + expected.toString + " argument" + plural(expected) + " but found " +
+        found.toString + " argument" + plural(found) + " when constructing type \"" + name + "\"")
+      if struct != null {
+        note(struct, "The definition of struct \"" + name + "\" is here")
+      }
+    }
+
+    def semanticErrorBadOverloadMatch(range Range, name string) {
+      error(range, "No matching overload for function \"" + name + "\"")
+    }
+
+    def semanticErrorBadHookTypes(range Range, left Type, right Type) {
+      error(range, "Cannot merge type \"" + left.toString + "\" and type \"" + right.toString + "\"")
+    }
+
+    def semanticErrorBadUnary(range Range, operator string, type Type) {
+      error(range, "No unary operator \"" + operator + "\" for type \"" + type.toString + "\"")
+    }
+
+    def semanticErrorBadBinary(range Range, operator string, left Type, right Type) {
+      error(range, "No binary operator \"" + operator + "\" for type \"" + left.toString + "\" and type \"" + right.toString + "\"")
+    }
+  }
+
+  namespace Log {
+    def plural(value int) string {
+      return value != 1 ? "s" : ""
     }
   }
 }

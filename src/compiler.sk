@@ -17,8 +17,8 @@ namespace GLSLX.Compiler {
     Parser.parse(log, apiTokens, global, scope)
 
     for symbol in scope.symbols.values {
-      if symbol.isOverloadedFunction {
-        for function in symbol.asOverloadedFunction.symbols {
+      if symbol.isFunction {
+        for function = symbol.asFunction; function != null; function = function.previousOverload {
           function.flags |= Symbol.IS_IMPORTED
         }
       } else {
@@ -27,6 +27,12 @@ namespace GLSLX.Compiler {
     }
 
     Parser.parse(log, sourceTokens, global, scope)
+
+    if log.hasErrors {
+      return null
+    }
+
+    Resolver.resolve(log, global)
 
     if log.hasErrors {
       return null
@@ -41,7 +47,7 @@ namespace GLSLX.Compiler {
     for child = node.firstChild, nextChild Node = null; child != null; child = nextChild {
       nextChild = child.nextSibling
 
-      if child.kind == .FUNCTION && child.symbol.isImported {
+      if (child.kind == .FUNCTION || child.kind == .STRUCT) && child.symbol.isImported {
         child.remove
       }
 

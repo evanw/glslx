@@ -46,14 +46,13 @@ namespace GLSLX {
     # Internal compiler flags
     def isImported bool { return (flags & IS_IMPORTED) != 0 }
 
-    def isObject bool { return self is ObjectSymbol }
+    def isStruct bool { return self is StructSymbol }
     def isFunction bool { return self is FunctionSymbol }
     def isVariable bool { return self is VariableSymbol }
-    def isOverloadedFunction bool { return self is OverloadedFunctionSymbol }
 
-    def asObject ObjectSymbol {
-      assert(isObject)
-      return self as ObjectSymbol
+    def asStruct StructSymbol {
+      assert(isStruct)
+      return self as StructSymbol
     }
 
     def asFunction FunctionSymbol {
@@ -66,11 +65,6 @@ namespace GLSLX {
       return self as VariableSymbol
     }
 
-    def asOverloadedFunction OverloadedFunctionSymbol {
-      assert(isOverloadedFunction)
-      return self as OverloadedFunctionSymbol
-    }
-
     def resolvedType Type {
       if _resolvedType == null {
         _resolvedType = Type.new(self)
@@ -79,22 +73,19 @@ namespace GLSLX {
     }
   }
 
-  class ObjectSymbol : Symbol {
+  class StructSymbol : Symbol {
     var variables List<VariableSymbol> = []
   }
 
   class FunctionSymbol : Symbol {
     var arguments List<VariableSymbol> = []
     var returnType Node = null
-    var body Node = null
+    var block Node = null
+    var previousOverload FunctionSymbol = null
   }
 
   class VariableSymbol : Symbol {
     var type Node = null
     var value Node = null
-  }
-
-  class OverloadedFunctionSymbol : Symbol {
-    var symbols List<FunctionSymbol> = []
   }
 }

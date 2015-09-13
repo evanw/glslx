@@ -62,6 +62,7 @@ namespace GLSLX {
     LESS_THAN_OR_EQUAL
     LOGICAL_AND
     LOGICAL_OR
+    LOGICAL_XOR
     MINUS
     MULTIPLY
     NOT_EQUAL
@@ -176,11 +177,11 @@ namespace GLSLX.Tokenizer {
     "[ \t\r\n]|" + # Whitespace
     "/\\*(?:.|\n)*?\\*/|" + # Multi-line comment
     "//.*|" + # Single-line comment
-    "&&|\\|\\||\\+\\+|--|<<=?|>>=?|[()[\\]{}\\.,?:;]|[+\\-*/%=!<>&|^~]=?|" + # Operator
+    "&&|\\|\\||\\^\\^|\\+\\+|--|<<=?|>>=?|[()[\\]{}\\.,?:;]|[+\\-*/%=!<>&|^~]=?|" + # Operator
 
     # Float literal
     "\\.[0-9]+(?:[eE]?[+-]?[0-9]+)?\\b|" + # Floating-point constant
-    "[0-9]+\\.[0-9]*(?:[eE][+-]?[0-9]+)?\\b|" + # Floating-point constant
+    "[0-9]+\\.(?:[0-9]+\\b)?(?:[eE][+-]?[0-9]+\\b)?|" + # Floating-point constant
     "[0-9]+[eE][+-]?[0-9]+\\b|" + # Floating-point constant
 
     # int literals
@@ -265,6 +266,7 @@ namespace GLSLX.Tokenizer {
     "<=": .LESS_THAN_OR_EQUAL,
     "&&": .LOGICAL_AND,
     "||": .LOGICAL_OR,
+    "^^": .LOGICAL_XOR,
     "-": .MINUS,
     "*": .MULTIPLY,
     "!=": .NOT_EQUAL,
