@@ -1,6 +1,28 @@
 namespace GLSLX.Tests {
   def testRewriter {
 
+# Prefer greater than and less than operators when integer constants can be modified
+test("
+int main(int i) {
+  return i <= -1 ? -1 : i >= 1 ? 1 : 0;
+}
+", "
+int main(int i) {
+  return i < 0 ? -1 : i > 0 ? 1 : 0;
+}
+").compactSyntaxTree
+
+# Don't touch greater than and less than operators for floating-point constants
+test("
+int main(float i) {
+  return i <= -1.0 ? -1 : i >= 1.0 ? 1 : 0;
+}
+", "
+int main(float i) {
+  return i <= -1.0 ? -1 : i >= 1.0 ? 1 : 0;
+}
+").compactSyntaxTree
+
 # Inline blocks when they don't contain variables
 test("
 void bar();
@@ -162,6 +184,54 @@ void main(bool a) {
 }
 ").compactSyntaxTree
 
+# Check for hook substitution
+test("
+int main(int i) {
+  int j = 0;
+  if (i < 0) j = -1;
+  else if (i > 0) j = 1;
+  return j;
+}
+", "
+int main(int i) {
+  int j = 0;
+  j = i < 0 ? -1 : i > 0 ? 1 : j;
+  return j;
+}
+").compactSyntaxTree
+
+# Check for hook substitution
+test("
+float main(float i) {
+  float j = 0.0;
+  if (i < 0.0) j = -1.0;
+  else if (i > 0.0) j = 1.0;
+  return j;
+}
+", "
+float main(float i) {
+  float j = 0.0;
+  j = i < 0.0 ? -1.0 : i > 0.0 ? 1.0 : j;
+  return j;
+}
+").compactSyntaxTree
+
+# Check for hook substitution
+test("
+vec4 main(int i) {
+  vec4 j = vec4(0.0);
+  if (i < 0) j = vec4(-1.0);
+  else if (i > 0) j = vec4(1.0);
+  return j;
+}
+", "
+vec4 main(int i) {
+  vec4 j = vec4(0.0);
+  j = i < 0 ? vec4(-1.0) : i > 0 ? vec4(1.0) : j;
+  return j;
+}
+").compactSyntaxTree
+
 # Check for sequence flattening
 test("
 void foo();
@@ -198,6 +268,150 @@ void main() {
 ", "
 void main() {
   for (;;) ;
+}
+").compactSyntaxTree
+
+# Combine multiple adjacent variable declarations
+test("
+varying vec2 s;
+uniform vec2 x;
+uniform vec2 y;
+varying vec2 t;
+
+void main() {
+  int a;
+  int b;
+  const int c;
+  int d;
+  int e;
+}
+", "
+uniform vec2 x, y;
+varying vec2 s, t;
+
+void main() {
+  const int c;
+  int a, b, d, e;
+}
+").compactSyntaxTree
+
+# Don't combine multiple adjacent variable declarations across an initialized variable
+test("
+int foo();
+
+void main() {
+  int a = foo();
+  const int b = a;
+  int c;
+}
+", "
+int foo();
+
+void main() {
+  int a = foo();
+  const int b = a;
+  int c;
+}
+").compactSyntaxTree
+
+# Only combine multiple adjacent variable declarations across an initialized constant
+test("
+int foo();
+
+void main() {
+  int a = foo();
+  const int b = 0;
+  int c;
+}
+", "
+int foo();
+
+void main() {
+  const int b = 0;
+  int a = foo(), c;
+}
+").compactSyntaxTree
+
+# Rewrite hook expressions with a common binary left side
+test("
+int main(bool b) {
+  int i;
+  b ? i = 0 : i = 1;
+  return i;
+}
+", "
+int main(bool b) {
+  int i;
+  i = b ? 0 : 1;
+  return i;
+}
+").compactSyntaxTree
+
+# Check constant folding of booleans
+test("
+void foo();
+void bar();
+
+void main(bool a) {
+  if (!false) foo(); else bar();
+  if (!true) foo(); else bar();
+  if (!!a) foo();
+}
+", "
+void foo();
+void bar();
+
+void main(bool a) {
+  foo(), bar();
+  if (a)
+    foo();
+}
+").compactSyntaxTree
+
+# Check constant folding of integers
+test("
+void foo();
+
+void main(int a) {
+  if (+ +a < 0) foo();
+  if (- -a < 0) foo();
+  if (- -1 == 1) foo();
+}
+", "
+void foo();
+
+void main(int a) {
+  if (a < 0)
+    foo();
+  if (a < 0)
+    foo();
+  foo();
+}
+").compactSyntaxTree
+
+# Check for index substitution
+test("
+float main(vec4 a, int i) {
+  return a[0] + a[1] + a[2] + a[3] + a[i];
+}
+", "
+float main(vec4 a, int i) {
+  return a.x + a.y + a.z + a.w + a[i];
+}
+").compactSyntaxTree
+
+# Check for constant folding based on syntax tree comparisons
+test("
+int foo();
+
+bool main(int i) {
+  return 0 - i == -i && foo() == foo();
+}
+", "
+int foo();
+
+bool main(int i) {
+  return foo() == foo();
 }
 ").compactSyntaxTree
 

@@ -614,7 +614,7 @@ namespace GLSLX.Parser {
         }
 
         # Create the argument
-        var argument = VariableSymbol.new(argumentName, argumentName.toString, context.scope)
+        var argument = VariableSymbol.new(argumentName, argumentName.toString, context.scope, .ARGUMENT)
         argument.flags |= argumentFlags
         argument.type = argumentType
         function.arguments.append(argument)
@@ -645,9 +645,12 @@ namespace GLSLX.Parser {
   }
 
   def parseVariables(flags int, type Node, name Range, context ParserContext) Node {
-    var variables = Node.createVariables(type)
+    var variables = Node.createVariables(flags, type)
     while true {
-      var variable = VariableSymbol.new(name, name.toString, context.scope)
+      var variable = VariableSymbol.new(name, name.toString, context.scope,
+        context.scope.kind == .GLOBAL ? .GLOBAL :
+        context.scope.kind == .STRUCT ? .STRUCT :
+        .LOCAL)
       variable.flags |= flags
       variable.type = type
       tryToDefineUniquelyInScope(context, variable)

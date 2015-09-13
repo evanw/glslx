@@ -1,6 +1,7 @@
 class GLSLX.CompilerOptions {
   var compactSyntaxTree = false
   var removeWhitespace = false
+  var inlineConstants = false
 }
 
 namespace GLSLX.Compiler {

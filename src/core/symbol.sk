@@ -21,6 +21,7 @@ namespace GLSLX {
   }
 
   class Symbol {
+    const id = _createID
     var range Range
     var name string
     var scope Scope
@@ -84,8 +85,25 @@ namespace GLSLX {
     var previousOverload FunctionSymbol = null
   }
 
+  enum VariableKind {
+    ARGUMENT
+    GLOBAL
+    LOCAL
+    STRUCT
+  }
+
   class VariableSymbol : Symbol {
+    var kind VariableKind
     var type Node = null
     var value Node = null
+  }
+
+  namespace Symbol {
+    def _createID int {
+      _nextID++
+      return _nextID
+    }
+
+    var _nextID = 0
   }
 }

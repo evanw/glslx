@@ -7,6 +7,11 @@ namespace GLSLX.Rewriter {
         rewriter._compact(global)
       }
 
+      if options.inlineConstants {
+        rewriter._scanLocalVariables(global)
+        rewriter._inlineConstants(global)
+      }
+
       if !rewriter._codeWasChanged {
         break
       }
@@ -70,9 +75,94 @@ namespace GLSLX.Rewriter {
 
 class GLSLX.Rewriter {
   var _codeWasChanged = false
+  var _localVariables List<VariableSymbol> = []
+  var _mutationCounts IntMap<int> = {}
 
   def _reportCodeChange {
     _codeWasChanged = true
+  }
+
+  def _scanLocalVariables(node Node) {
+    for child = node.firstChild; child != null; child = child.nextSibling {
+      _scanLocalVariables(child)
+    }
+
+    switch node.kind {
+      case .VARIABLE {
+        var variable = node.symbol.asVariable
+        if variable.value != null {
+          _scanLocalVariables(variable.value)
+        }
+        if variable.kind == .LOCAL {
+          _localVariables.append(variable)
+          _mutationCounts[variable.id] = 0
+        }
+      }
+
+      case .FUNCTION {
+        var function = node.symbol.asFunction
+        if function.block != null {
+          _scanLocalVariables(function.block)
+        }
+      }
+
+      case .NAME {
+        if node.isUsedInStorage {
+          var symbol = node.symbol
+          var count = _mutationCounts.get(symbol.id, -1)
+          if count != -1 {
+            _mutationCounts[symbol.id] = count + 1
+          }
+        }
+      }
+    }
+  }
+
+  def _inlineConstants(node Node) {
+    for child = node.firstChild, next Node = null; child != null; child = next {
+      next = child.nextSibling
+      _inlineConstants(child)
+    }
+
+    switch node.kind {
+      case .VARIABLE {
+        if _isConstant(node.symbol) {
+          node.remove
+          _reportCodeChange
+        } else if node.variableInitializer != null {
+          _inlineConstants(node.variableInitializer)
+        }
+      }
+
+      case .FUNCTION {
+        var function = node.symbol.asFunction
+        if function.block != null {
+          _inlineConstants(function.block)
+        }
+      }
+
+      case .VARIABLES {
+        if node.variablesType.nextSibling == null {
+          if node.parent.kind == .FOR && node == node.forSetup {
+            node.replaceWith(Node.createSequence)
+          } else {
+            node.remove
+          }
+          _reportCodeChange
+        }
+      }
+
+      case .NAME {
+        if _isConstant(node.symbol) {
+          node.replaceWith(node.symbol.asVariable.value.clone)
+          _reportCodeChange
+        }
+      }
+    }
+  }
+
+  def _isConstant(symbol Symbol) bool {
+    return _mutationCounts.get(symbol.id, -1) == 0 && symbol.asVariable.value != null && symbol.asVariable.value.kind.isLiteral
   }
 
   def _compact(node Node) {
@@ -117,9 +207,10 @@ class GLSLX.Rewriter {
 
           # Combine with a previous expression, if any (may open up more
           # compacting opportunities in the future)
-          if node.previousSibling != null && node.previousSibling.kind == .EXPRESSION {
+          var previous = node.previousSibling
+          if previous != null && previous.kind == .EXPRESSION {
             var value = node.expressionValue.remove
-            node.appendChild(Node.createSequence.appendChild(node.previousSibling.remove.expressionValue.remove).appendChild(value))
+            node.appendChild(Node.createSequence.appendChild(previous.remove.expressionValue.remove).appendChild(value))
             _reportCodeChange
             return
           }
@@ -175,12 +266,29 @@ class GLSLX.Rewriter {
         }
 
         # Turn if-else statements into shorter conditional expressions when possible
-        if node.ifFalse != null && node.ifTrue.kind == .EXPRESSION && node.ifFalse.kind == .EXPRESSION && node.ifTrue.resolvedType == node.ifFalse.resolvedType {
-          var yes = node.ifTrue.expressionValue.remove
-          var no = node.ifFalse.expressionValue.remove
-          node.replaceWith(Node.createExpression(Node.createHook(node.ifTest.remove, yes, no)))
-          _reportCodeChange
-          return
+        if node.ifFalse != null && node.ifTrue.kind == .EXPRESSION && node.ifFalse.kind == .EXPRESSION {
+          var yes = node.ifTrue.expressionValue
+          var no = node.ifFalse.expressionValue
+          if yes.resolvedType == no.resolvedType {
+            node.replaceWith(Node.createExpression(Node.createHook(node.ifTest.remove, yes.remove, no.remove).withType(yes.resolvedType)))
+            _reportCodeChange
+            return
+          }
+        }
+
+        # Also turn if statements without else blocks into shorter conditional expressions when possible
+        if node.ifFalse == null && node.ifTrue.kind == .EXPRESSION {
+          var yes = node.ifTrue.expressionValue
+          var isAssignToLocalName = yes.kind == .ASSIGN && yes.binaryLeft.kind == .NAME && yes.binaryLeft.symbol.asVariable.kind == .LOCAL
+          if yes.resolvedType == .INT || yes.resolvedType == .FLOAT || isAssignToLocalName {
+            var value =
+              isAssignToLocalName ? yes.binaryLeft.clone :
+              yes.resolvedType == .INT ? Node.createInt(0) :
+              Node.createFloat(0)
+            node.replaceWith(Node.createExpression(Node.createHook(node.ifTest.remove, yes.remove, value).withType(yes.resolvedType)))
+            _reportCodeChange
+            return
+          }
         }
 
         # Inline a true-only branch
@@ -188,7 +296,7 @@ class GLSLX.Rewriter {
           var left = node.ifTest
           var right = node.ifTrue.ifTest
           var body = node.ifTrue.ifTrue
-          left.become(Node.createBinary(.LOGICAL_AND, left.cloneAndStealChildren, right.remove))
+          left.become(Node.createBinary(.LOGICAL_AND, left.cloneAndStealChildren, right.remove).withType(.BOOL))
           node.ifTrue.become(body.remove)
           _reportCodeChange
           return
@@ -210,6 +318,7 @@ class GLSLX.Rewriter {
         if node.ifFalse != null && node.ifFalse.isEmptyBlock {
           node.ifFalse.remove
           _reportCodeChange
+          return
         }
       }
 
@@ -217,6 +326,32 @@ class GLSLX.Rewriter {
         var function = node.symbol.asFunction
         if function.block != null {
           _compact(function.block)
+        }
+      }
+
+      case .VARIABLES {
+        for previous = node.previousSibling; previous != null; previous = previous.previousSibling {
+          if previous.kind != .VARIABLES {
+            break
+          }
+
+          # Combine with a previous variable block if the types and modifiers match
+          if previous.variablesType.resolvedType == node.variablesType.resolvedType && previous.variablesFlags == node.variablesFlags {
+            while previous.lastChild != previous.variablesType {
+              node.insertChildBefore(node.variablesType.nextSibling, previous.lastChild.remove)
+            }
+            previous.remove
+            _reportCodeChange
+            return
+          }
+
+          # Only skip over variable blocks if all variables have constant initializers
+          for child = previous.variablesType.nextSibling; child != null; child = child.nextSibling {
+            var initializer = child.variableInitializer
+            if initializer != null && !initializer.kind.isLiteral {
+              return
+            }
+          }
         }
       }
 
@@ -229,16 +364,41 @@ class GLSLX.Rewriter {
       }
 
       case .HOOK {
+        var test = node.hookTest
+        var yes = node.hookTrue
+        var no = node.hookFalse
+
         # Special-case "true"
-        if node.hookTest.isTrue {
-          node.become(node.hookTrue.remove) # The parent will be null for variable values
+        if test.isTrue {
+          node.become(yes.remove)
           _reportCodeChange
           return
         }
 
-        # Special-case false"
-        if node.hookTest.isFalse {
-          node.become(node.hookFalse.remove) # The parent will be null for variable values
+        # Special-case "false"
+        if test.isFalse {
+          node.become(no.remove)
+          _reportCodeChange
+          return
+        }
+
+        # Special-case binary operators on both branches, likely assignments
+        if yes.kind == no.kind && yes.kind.isBinary && yes.binaryLeft.looksTheSameAs(no.binaryLeft) {
+          var common = yes.binaryLeft
+          var left = yes.binaryRight
+          var right = no.binaryRight
+          var value = Node.createHook(test.remove, left.remove, right.remove)
+          node.become(Node.createBinary(yes.kind, common.remove, value))
+          _reportCodeChange
+          return
+        }
+
+        # Special-case an assignment and the assignment target, generated by if statement conversion
+        if yes.kind == .ASSIGN && yes.binaryLeft.looksTheSameAs(no) && no.hasNoSideEffects {
+          var common = yes.binaryLeft
+          var left = yes.binaryRight
+          var value = Node.createHook(test.remove, left.remove, no.remove)
+          node.become(Node.createBinary(.ASSIGN, common.remove, value))
           _reportCodeChange
           return
         }
@@ -263,12 +423,289 @@ class GLSLX.Rewriter {
 
         # Inline single-element sequences
         if node.hasOneChild {
-          node.become(node.firstChild.remove) # The parent will be null for variable values
+          node.become(node.firstChild.remove)
           _reportCodeChange
           return
         }
       }
+
+      case .NEGATIVE {
+        var value = node.unaryValue
+
+        # "- -a" => "a"
+        if value.kind == .NEGATIVE {
+          node.become(value.unaryValue.remove)
+          _reportCodeChange
+        }
+
+        # Constant folding
+        else if value.kind == .INT { _changeToInt(node, -value.asInt) }
+        else if value.kind == .FLOAT { _changeToFloat(node, -value.asFloat) }
+      }
+
+      case .NOT {
+        var value = node.unaryValue
+
+        # "!!a" => "a"
+        if value.kind == .NOT {
+          node.become(value.unaryValue.remove)
+          _reportCodeChange
+        }
+
+        # Constant folding
+        else if value.kind == .BOOL { _changeToBool(node, !value.asBool) }
+      }
+
+      case .POSITIVE {
+        node.become(node.unaryValue)
+      }
+
+      case .ADD {
+        var left = node.binaryLeft
+        var right = node.binaryRight
+
+        # "0 + a" => "a"
+        if left.isIntOrFloat(0) {
+          node.become(right.remove)
+          _reportCodeChange
+        }
+
+        # "a + 0" => "a"
+        else if right.isIntOrFloat(0) {
+          node.become(left.remove)
+          _reportCodeChange
+        }
+
+        # Constant folding
+        else if left.kind == .INT && right.kind == .INT { _changeToInt(node, left.asInt + right.asInt) }
+        else if left.kind == .FLOAT && right.kind == .FLOAT { _changeToFloat(node, left.asFloat + right.asFloat) }
+      }
+
+      case .DIVIDE {
+        var left = node.binaryLeft
+        var right = node.binaryRight
+
+        # "a / 1" => "a"
+        if right.isIntOrFloat(1) {
+          node.become(left.remove)
+          _reportCodeChange
+        }
+
+        # Constant folding (division by 0 is undefined so whatever)
+        else if left.kind == .INT && right.kind == .INT { _changeToInt(node, right.asInt != 0 ? left.asInt / right.asInt : 0) }
+        else if left.kind == .FLOAT && right.kind == .FLOAT { _changeToFloat(node, right.asFloat != 0 ? left.asFloat / right.asFloat : 0) }
+      }
+
+      case .EQUAL {
+        var left = node.binaryLeft
+        var right = node.binaryRight
+
+        # "a == a" => "true"
+        if left.looksTheSameAs(right) && left.hasNoSideEffects {
+          _changeToBool(node, true)
+          _reportCodeChange
+        }
+
+        # Constant folding
+        else if left.kind == .INT && right.kind == .INT { _changeToBool(node, left.asInt == right.asInt) }
+        else if left.kind == .FLOAT && right.kind == .FLOAT { _changeToBool(node, left.asFloat == right.asFloat) }
+      }
+
+      case .GREATER_THAN {
+        var left = node.binaryLeft
+        var right = node.binaryRight
+
+        # Constant folding
+        if left.kind == .INT && right.kind == .INT { _changeToBool(node, left.asInt > right.asInt) }
+        else if left.kind == .FLOAT && right.kind == .FLOAT { _changeToBool(node, left.asFloat > right.asFloat) }
+      }
+
+      case .GREATER_THAN_OR_EQUAL {
+        var left = node.binaryLeft
+        var right = node.binaryRight
+
+        # "1 >= a" => "2 > a"
+        if left.kind == .INT {
+          node.kind = .GREATER_THAN
+          left.withInt(left.asInt + 1)
+          _reportCodeChange
+        }
+
+        # "a >= 1" => "a > 0"
+        else if right.kind == .INT {
+          node.kind = .GREATER_THAN
+          right.withInt(right.asInt - 1)
+          _reportCodeChange
+        }
+
+        # Constant folding
+        else if left.kind == .INT && right.kind == .INT { _changeToBool(node, left.asInt >= right.asInt) }
+        else if left.kind == .FLOAT && right.kind == .FLOAT { _changeToBool(node, left.asFloat >= right.asFloat) }
+      }
+
+      case .INDEX {
+        var left = node.binaryLeft
+        var right = node.binaryRight
+        var type = left.resolvedType
+
+        # Replace with a swizzle
+        if right.kind == .INT {
+          var index = right.asInt
+          var bound = 0
+          switch type {
+            case .BVEC2, .IVEC2, .VEC2 { bound = 2 }
+            case .BVEC3, .IVEC3, .VEC3 { bound = 3 }
+            case .BVEC4, .IVEC4, .VEC4 { bound = 4 }
+          }
+          if index >= 0 && index < bound {
+            node.become(Node.createDot(left.remove, "xyzw".get(index)).withType(node.resolvedType))
+            _reportCodeChange
+          }
+        }
+      }
+
+      case .LESS_THAN {
+        var left = node.binaryLeft
+        var right = node.binaryRight
+
+        # Constant folding
+        if left.kind == .INT && right.kind == .INT { _changeToBool(node, left.asInt < right.asInt) }
+        else if left.kind == .FLOAT && right.kind == .FLOAT { _changeToBool(node, left.asFloat < right.asFloat) }
+      }
+
+      case .LESS_THAN_OR_EQUAL {
+        var left = node.binaryLeft
+        var right = node.binaryRight
+
+        # "1 <= a" => "0 < a"
+        if left.kind == .INT {
+          node.kind = .LESS_THAN
+          left.withInt(left.asInt - 1)
+          _reportCodeChange
+        }
+
+        # "a <= 1" => "a < 2"
+        else if right.kind == .INT {
+          node.kind = .LESS_THAN
+          right.withInt(right.asInt + 1)
+          _reportCodeChange
+        }
+
+        # Constant folding
+        else if left.kind == .INT && right.kind == .INT { _changeToBool(node, left.asInt <= right.asInt) }
+        else if left.kind == .FLOAT && right.kind == .FLOAT { _changeToBool(node, left.asFloat <= right.asFloat) }
+      }
+
+      case .LOGICAL_AND {
+        var left = node.binaryLeft
+        var right = node.binaryRight
+
+        # "true && a" => "a"
+        if left.kind == .BOOL && left.isTrue {
+          node.become(right.remove)
+          _reportCodeChange
+        }
+
+        # Constant folding
+        else if left.kind == .BOOL && left.isFalse { _changeToBool(node, false) }
+        else if left.kind == .BOOL && right.kind == .BOOL { _changeToBool(node, left.asBool && right.asBool) }
+      }
+
+      case .LOGICAL_OR {
+        var left = node.binaryLeft
+        var right = node.binaryRight
+
+        # "false || a" => "a"
+        if left.kind == .BOOL && left.isFalse {
+          node.become(right.remove)
+          _reportCodeChange
+        }
+
+        # Constant folding
+        else if left.kind == .BOOL && left.isTrue { _changeToBool(node, true) }
+        else if left.kind == .BOOL && right.kind == .BOOL { _changeToBool(node, left.asBool && right.asBool) }
+      }
+
+      case .LOGICAL_XOR {
+        var left = node.binaryLeft
+        var right = node.binaryRight
+
+        # Constant folding
+        if left.kind == .BOOL && right.kind == .BOOL { _changeToBool(node, left.asBool != right.asBool) }
+      }
+
+      case .MULTIPLY {
+        var left = node.binaryLeft
+        var right = node.binaryRight
+
+        # "1 * a" => "a"
+        if left.kind == .INT && left.asInt == 1 {
+          node.become(right.remove)
+          _reportCodeChange
+        }
+
+        # "a * 1" => "a"
+        else if right.kind == .INT && right.asInt == 1 {
+          node.become(left.remove)
+          _reportCodeChange
+        }
+
+        # Constant folding
+        else if left.kind == .INT && right.kind == .INT { _changeToInt(node, left.asInt * right.asInt) }
+        else if left.kind == .FLOAT && right.kind == .FLOAT { _changeToFloat(node, left.asFloat * right.asFloat) }
+      }
+
+      case .NOT_EQUAL {
+        var left = node.binaryLeft
+        var right = node.binaryRight
+
+        # "a != a" => "false"
+        if left.looksTheSameAs(right) && left.hasNoSideEffects {
+          _changeToBool(node, false)
+          _reportCodeChange
+        }
+
+        # Constant folding
+        else if left.kind == .INT && right.kind == .INT { _changeToBool(node, left.asInt != right.asInt) }
+        else if left.kind == .FLOAT && right.kind == .FLOAT { _changeToBool(node, left.asFloat != right.asFloat) }
+      }
+
+      case .SUBTRACT {
+        var left = node.binaryLeft
+        var right = node.binaryRight
+
+        # "0 - a" => "-a"
+        if left.isIntOrFloat(0) {
+          node.become(Node.createUnary(.NEGATIVE, right.remove).withType(node.resolvedType))
+          _reportCodeChange
+        }
+
+        # "a - 0" => "a"
+        else if right.isIntOrFloat(0) {
+          node.become(left.remove)
+          _reportCodeChange
+        }
+
+        # Constant folding
+        else if left.kind == .INT && right.kind == .INT { _changeToInt(node, left.asInt - right.asInt) }
+        else if left.kind == .FLOAT && right.kind == .FLOAT { _changeToFloat(node, left.asFloat - right.asFloat) }
+      }
     }
+  }
+
+  def _changeToBool(node Node, value bool) {
+    node.become(Node.createBool(value).withType(.BOOL))
+    _reportCodeChange
+  }
+
+  def _changeToFloat(node Node, value double) {
+    node.become(Node.createFloat(value).withType(.BOOL))
+    _reportCodeChange
+  }
+
+  def _changeToInt(node Node, value int) {
+    node.become(Node.createInt(value).withType(.BOOL))
+    _reportCodeChange
   }
 
   def _compactBlockStatement(node Node) {

@@ -89,6 +89,10 @@ namespace GLSLX {
       return self as int >= CALL && self as int <= ASSIGN_SUBTRACT
     }
 
+    def isLiteral bool {
+      return self as int >= BOOL && self as int <= INT
+    }
+
     def isUnary bool {
       return self as int >= COMPLEMENT && self as int <= POSTFIX_INCREMENT
     }
@@ -228,12 +232,17 @@ namespace GLSLX {
       return self
     }
 
-    def withLiteral(value bool) Node {
+    def withBool(value bool) Node {
       _literal = value as double
       return self
     }
 
-    def withLiteral(value double) Node {
+    def withInt(value int) Node {
+      _literal = value
+      return self
+    }
+
+    def withFloat(value double) Node {
       _literal = value
       return self
     }
@@ -395,12 +404,26 @@ namespace GLSLX {
       return kind == .BOOL && !asBool
     }
 
+    def isIntOrFloat(value int) bool {
+      return kind == .INT && asInt == value || kind == .FLOAT && asFloat == value
+    }
+
     def isCallTarget bool {
       return parent != null && parent.kind == .CALL && parent.callTarget == self
     }
 
     def isAssignTarget bool {
       return parent != null && (parent.kind.isUnaryAssign || parent.kind.isBinaryAssign && parent.binaryLeft == self)
+    }
+
+    def isUsedInStorage bool {
+      if isAssignTarget {
+        return true
+      }
+      if parent != null && (parent.kind == .DOT || parent.kind == .INDEX) {
+        return parent.isUsedInStorage
+      }
+      return false
     }
 
     def isEmptyBlock bool {
@@ -443,7 +466,7 @@ namespace GLSLX {
       assert(kind.isExpression)
 
       switch kind {
-        case .BOOL { withLiteral(!asBool) }
+        case .BOOL { withBool(!asBool) }
         case .NOT { become(unaryValue.remove) }
         case .EQUAL { kind = .NOT_EQUAL }
         case .NOT_EQUAL { kind = .EQUAL }
@@ -469,6 +492,25 @@ namespace GLSLX {
           become(createUnary(.NOT, cloneAndStealChildren).withType(.BOOL))
         }
       }
+    }
+
+    def looksTheSameAs(node Node) bool {
+      if kind == node.kind {
+        switch kind {
+          case .BOOL { return asBool == node.asBool }
+          case .FLOAT { return asFloat == node.asFloat }
+          case .INT { return asInt == node.asInt }
+          case .NAME { return symbol == node.symbol }
+          case .DOT { return dotTarget.looksTheSameAs(node.dotTarget) && symbol == node.symbol && asString == node.asString }
+          case .HOOK { return hookTest.looksTheSameAs(node.hookTest) && hookTrue.looksTheSameAs(node.hookTrue) && hookFalse.looksTheSameAs(node.hookFalse) }
+          default {
+            if kind.isUnary { return unaryValue.looksTheSameAs(node.unaryValue) }
+            if kind.isBinary { return binaryLeft.looksTheSameAs(node.binaryLeft) && binaryRight.looksTheSameAs(node.binaryRight) }
+          }
+        }
+      }
+
+      return false
     }
   }
 
@@ -540,8 +582,8 @@ namespace GLSLX {
       return new(.STRUCT).withSymbol(symbol)
     }
 
-    def createVariables(type Node) Node {
-      return new(.VARIABLES).appendChild(type)
+    def createVariables(flags int, type Node) Node {
+      return new(.VARIABLES).withInt(flags).appendChild(type)
     }
 
     def createWhile(test Node, body Node) Node {
@@ -581,15 +623,15 @@ namespace GLSLX {
     }
 
     def createBool(value bool) Node {
-      return new(.BOOL).withLiteral(value).withType(.BOOL)
+      return new(.BOOL).withBool(value).withType(.BOOL)
     }
 
     def createInt(value int) Node {
-      return new(.INT).withLiteral(value).withType(.INT)
+      return new(.INT).withInt(value).withType(.INT)
     }
 
     def createFloat(value double) Node {
-      return new(.FLOAT).withLiteral(value).withType(.FLOAT)
+      return new(.FLOAT).withFloat(value).withType(.FLOAT)
     }
 
     def createUnary(kind NodeKind, value Node) Node {
@@ -604,6 +646,12 @@ namespace GLSLX {
   }
 
   class Node {
+    def variableInitializer Node {
+      assert(kind == .VARIABLE)
+      assert(!hasChildren)
+      return symbol.asVariable.value
+    }
+
     def doWhileBody Node {
       assert(kind == .DO_WHILE)
       assert(childCount == 2)
@@ -686,6 +734,12 @@ namespace GLSLX {
       assert(childCount >= 1)
       assert(_firstChild.kind.isExpression)
       return _firstChild
+    }
+
+    def variablesFlags int {
+      assert(kind == .VARIABLES)
+      assert(childCount >= 1)
+      return _literal as int
     }
 
     def whileTest Node {

@@ -134,6 +134,8 @@ class GLSLX.Resolver {
 
         if yes.resolvedType != no.resolvedType {
           _log.semanticErrorBadHookTypes(Range.span(yes.range, no.range), yes.resolvedType, no.resolvedType)
+        } else {
+          node.resolvedType = yes.resolvedType
         }
       }
 
