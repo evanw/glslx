@@ -286,6 +286,16 @@ namespace GLSLX {
       return kind == .SEQUENCE && !hasChildren
     }
 
+    def isValidStorageLocation bool {
+      assert(kind.isExpression)
+      switch kind {
+        case .NAME { return true }
+        case .DOT { return dotTarget.isValidStorageLocation }
+        case .INDEX { return binaryLeft.isValidStorageLocation }
+        default { return false }
+      }
+    }
+
     def hasNoSideEffects bool {
       assert(kind.isExpression)
       switch kind {
@@ -295,9 +305,9 @@ namespace GLSLX {
         default {
           if kind.isUnary { return !kind.isUnaryAssign && unaryValue.hasNoSideEffects }
           if kind.isBinary { return !kind.isBinaryAssign && binaryLeft.hasNoSideEffects && binaryRight.hasNoSideEffects }
+          return false
         }
       }
-      return false
     }
   }
 

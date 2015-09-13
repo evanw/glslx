@@ -195,6 +195,10 @@ namespace GLSLX {
     def semanticErrorBadBinary(range Range, operator string, left Type, right Type) {
       error(range, "No binary operator \"" + operator + "\" for type \"" + left.toString + "\" and type \"" + right.toString + "\"")
     }
+
+    def semanticErrorBadStorage(range Range) {
+      error(range, "Cannot store to this location")
+    }
   }
 
   namespace Log {

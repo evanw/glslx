@@ -171,7 +171,13 @@ class GLSLX.Resolver {
 
   def _resolveUnary(node Node) {
     var value = node.unaryValue
+
     _resolveAsExpression(value)
+
+    if node.kind.isUnaryAssign {
+      _checkStorage(value)
+    }
+
     var valueType = value.resolvedType
 
     switch node.kind {
@@ -194,13 +200,16 @@ class GLSLX.Resolver {
   }
 
   def _resolveBinary(node Node) {
-    _resolveAsExpression(node.binaryLeft)
-    _resolveAsExpression(node.binaryRight)
-
     var left = node.binaryLeft
     var right = node.binaryRight
+
     _resolveAsExpression(left)
     _resolveAsExpression(right)
+
+    if node.kind.isBinaryAssign {
+      _checkStorage(left)
+    }
+
     var leftType = left.resolvedType
     var rightType = right.resolvedType
     var isSame = leftType == rightType
@@ -534,6 +543,12 @@ class GLSLX.Resolver {
   def _resolveChildren(node Node) {
     for child = node.firstChild; child != null; child = child.nextSibling {
       _resolve(child)
+    }
+  }
+
+  def _checkStorage(node Node) {
+    if !node.isValidStorageLocation {
+      _log.semanticErrorBadStorage(node.range)
     }
   }
 
