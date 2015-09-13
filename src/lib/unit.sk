@@ -1,0 +1,217 @@
+namespace Unit {
+  enum Status {
+    FAILURE
+    SUCCESS
+  }
+
+  class Report {
+    def begin(count int) {}
+    def completed(test Test, status Status) {}
+    def end {}
+  }
+
+  class Failure {
+    const expected string
+    const observed string
+  }
+
+  ################################################################################
+
+  class Test {
+    var _name = ""
+    var _failure Failure = null
+
+    def new {
+      _all.append(self)
+    }
+
+    def name string { return _name }
+    def failure Failure { return _failure }
+    def rename(name string) { _name = name }
+
+    def before {}
+    def after {}
+    def run
+
+    def expectString(expected string, observed string) {
+      if expected != observed {
+        _failure = Failure.new(expected, observed)
+        throw null
+      }
+    }
+
+    if TARGET == .JAVASCRIPT {
+      def _tryRun {
+        try {
+          run
+        } catch error dynamic {
+          if _failure == null {
+            _failure = Failure.new("", ((error && error.stack || error) as dynamic) + "")
+          }
+        }
+      }
+    }
+
+    else {
+      def _tryRun {
+        try {
+          run
+        } catch {
+          if _failure == null {
+            _failure = Failure.new("", "(runtime failure)")
+          }
+        }
+      }
+    }
+  }
+
+  namespace Test {
+    def runAll(report Report) {
+      var tests = _all
+
+      _all = []
+      report.begin(tests.count)
+
+      for test in tests {
+        test.before
+        test._tryRun
+        test.after
+        report.completed(test, test._failure == null ? .SUCCESS : .FAILURE)
+      }
+
+      report.end
+    }
+
+    var _all List<Test> = []
+  }
+
+  ################################################################################
+
+  class TerminalReport : Report {
+    var _failed List<Test> = []
+    var _wrapWidth = 0
+    var _startTime = 0.0
+    var _completed = 0
+    var _count = 0
+
+    def failedCount int {
+      return _failed.count
+    }
+
+    over begin(count int) {
+      _wrapWidth = Terminal.width * 3 / 4
+      _startTime = Timestamp.seconds
+      _count = count
+      _completed = 0
+      Terminal.write("\n  ")
+    }
+
+    over completed(test Test, status Status) {
+      _completed++
+      if status == .FAILURE {
+        _failed.append(test)
+        Terminal.setColor(.RED)
+        Terminal.write("x")
+      } else {
+        Terminal.setColor(.GREEN)
+        Terminal.write(".")
+      }
+      if _completed < _count && _wrapWidth != 0 && _completed % _wrapWidth == 0 {
+        Terminal.write("\n  ")
+      }
+      Terminal.setColor(.DEFAULT)
+      Terminal.flush
+    }
+
+    over end {
+      Terminal.print("\n")
+
+      # Print the summary
+      var totalTime = Math.floor((Timestamp.seconds - _startTime) * 10) as int
+      Terminal.setColor(.GREEN)
+      Terminal.write("  " + (_count - _failed.count).toString + " passing")
+      Terminal.setColor(.GRAY)
+      Terminal.print("  (" + (totalTime / 10).toString + "." + (totalTime % 10).toString + "s)")
+      if _failed.count != 0 {
+        Terminal.setColor(.RED)
+        Terminal.print("  " + _failed.count.toString + " failing")
+      }
+      Terminal.setColor(.DEFAULT)
+      Terminal.print("")
+
+      # Print the failed tests
+      var indent = " ".repeat(_failed.count.toString.count + 5)
+      for i in 0.._failed.count {
+        var test = _failed[i]
+        var text = "  " + (i + 1).toString + ")"
+        var failure = test.failure
+        Terminal.setColor(.BOLD)
+        Terminal.print(text + " ".repeat(indent.count - text.count) + test.name + "\n")
+        _printDiff(indent,
+          failure.expected == null ? [] : failure.expected.split("\n"),
+          failure.observed == null ? [] : failure.observed.split("\n"))
+        Terminal.setColor(.DEFAULT)
+        Terminal.print("")
+      }
+    }
+  }
+
+  namespace TerminalReport {
+    def _printDiff(indent string, expected List<string>, observed List<string>) {
+      var m = expected.count
+      var n = observed.count
+      var matrix List<int> = []
+
+      # Solve for the lowest common subsequence length
+      if true {
+        var ij = 0
+        for i in 0..m {
+          for j in 0..n {
+            matrix.append(expected[i] == observed[j]
+              ? i > 0 && j > 0 ? matrix[ij - n - 1] + 1 : 1
+              : Math.max(i > 0 ? matrix[ij - n] : 0, j > 0 ? matrix[ij - 1] : 0))
+            ij++
+          }
+        }
+      }
+
+      # Extract the diff in reverse
+      var reversed List<string> = []
+      if true {
+        var i = m - 1
+        var j = n - 1
+        while i >= 0 || j >= 0 {
+          var ij = i * n + j
+
+          # Common
+          if i >= 0 && j >= 0 && expected[i] == observed[j] {
+            reversed.append(" " + expected[i])
+            i--
+            j--
+          }
+
+          # Removal
+          else if j >= 0 && (i < 0 || (j > 0 ? matrix[ij - 1] : 0) > (i > 0 ? matrix[ij - n] : 0)) {
+            reversed.append("-" + observed[j])
+            j--
+          }
+
+          # Insertion
+          else {
+            assert(i >= 0 && (j < 0 || (j > 0 ? matrix[ij - 1] : 0) <= (i > 0 ? matrix[ij - n] : 0)))
+            reversed.append("+" + expected[i])
+            i--
+          }
+        }
+      }
+
+      # Print out the diff
+      for i in 0..reversed.count {
+        var text = reversed[reversed.count - i - 1]
+        var c = text[0]
+        Terminal.setColor(c == '+' ? .GREEN : c == '-' ? .RED : .GRAY)
+        Terminal.print(indent + text)
+      }
+    }
+  }
+}

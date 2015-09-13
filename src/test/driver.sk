@@ -1,0 +1,68 @@
+namespace GLSLX.Tests {
+  class CompilerTest : Unit.Test {
+    var _input string
+    var _expected string
+    var _options = CompilerOptions.new
+
+    over run {
+      rename(compactWhitespace(_input))
+      var log = Log.new
+      var output = Compiler.compile(log, Source.new("<stdin>", _input), _options)
+      if output == null { output = log.toString }
+      expectString(trimNewlines(_expected), trimNewlines(output))
+    }
+
+    def compactSyntaxTree CompilerTest {
+      _options.compactSyntaxTree = true
+      return self
+    }
+
+    def removeWhitespace CompilerTest {
+      _options.removeWhitespace = true
+      return self
+    }
+  }
+
+  def trimNewlines(text string) string {
+    var length = text.count
+    var start = 0
+    var end = length
+    while start < length && text[start] == '\n' {
+      start++
+    }
+    while start < end && text[end - 1] == '\n' {
+      end--
+    }
+    return text.slice(start, end)
+  }
+
+  def compactWhitespace(text string) string {
+    var wasSpace = false
+    var result = ""
+    for i in 0..text.count {
+      var c = text[i]
+      if c != '\n' && c != ' ' && c != '\t' {
+        result += text.get(i)
+        wasSpace = false
+      } else if !wasSpace {
+        result += " "
+        wasSpace = true
+      }
+    }
+    return result
+  }
+
+  def test(input string, expected string) CompilerTest {
+    return CompilerTest.new(trimNewlines(input), expected)
+  }
+
+  @entry
+  def main int {
+    testMinifier
+    testRewriter
+
+    var report = Unit.TerminalReport.new
+    Unit.Test.runAll(report)
+    return report.failedCount
+  }
+}

@@ -1,0 +1,9 @@
+namespace Timestamp {
+  def seconds double
+
+  if TARGET == .JAVASCRIPT {
+    def seconds double {
+      return (dynamic.typeof(dynamic.performance) != "undefined" && dynamic.performance.now ? dynamic.performance.now() : dynamic.Date.now()) / 1000
+    }
+  }
+}

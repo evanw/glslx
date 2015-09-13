@@ -249,6 +249,7 @@ class GLSLX.Resolver {
       }
 
       case .ASSIGN {
+        node.resolvedType = leftType
         _checkConversion(right, leftType)
         return
       }

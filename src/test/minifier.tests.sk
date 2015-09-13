@@ -1,0 +1,93 @@
+namespace GLSLX.Tests {
+  def testMinifier {
+
+test("
+void main() {
+  if (true) {}
+  else {}
+}
+", "
+void main(){if(true);else;}
+").removeWhitespace
+
+test("
+void main() {
+  if (true) {}
+  else return;
+}
+", "
+void main(){if(true);else return;}
+").removeWhitespace
+
+test("
+void main() {
+  if (true) {}
+  else { int x = 0; return; }
+}
+", "
+void main(){if(true);else{int x=0;return;}}
+").removeWhitespace
+
+test("
+void main() {
+  int x = 0;
+  + ++x;
+  - --x;
+  - ++x;
+  + --x;
+  + +x;
+  - -x;
+  - +x;
+  + -x;
+  +x++;
+  -x--;
+}
+", "
+void main(){int x=0;+ ++x;- --x;-++x;+--x;+ +x;- -x;-+x;+-x;+x++;-x--;}
+").removeWhitespace
+
+test("
+void main() {
+  do {} while (true);
+}
+", "
+void main(){do;while(true);}
+").removeWhitespace
+
+test("
+void main() {
+  do { return; } while (true);
+}
+", "
+void main(){do{return;}while(true);}
+").removeWhitespace
+
+test("
+void main() {
+  do return; while (true);
+}
+", "
+void main(){do return;while(true);}
+").removeWhitespace
+
+test("
+void main() {
+  while (true);
+}
+", "
+void main(){while(true);}
+").removeWhitespace
+
+test("
+void main() {
+  10.0;
+  0.5;
+  1.5;
+  10000.0;
+}
+", "
+void main(){10.;.5;1.5;1e+4;}
+").removeWhitespace
+
+  }
+}

@@ -1,0 +1,205 @@
+namespace GLSLX.Tests {
+  def testRewriter {
+
+# Inline blocks when they don't contain variables
+test("
+void bar();
+
+void main() {
+  ;
+  {}
+  {
+    int foo = 0;
+  }
+  {
+    bar();
+    bar();
+  }
+  {{{
+    int foo = 0;
+  }}}
+}
+", "
+void bar();
+
+void main() {
+  {
+    int foo = 0;
+  }
+  bar(), bar();
+  {
+    int foo = 0;
+  }
+}
+").compactSyntaxTree
+
+# Check for dangling else issue
+test("
+void foo();
+void bar();
+
+void main(bool a, bool b) {
+  if (a) {
+    if (b)
+      foo();
+  }
+  else
+    bar();
+}
+", "
+void foo();
+void bar();
+
+void main(bool a, bool b) {
+  if (a) {
+    if (b)
+      foo();
+  }
+  else
+    bar();
+}
+").compactSyntaxTree
+
+# Check for dangling else issue
+test("
+void foo();
+void bar();
+
+void main(bool a, bool b) {
+  if (a) {
+    for (;;) if (b) foo();
+  }
+  else bar();
+}
+", "
+void foo();
+void bar();
+
+void main(bool a, bool b) {
+  if (a) {
+    for (;;)
+      if (b)
+        foo();
+  }
+  else
+    bar();
+}
+").compactSyntaxTree
+
+# Check for dangling else issue
+test("
+void foo();
+void bar();
+
+void main(bool a, bool b) {
+  if (a) {
+    for (;;) {
+      if (b) foo();
+    }
+  }
+  else bar();
+}
+", "
+void foo();
+void bar();
+
+void main(bool a, bool b) {
+  if (a) {
+    for (;;)
+      if (b)
+        foo();
+  }
+  else
+    bar();
+}
+").compactSyntaxTree
+
+# Check for lack of dangling else issue
+test("
+void foo();
+void bar();
+
+void main(bool a, bool b) {
+  if (a) {
+    for (;;) {
+      if (b) foo();
+      else return;
+    }
+  }
+  else bar();
+}
+", "
+void foo();
+void bar();
+
+void main(bool a, bool b) {
+  if (a)
+    for (;;)
+      if (b)
+        foo();
+      else
+        return;
+  else
+    bar();
+}
+").compactSyntaxTree
+
+# Check for hook substitution
+test("
+void foo();
+void bar();
+
+void main(bool a) {
+  if (a) foo();
+  else bar();
+}
+", "
+void foo();
+void bar();
+
+void main(bool a) {
+  a ? foo() : bar();
+}
+").compactSyntaxTree
+
+# Check for sequence flattening
+test("
+void foo();
+void bar();
+
+void main() {
+  (foo(), bar()), (foo(), bar());
+}
+", "
+void foo();
+void bar();
+
+void main() {
+  foo(), bar(), foo(), bar();
+}
+").compactSyntaxTree
+
+# Change while loops into for loops
+test("
+void main(bool b) {
+  while (b) ;
+}
+", "
+void main(bool b) {
+  for (; b;) ;
+}
+").compactSyntaxTree
+
+# Change while loops into for loops
+test("
+void main() {
+  while (true) ;
+}
+", "
+void main() {
+  for (;;) ;
+}
+").compactSyntaxTree
+
+  }
+}

@@ -129,6 +129,57 @@ namespace GLSLX {
     var _previousSibling Node = null
     var _nextSibling Node = null
 
+    def _copyMembersFrom(node Node) {
+      kind = node.kind
+      range = node.range
+      internalRange = node.internalRange
+      symbol = node.symbol
+      resolvedType = node.resolvedType
+      _literal = node._literal
+      _text = node._text
+    }
+
+    def cloneWithoutChildren Node {
+      var clone = new(kind)
+      clone._copyMembersFrom(self)
+      return clone
+    }
+
+    # When used with become(), this provides a convenient way to wrap a node in
+    # an operation without the caller needing to be aware of replaceWith():
+    #
+    #  node.become(Node.createUnary(.NOT, node.cloneAndStealChildren))
+    #
+    def cloneAndStealChildren Node {
+      var clone = cloneWithoutChildren
+      while hasChildren {
+        clone.appendChild(_firstChild.remove)
+      }
+      return clone
+    }
+
+    def clone Node {
+      var clone = cloneWithoutChildren
+      for child = _firstChild; child != null; child = child._nextSibling {
+        clone.appendChild(child.clone)
+      }
+      return clone
+    }
+
+    # Change self node in place to become the provided node. The parent node is
+    # not changed, so become() can be called within a nested method and does not
+    # need to report the updated node reference to the caller since the reference
+    # does not change.
+    def become(node Node) {
+      if node == self {
+        return
+      }
+      assert(node._parent == null)
+      _copyMembersFrom(node)
+      removeChildren
+      appendChildrenFrom(node)
+    }
+
     def parent Node {
       return _parent
     }
@@ -154,6 +205,11 @@ namespace GLSLX {
       return _firstChild != null
     }
 
+    # This is cheaper than childCount == 1
+    def hasOneChild bool {
+      return hasChildren && _firstChild == _lastChild
+    }
+
     def childCount int {
       var count = 0
       for child = _firstChild; child != null; child = child._nextSibling {
@@ -169,6 +225,11 @@ namespace GLSLX {
 
     def withSymbol(value Symbol) Node {
       symbol = value
+      return self
+    }
+
+    def withLiteral(value bool) Node {
+      _literal = value as double
       return self
     }
 
@@ -214,6 +275,14 @@ namespace GLSLX {
       return self
     }
 
+    def appendChildrenFrom(node Node) Node {
+      assert(node != self)
+      while node.hasChildren {
+        appendChild(node._firstChild.remove)
+      }
+      return self
+    }
+
     def remove Node {
       assert(_parent != null)
 
@@ -237,6 +306,12 @@ namespace GLSLX {
       _previousSibling = null
       _nextSibling = null
       return self
+    }
+
+    def removeChildren {
+      while hasChildren {
+        _firstChild.remove
+      }
     }
 
     def replaceWith(node Node) Node {
@@ -271,15 +346,65 @@ namespace GLSLX {
       _nextSibling = null
       return self
     }
+
+    def insertChildBefore(after Node, before Node) Node {
+      if before == null {
+        return self
+      }
+
+      assert(before != after)
+      assert(before._parent == null)
+      assert(before._previousSibling == null)
+      assert(before._nextSibling == null)
+      assert(after == null || after._parent == self)
+
+      if after == null {
+        return appendChild(before)
+      }
+
+      before._parent = self
+      before._previousSibling = after._previousSibling
+      before._nextSibling = after
+
+      if after._previousSibling != null {
+        assert(after == after._previousSibling._nextSibling)
+        after._previousSibling._nextSibling = before
+      } else {
+        assert(after == _firstChild)
+        _firstChild = before
+      }
+
+      after._previousSibling = before
+      return self
+    }
+
+    def replaceWithChildren {
+      while hasChildren {
+        parent.insertChildBefore(nextSibling, lastChild.remove)
+      }
+      remove
+    }
   }
 
   class Node {
+    def isTrue bool {
+      return kind == .BOOL && asBool
+    }
+
+    def isFalse bool {
+      return kind == .BOOL && !asBool
+    }
+
     def isCallTarget bool {
       return parent != null && parent.kind == .CALL && parent.callTarget == self
     }
 
     def isAssignTarget bool {
       return parent != null && (parent.kind.isUnaryAssign || parent.kind.isBinaryAssign && parent.binaryLeft == self)
+    }
+
+    def isEmptyBlock bool {
+      return kind == .BLOCK && !hasChildren
     }
 
     def isEmptySequence bool {
@@ -310,6 +435,38 @@ namespace GLSLX {
           if kind.isUnary { return !kind.isUnaryAssign && unaryValue.hasNoSideEffects }
           if kind.isBinary { return !kind.isBinaryAssign && binaryLeft.hasNoSideEffects && binaryRight.hasNoSideEffects }
           return false
+        }
+      }
+    }
+
+    def invertBooleanCondition {
+      assert(kind.isExpression)
+
+      switch kind {
+        case .BOOL { withLiteral(!asBool) }
+        case .NOT { become(unaryValue.remove) }
+        case .EQUAL { kind = .NOT_EQUAL }
+        case .NOT_EQUAL { kind = .EQUAL }
+        case .LESS_THAN { kind = .GREATER_THAN_OR_EQUAL }
+        case .GREATER_THAN { kind = .LESS_THAN_OR_EQUAL }
+        case .LESS_THAN_OR_EQUAL { kind = .GREATER_THAN }
+        case .GREATER_THAN_OR_EQUAL { kind = .LESS_THAN }
+        case .SEQUENCE { lastChild.invertBooleanCondition }
+
+        case .LOGICAL_OR {
+          kind = .LOGICAL_AND
+          binaryLeft.invertBooleanCondition
+          binaryRight.invertBooleanCondition
+        }
+
+        case .LOGICAL_AND {
+          kind = .LOGICAL_OR
+          binaryLeft.invertBooleanCondition
+          binaryRight.invertBooleanCondition
+        }
+
+        default {
+          become(createUnary(.NOT, cloneAndStealChildren).withType(.BOOL))
         }
       }
     }
@@ -424,7 +581,7 @@ namespace GLSLX {
     }
 
     def createBool(value bool) Node {
-      return new(.BOOL).withLiteral(value as double).withType(.BOOL)
+      return new(.BOOL).withLiteral(value).withType(.BOOL)
     }
 
     def createInt(value int) Node {

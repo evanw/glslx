@@ -1,0 +1,63 @@
+namespace Terminal {
+  enum Color {
+    DEFAULT
+    BOLD
+    GRAY
+    RED
+    GREEN
+    YELLOW
+    BLUE
+    MAGENTA
+    CYAN
+
+    def toEscapeCode int {
+      return colorToEscapeCode[self]
+    }
+  }
+
+  const colorToEscapeCode IntMap<int> = {
+    Color.DEFAULT: 0,
+    Color.BOLD: 1,
+    Color.GRAY: 90,
+    Color.RED: 91,
+    Color.GREEN: 92,
+    Color.YELLOW: 93,
+    Color.BLUE: 94,
+    Color.MAGENTA: 95,
+    Color.CYAN: 96,
+  }
+
+  def setColor(color Color)
+  def width int
+  def height int
+  def print(text string)
+  def flush
+  def write(text string)
+
+  if TARGET == .JAVASCRIPT {
+    def setColor(color Color) {
+      if dynamic.process.stdout.isTTY {
+        write("\x1B[0;" + color.toEscapeCode.toString + "m")
+      }
+    }
+
+    def width int {
+      return dynamic.process.stdout.columns
+    }
+
+    def height int {
+      return dynamic.process.stdout.rows
+    }
+
+    def print(text string) {
+      write(text + "\n")
+    }
+
+    def flush {
+    }
+
+    def write(text string) {
+      dynamic.process.stdout.write(text)
+    }
+  }
+}

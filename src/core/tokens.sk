@@ -172,6 +172,7 @@ namespace GLSLX.Tokenizer {
     return tokens
   }
 
+  # The order matters here due to greedy matching
   const _tokenRegex = dynamic.RegExp.new(
     "(" +
 
@@ -180,11 +181,12 @@ namespace GLSLX.Tokenizer {
     "[0-9]+\\.(?:[0-9]+\\b)?(?:[eE][+-]?[0-9]+\\b)?|" + # Floating-point constant
     "[0-9]+[eE][+-]?[0-9]+\\b|" + # Floating-point constant
 
-    # int literals
+    # Int literals
     "[1-9][0-9]*\\b|" + # Decimal int literal
     "0[0-7]*\\b|" + # Octal int literal
     "0[xX][0-9A-Fa-f]+\\b|" + # Hexadecimal int literal
 
+    # Other
     "[ \t\r\n]|" + # Whitespace
     "/\\*(?:.|\n)*?\\*/|" + # Multi-line comment
     "//.*|" + # Single-line comment

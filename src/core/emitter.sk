@@ -1,11 +1,6 @@
-enum GLSLX.EmitMode {
-  PRETTY
-  MINIFIED
-}
-
 namespace GLSLX.Emitter {
-  def emit(global Node, mode EmitMode) string {
-    return Emitter.new(global, mode).toString
+  def emit(global Node, options CompilerOptions) string {
+    return Emitter.new(global, options).toString
   }
 }
 
@@ -14,29 +9,37 @@ class GLSLX.Emitter {
   var _indent = ""
   var _newline = "\n"
   var _space = " "
-  var _shouldMinify = false
+  var _removeWhitespace = false
 
-  def new(node Node, mode EmitMode) {
-    _shouldMinify = mode == .MINIFIED
-    if _shouldMinify {
+  def new(node Node, options CompilerOptions) {
+    _removeWhitespace = options.removeWhitespace
+    if _removeWhitespace {
       _space = ""
       _newline = ""
     }
 
     for child = node.firstChild; child != null; child = child.nextSibling {
+      if child.previousSibling != null && (_isFunctionWithBlock(child.previousSibling) || _isFunctionWithBlock(child)) {
+        _emit(_newline)
+      }
+
       _emit(child)
       _emit(_newline)
     }
   }
 
+  def _isFunctionWithBlock(node Node) bool {
+    return node.kind == .FUNCTION && node.symbol.asFunction.block != null
+  }
+
   def _increaseIndent {
-    if !_shouldMinify {
+    if !_removeWhitespace {
       _indent += "  "
     }
   }
 
   def _decreaseIndent {
-    if !_shouldMinify {
+    if !_removeWhitespace {
       _indent = _indent.slice(2)
     }
   }
@@ -89,9 +92,9 @@ class GLSLX.Emitter {
       }
 
       case .DO_WHILE {
-        _emit("do ")
-        _emit(node.doWhileBody)
-        _emit(_space + "while" + _space + "(")
+        _emit("do")
+        _emitBody(node.doWhileBody, .AFTER_KEYWORD)
+        _emit(_newline + _indent + "while" + _space + "(")
         _emit(node.doWhileTest, .LOWEST)
         _emit(");")
       }
@@ -103,13 +106,21 @@ class GLSLX.Emitter {
 
       case .FOR {
         _emit("for" + _space + "(")
-        if node.forSetup != null { _emit(node.forSetup, .LOWEST) }
-        _emit(";" + _space)
-        if node.forTest != null { _emit(node.forTest, .LOWEST) }
-        _emit(";" + _space)
-        if node.forUpdate != null { _emit(node.forUpdate, .LOWEST) }
-        _emit(")" + _space)
-        _emit(node.forBody)
+        if node.forSetup != null {
+          _emit(node.forSetup, .LOWEST)
+        }
+        _emit(";")
+        if node.forTest != null {
+          _emit(_space)
+          _emit(node.forTest, .LOWEST)
+        }
+        _emit(";")
+        if node.forUpdate != null {
+          _emit(_space)
+          _emit(node.forUpdate, .LOWEST)
+        }
+        _emit(")")
+        _emitBody(node.forBody, .AFTER_PARENTHESIS)
       }
 
       case .FUNCTION {
@@ -140,14 +151,16 @@ class GLSLX.Emitter {
       case .IF {
         _emit("if" + _space + "(")
         _emit(node.ifTest, .LOWEST)
-        _emit(")" + _space)
-        _emit(node.ifTrue)
+        _emit(")")
+        _emitBody(node.ifTrue, .AFTER_PARENTHESIS)
         if node.ifFalse != null {
-          _emit(_space + "else")
-          if node.ifFalse.kind != .BLOCK {
+          _emit(_newline + _indent + "else")
+          if node.ifFalse.kind == .IF {
             _emit(" ")
+            _emit(node.ifFalse)
+          } else {
+            _emitBody(node.ifFalse, .AFTER_KEYWORD)
           }
-          _emit(node.ifFalse)
         }
       }
 
@@ -195,13 +208,31 @@ class GLSLX.Emitter {
       case .WHILE {
         _emit("while" + _space + "(")
         _emit(node.whileTest, .LOWEST)
-        _emit(") ")
-        _emit(node.whileBody)
+        _emit(")")
+        _emitBody(node.whileBody, .AFTER_PARENTHESIS)
       }
 
       default {
         _emit(node.kind.toString)
       }
+    }
+  }
+
+  enum After {
+    AFTER_KEYWORD
+    AFTER_PARENTHESIS
+  }
+
+  def _emitBody(node Node, after After) {
+    if node.kind == .BLOCK {
+      _emit(_space)
+      _emit(node)
+    } else {
+      _emit(_removeWhitespace && after == .AFTER_KEYWORD ? " " : _newline)
+      _increaseIndent
+      _emit(_indent)
+      _emit(node)
+      _decreaseIndent
     }
   }
 
@@ -236,9 +267,9 @@ class GLSLX.Emitter {
           _emit("(")
         }
         _emit(node.hookTest, .LOGICAL_OR)
-        _emit(" ? ")
+        _emit(_space + "?" + _space)
         _emit(node.hookTrue, .ASSIGN)
-        _emit(" : ")
+        _emit(_space + ":" + _space)
         _emit(node.hookFalse, .ASSIGN)
         if Precedence.ASSIGN as int < precedence as int {
           _emit(")")
@@ -268,17 +299,24 @@ class GLSLX.Emitter {
       }
 
       case .FLOAT {
-        var text = node.asFloat.toString
+        var value = node.asFloat
+        var text = value.toString
+        var exponential string = (value as dynamic).toExponential()
 
         # "10" => "10.0"
         # "10" => "10." (minify)
         if !("." in text) && !("e" in text) {
-          text += _shouldMinify ? "." : ".0"
+          text += _removeWhitespace ? "." : ".0"
         }
 
         # "0.5" => ".5" (minify)
-        if _shouldMinify && text.startsWith("0.") && text.count > 2 {
+        if _removeWhitespace && text.startsWith("0.") && text.count > 2 {
           text = text.slice(1)
+        }
+
+        # Pick the shortest representation
+        if _removeWhitespace && exponential.count < text.count {
+          text = exponential
         }
 
         _emit(text)

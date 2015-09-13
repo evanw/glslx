@@ -1,0 +1,280 @@
+namespace GLSLX.Rewriter {
+  def rewrite(global Node, options CompilerOptions) {
+    while true {
+      var rewriter = Rewriter.new
+
+      if options.compactSyntaxTree {
+        rewriter._compact(global)
+      }
+
+      if !rewriter._codeWasChanged {
+        break
+      }
+    }
+
+    # Braces removal around "if" statements is subtle due to the dangling else
+    # problem:
+    #
+    #   "if (a) { if (b) c; } else d;" => must keep braces
+    #   "if (a) { for (;;) if (b) c; } else d;" => must keep braces
+    #   "if (a) { for (;;) { if (b) c; } } else d;" => "if (a) for (;;) { if (b) c; } else d;" or "if (a) { for (;;) if (b) c; } else d;"
+    #
+    # Instead of trying to preserve all of this during various transforms, just
+    # add it back at the end.
+    if options.compactSyntaxTree {
+      _addBracesToAvoidDanglingElseIssues(global)
+    }
+  }
+
+  # Returns true if braces are required
+  def _addBracesToAvoidDanglingElseIssues(node Node) bool {
+    switch node.kind {
+      case .IF {
+        if node.ifFalse == null {
+          return true
+        }
+        var yes = node.ifTrue
+        var needsBraces = _addBracesToAvoidDanglingElseIssues(yes)
+        if needsBraces && yes.kind != .BLOCK {
+          yes.replaceWith(Node.createBlock.appendChild(yes.cloneAndStealChildren))
+        }
+        return _addBracesToAvoidDanglingElseIssues(node.ifFalse)
+      }
+
+      case .FOR {
+        return _addBracesToAvoidDanglingElseIssues(node.forBody)
+      }
+
+      case .FUNCTION {
+        var function = node.symbol.asFunction
+        if function.block != null {
+          _addBracesToAvoidDanglingElseIssues(function.block)
+        }
+      }
+
+      case .WHILE {
+        return _addBracesToAvoidDanglingElseIssues(node.whileBody)
+      }
+
+      default {
+        for child = node.firstChild; child != null; child = child.nextSibling {
+          _addBracesToAvoidDanglingElseIssues(child)
+        }
+        return false
+      }
+    }
+
+    return false
+  }
+}
+
+class GLSLX.Rewriter {
+  var _codeWasChanged = false
+
+  def _reportCodeChange {
+    _codeWasChanged = true
+  }
+
+  def _compact(node Node) {
+    for child = node.firstChild, next Node = null; child != null; child = next {
+      next = child.nextSibling
+      _compact(child)
+    }
+
+    switch node.kind {
+      case .VARIABLE {
+        var variable = node.symbol.asVariable
+        if variable.value != null {
+          _compact(variable.value)
+        }
+      }
+
+      case .BLOCK {
+        # Collapse this block into the parent block if possible, being careful about scope
+        if node.parent != null && node.parent.kind == .BLOCK {
+          var mayNeedScope = false
+          for child = node.firstChild; child != null; child = child.nextSibling {
+            if child.kind == .VARIABLES {
+              mayNeedScope = true
+            }
+          }
+          if !mayNeedScope {
+            node.replaceWithChildren
+            _reportCodeChange
+            return
+          }
+        }
+      }
+
+      case .EXPRESSION {
+        if node.parent.kind == .BLOCK {
+          # Remove unnecessary expressions
+          if node.expressionValue.hasNoSideEffects {
+            node.remove
+            _reportCodeChange
+            return
+          }
+
+          # Combine with a previous expression, if any (may open up more
+          # compacting opportunities in the future)
+          if node.previousSibling != null && node.previousSibling.kind == .EXPRESSION {
+            var value = node.expressionValue.remove
+            node.appendChild(Node.createSequence.appendChild(node.previousSibling.remove.expressionValue.remove).appendChild(value))
+            _reportCodeChange
+            return
+          }
+        }
+      }
+
+      case .DO_WHILE {
+        _compactBlockStatement(node.doWhileBody)
+
+        # Do-while with false is no different than a normal block. It is
+        # different than just replacing itself with its body though
+        # because the body may have shadowing variables that could conflict.
+        if node.doWhileTest.isFalse {
+          node.replaceWith(Node.createBlock.appendChild(node.doWhileBody.remove))
+          _reportCodeChange
+          return
+        }
+      }
+
+      case .FOR {
+        _compactBlockStatement(node.forBody)
+
+        # No need to keep "true" around
+        if node.forTest != null && node.forTest.isTrue {
+          node.forTest.replaceWith(Node.createSequence)
+          _reportCodeChange
+          return
+        }
+      }
+
+      case .IF {
+        _compactBlockStatement(node.ifTrue)
+        if node.ifFalse != null {
+          _compactBlockStatement(node.ifFalse)
+        }
+
+        # Special-case "true"
+        if node.ifTest.isTrue {
+          node.replaceWith(node.ifTrue.remove)
+          _reportCodeChange
+          return
+        }
+
+        # Special-case "false"
+        if node.ifTest.isFalse {
+          if node.ifFalse != null {
+            node.replaceWith(node.ifFalse.remove)
+          } else {
+            node.remove
+          }
+          _reportCodeChange
+          return
+        }
+
+        # Turn if-else statements into shorter conditional expressions when possible
+        if node.ifFalse != null && node.ifTrue.kind == .EXPRESSION && node.ifFalse.kind == .EXPRESSION && node.ifTrue.resolvedType == node.ifFalse.resolvedType {
+          var yes = node.ifTrue.expressionValue.remove
+          var no = node.ifFalse.expressionValue.remove
+          node.replaceWith(Node.createExpression(Node.createHook(node.ifTest.remove, yes, no)))
+          _reportCodeChange
+          return
+        }
+
+        # Inline a true-only branch
+        if node.ifFalse == null && node.ifTrue.kind == .IF && node.ifTrue.ifFalse == null {
+          var left = node.ifTest
+          var right = node.ifTrue.ifTest
+          var body = node.ifTrue.ifTrue
+          left.become(Node.createBinary(.LOGICAL_AND, left.cloneAndStealChildren, right.remove))
+          node.ifTrue.become(body.remove)
+          _reportCodeChange
+          return
+        }
+
+        # Remove an empty true branch
+        if node.ifTrue.isEmptyBlock {
+          if node.ifFalse != null {
+            node.ifTest.invertBooleanCondition
+            node.ifTrue.remove
+          } else {
+            node.replaceWith(Node.createExpression(node.ifTest.remove))
+          }
+          _reportCodeChange
+          return
+        }
+
+        # Remove an empty false branch
+        if node.ifFalse != null && node.ifFalse.isEmptyBlock {
+          node.ifFalse.remove
+          _reportCodeChange
+        }
+      }
+
+      case .FUNCTION {
+        var function = node.symbol.asFunction
+        if function.block != null {
+          _compact(function.block)
+        }
+      }
+
+      case .WHILE {
+        # Turn into a for loop since they are more versatile
+        var test = node.whileTest
+        var body = node.whileBody
+        node.replaceWith(Node.createFor(null, test.remove, null, body.remove))
+        _reportCodeChange
+      }
+
+      case .HOOK {
+        # Special-case "true"
+        if node.hookTest.isTrue {
+          node.become(node.hookTrue.remove) # The parent will be null for variable values
+          _reportCodeChange
+          return
+        }
+
+        # Special-case false"
+        if node.hookTest.isFalse {
+          node.become(node.hookFalse.remove) # The parent will be null for variable values
+          _reportCodeChange
+          return
+        }
+      }
+
+      case .SEQUENCE {
+        # Remove elements without side effects
+        for child = node.firstChild, next Node = null; child != node.lastChild; child = next {
+          next = child.nextSibling
+          if child.hasNoSideEffects {
+            child.remove
+            _reportCodeChange
+          }
+        }
+
+        # Inline nested sequences into their parent
+        if node.parent.kind == .SEQUENCE {
+          node.replaceWithChildren
+          _reportCodeChange
+          return
+        }
+
+        # Inline single-element sequences
+        if node.hasOneChild {
+          node.become(node.firstChild.remove) # The parent will be null for variable values
+          _reportCodeChange
+          return
+        }
+      }
+    }
+  }
+
+  def _compactBlockStatement(node Node) {
+    if node.kind == .BLOCK && node.hasOneChild {
+      node.replaceWith(node.firstChild.remove)
+      _reportCodeChange
+    }
+  }
+}

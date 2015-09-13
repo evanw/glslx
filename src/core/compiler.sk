@@ -1,5 +1,10 @@
+class GLSLX.CompilerOptions {
+  var compactSyntaxTree = false
+  var removeWhitespace = false
+}
+
 namespace GLSLX.Compiler {
-  def compile(log Log, source Source, mode EmitMode) string {
+  def compile(log Log, source Source, options CompilerOptions) string {
     if log.hasErrors {
       return null
     }
@@ -38,9 +43,11 @@ namespace GLSLX.Compiler {
       return null
     }
 
+    # Imported symbols are just there for type checking and shouldn't be emitted
     removeImportedSymbols(global)
 
-    return Emitter.emit(global, mode)
+    Rewriter.rewrite(global, options)
+    return Emitter.emit(global, options)
   }
 
   def removeImportedSymbols(node Node) {
