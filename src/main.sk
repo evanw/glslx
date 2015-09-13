@@ -6,7 +6,7 @@ namespace GLSLX {
     var output = doc.getElementById("output")
     var compile = => {
       var log = Log.new
-      var result = Compiler.compile(log, Source.new("stdin.glsl", input.value))
+      var result = Compiler.compile(log, Source.new("stdin.glsl", input.value), .MINIFIED)
       output.value = log.hasErrors ? log.toString : result
     }
     input.oninput = compile

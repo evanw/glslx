@@ -1,5 +1,5 @@
 namespace GLSLX.Compiler {
-  def compile(log Log, source Source) string {
+  def compile(log Log, source Source, mode EmitMode) string {
     if log.hasErrors {
       return null
     }
@@ -40,7 +40,7 @@ namespace GLSLX.Compiler {
 
     removeImportedSymbols(global)
 
-    return Emitter.new(global).toString
+    return Emitter.emit(global, mode)
   }
 
   def removeImportedSymbols(node Node) {

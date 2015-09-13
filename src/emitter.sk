@@ -1,340 +1,386 @@
-namespace GLSLX {
-  class Emitter {
-    var _code = ""
-    var _indent = ""
+enum GLSLX.EmitMode {
+  PRETTY
+  MINIFIED
+}
 
-    def new(node Node) {
-      for child = node.firstChild; child != null; child = child.nextSibling {
-        _emit(child)
-        _emit("\n")
-      }
+namespace GLSLX.Emitter {
+  def emit(global Node, mode EmitMode) string {
+    return Emitter.new(global, mode).toString
+  }
+}
+
+class GLSLX.Emitter {
+  var _code = ""
+  var _indent = ""
+  var _newline = "\n"
+  var _space = " "
+  var _shouldMinify = false
+
+  def new(node Node, mode EmitMode) {
+    _shouldMinify = mode == .MINIFIED
+    if _shouldMinify {
+      _space = ""
+      _newline = ""
     }
 
-    def _increaseIndent {
+    for child = node.firstChild; child != null; child = child.nextSibling {
+      _emit(child)
+      _emit(_newline)
+    }
+  }
+
+  def _increaseIndent {
+    if !_shouldMinify {
       _indent += "  "
     }
+  }
 
-    def _decreaseIndent {
+  def _decreaseIndent {
+    if !_shouldMinify {
       _indent = _indent.slice(2)
     }
+  }
 
-    def _emitFlags(symbol Symbol) {
-      if symbol.isAttribute { _emit("attribute ") }
-      if symbol.isConst { _emit("const ") }
-      if symbol.isUniform { _emit("uniform ") }
-      if symbol.isVarying { _emit("varying ") }
+  def _emitFlags(symbol Symbol) {
+    if symbol.isAttribute { _emit("attribute ") }
+    if symbol.isConst { _emit("const ") }
+    if symbol.isUniform { _emit("uniform ") }
+    if symbol.isVarying { _emit("varying ") }
 
-      if symbol.isHighp { _emit("highp ") }
-      if symbol.isLowp { _emit("lowp ") }
-      if symbol.isMediump { _emit("mediump ") }
+    if symbol.isHighp { _emit("highp ") }
+    if symbol.isLowp { _emit("lowp ") }
+    if symbol.isMediump { _emit("mediump ") }
 
-      if symbol.isIn { _emit("in ") }
-      if symbol.isInout { _emit("inout ") }
-      if symbol.isOut { _emit("out ") }
-    }
+    if symbol.isIn { _emit("in ") }
+    if symbol.isInout { _emit("inout ") }
+    if symbol.isOut { _emit("out ") }
+  }
 
-    def _emit(node Node) {
-      assert(node.kind.isStatement)
+  def _emit(node Node) {
+    assert(node.kind.isStatement)
 
-      switch node.kind {
-        case .BLOCK {
-          if !node.hasChildren && node.parent != null {
-            _emit(";")
-          } else {
-            _emit("{\n")
-            _increaseIndent
-            for child = node.firstChild; child != null; child = child.nextSibling {
-              _emit(_indent)
-              _emit(child)
-              _emit("\n")
-            }
-            _decreaseIndent
-            _emit(_indent + "}")
-          }
-        }
-
-        case .BREAK {
-          _emit("break;")
-        }
-
-        case .CONTINUE {
-          _emit("continue;")
-        }
-
-        case .DISCARD {
-          _emit("discard;")
-        }
-
-        case .DO_WHILE {
-          _emit("do ")
-          _emit(node.doWhileBody)
-          _emit(" while (")
-          _emit(node.doWhileTest, .LOWEST)
-          _emit(");")
-        }
-
-        case .EXPRESSION {
-          _emit(node.expressionValue, .LOWEST)
+    switch node.kind {
+      case .BLOCK {
+        if !node.hasChildren && node.parent != null {
           _emit(";")
-        }
-
-        case .FOR {
-          _emit("for (")
-          if node.forSetup != null { _emit(node.forSetup, .LOWEST) }
-          _emit("; ")
-          if node.forTest != null { _emit(node.forTest, .LOWEST) }
-          _emit("; ")
-          if node.forUpdate != null { _emit(node.forUpdate, .LOWEST) }
-          _emit(") ")
-          _emit(node.forBody)
-        }
-
-        case .FUNCTION {
-          var function = node.symbol as FunctionSymbol
-          _emitFlags(function)
-          _emit(function.returnType, .LOWEST)
-          _emit(" ")
-          _emit(function.name)
-          _emit("(")
-          for argument in function.arguments {
-            if argument != function.arguments.first {
-              _emit(", ")
-            }
-            _emitFlags(argument)
-            _emit(argument.type, .LOWEST)
-            _emit(" ")
-            _emit(argument.name)
-          }
-          _emit(")")
-          if function.block != null {
-            _emit(" ")
-            _emit(function.block)
-          } else {
-            _emit(";")
-          }
-        }
-
-        case .IF {
-          _emit("if (")
-          _emit(node.ifTest, .LOWEST)
-          _emit(") ")
-          _emit(node.ifTrue)
-          if node.ifFalse != null {
-            _emit(" else ")
-            _emit(node.ifFalse)
-          }
-        }
-
-        case .RETURN {
-          _emit("return")
-          if node.returnValue != null {
-            _emit(" ")
-            _emit(node.returnValue, .LOWEST)
-          }
-          _emit(";")
-        }
-
-        case .STRUCT {
-          var symbol = node.symbol.asStruct
-          _emitFlags(symbol)
-          _emit("struct " + symbol.name + " {\n")
+        } else {
+          _emit("{" + _newline)
           _increaseIndent
           for child = node.firstChild; child != null; child = child.nextSibling {
             _emit(_indent)
             _emit(child)
-            _emit("\n")
+            _emit(_newline)
           }
           _decreaseIndent
-          _emit(_indent + "};")
+          _emit(_indent + "}")
         }
+      }
 
-        case .VARIABLES {
-          _emitFlags(node.variablesType.nextSibling.symbol)
-          _emit(node.variablesType, .LOWEST)
-          for child = node.variablesType.nextSibling; child != null; child = child.nextSibling {
-            var variable = child.symbol as VariableSymbol
-            _emit(child.previousSibling.previousSibling == null ? " " : ", ")
-            _emit(variable.name)
-            if variable.value != null {
-              _emit(" = ")
-              _emit(variable.value, .COMMA)
-            }
+      case .BREAK {
+        _emit("break;")
+      }
+
+      case .CONTINUE {
+        _emit("continue;")
+      }
+
+      case .DISCARD {
+        _emit("discard;")
+      }
+
+      case .DO_WHILE {
+        _emit("do ")
+        _emit(node.doWhileBody)
+        _emit(_space + "while" + _space + "(")
+        _emit(node.doWhileTest, .LOWEST)
+        _emit(");")
+      }
+
+      case .EXPRESSION {
+        _emit(node.expressionValue, .LOWEST)
+        _emit(";")
+      }
+
+      case .FOR {
+        _emit("for" + _space + "(")
+        if node.forSetup != null { _emit(node.forSetup, .LOWEST) }
+        _emit(";" + _space)
+        if node.forTest != null { _emit(node.forTest, .LOWEST) }
+        _emit(";" + _space)
+        if node.forUpdate != null { _emit(node.forUpdate, .LOWEST) }
+        _emit(")" + _space)
+        _emit(node.forBody)
+      }
+
+      case .FUNCTION {
+        var function = node.symbol as FunctionSymbol
+        _emitFlags(function)
+        _emit(function.returnType, .LOWEST)
+        _emit(" ")
+        _emit(function.name)
+        _emit("(")
+        for argument in function.arguments {
+          if argument != function.arguments.first {
+            _emit("," + _space)
           }
+          _emitFlags(argument)
+          _emit(argument.type, .LOWEST)
+          _emit(" ")
+          _emit(argument.name)
+        }
+        _emit(")")
+        if function.block != null {
+          _emit(_space)
+          _emit(function.block)
+        } else {
           _emit(";")
         }
+      }
 
-        case .WHILE {
-          _emit("while (")
-          _emit(node.whileTest, .LOWEST)
-          _emit(") ")
-          _emit(node.whileBody)
-        }
-
-        default {
-          _emit(node.kind.toString)
+      case .IF {
+        _emit("if" + _space + "(")
+        _emit(node.ifTest, .LOWEST)
+        _emit(")" + _space)
+        _emit(node.ifTrue)
+        if node.ifFalse != null {
+          _emit(_space + "else")
+          if node.ifFalse.kind != .BLOCK {
+            _emit(" ")
+          }
+          _emit(node.ifFalse)
         }
       }
-    }
 
-    def _emitCommaSeparatedExpressions(node Node) {
-      for child = node; child != null; child = child.nextSibling {
-        if child != node {
-          _emit(", ")
+      case .RETURN {
+        var value = node.returnValue
+        _emit("return")
+        if value != null {
+          if !value.kind.isUnaryPrefix {
+            _emit(" ")
+          }
+          _emit(value, .LOWEST)
         }
-        _emit(child, .COMMA)
+        _emit(";")
+      }
+
+      case .STRUCT {
+        var symbol = node.symbol.asStruct
+        _emitFlags(symbol)
+        _emit("struct " + symbol.name + _space + "{" + _newline)
+        _increaseIndent
+        for child = node.firstChild; child != null; child = child.nextSibling {
+          _emit(_indent)
+          _emit(child)
+          _emit(_newline)
+        }
+        _decreaseIndent
+        _emit(_indent + "};")
+      }
+
+      case .VARIABLES {
+        _emitFlags(node.variablesType.nextSibling.symbol)
+        _emit(node.variablesType, .LOWEST)
+        for child = node.variablesType.nextSibling; child != null; child = child.nextSibling {
+          var variable = child.symbol as VariableSymbol
+          _emit(child.previousSibling.previousSibling == null ? " " : "," + _space)
+          _emit(variable.name)
+          if variable.value != null {
+            _emit(_space + "=" + _space)
+            _emit(variable.value, .COMMA)
+          }
+        }
+        _emit(";")
+      }
+
+      case .WHILE {
+        _emit("while" + _space + "(")
+        _emit(node.whileTest, .LOWEST)
+        _emit(") ")
+        _emit(node.whileBody)
+      }
+
+      default {
+        _emit(node.kind.toString)
       }
     }
+  }
 
-    def _emit(node Node, precedence Precedence) {
-      assert(node.kind.isExpression)
-
-      switch node.kind {
-        case .CALL {
-          _emit(node.callTarget, .UNARY_POSTFIX)
-          _emit("(")
-          _emitCommaSeparatedExpressions(node.callTarget.nextSibling)
-          _emit(")")
-        }
-
-        case .DOT {
-          _emit(node.dotTarget, .MEMBER)
-          _emit(".")
-          _emit(node.symbol != null ? node.symbol.name : node.asString)
-        }
-
-        case .HOOK {
-          if Precedence.ASSIGN as int < precedence as int {
-            _emit("(")
-          }
-          _emit(node.hookTest, .LOGICAL_OR)
-          _emit(" ? ")
-          _emit(node.hookTrue, .ASSIGN)
-          _emit(" : ")
-          _emit(node.hookFalse, .ASSIGN)
-          if Precedence.ASSIGN as int < precedence as int {
-            _emit(")")
-          }
-        }
-
-        case .NAME {
-          _emit(node.symbol.name)
-        }
-
-        case .SEQUENCE {
-          if Precedence.COMMA as int <= precedence as int {
-            _emit("(")
-          }
-          _emitCommaSeparatedExpressions(node.firstChild)
-          if Precedence.COMMA as int <= precedence as int {
-            _emit(")")
-          }
-        }
-
-        case .TYPE {
-          _emit(node.resolvedType.symbol.name)
-        }
-
-        case .BOOL {
-          _emit(node.asBool.toString)
-        }
-
-        case .FLOAT {
-          var text = node.asFloat.toString
-          if !("." in text) && !("e" in text) {
-            text += ".0"
-          }
-          _emit(text)
-        }
-
-        case .INT {
-          _emit(node.asInt.toString)
-        }
-
-        case .INDEX {
-          _emit(node.binaryLeft, .MEMBER)
-          _emit("[")
-          _emit(node.binaryRight, .LOWEST)
-          _emit("]")
-        }
-
-        case .COMPLEMENT { _emitUnaryPrefix("~", node, precedence) }
-        case .NEGATIVE { _emitUnaryPrefix("-", node, precedence) }
-        case .NOT { _emitUnaryPrefix("!", node, precedence) }
-        case .POSITIVE { _emitUnaryPrefix("+", node, precedence) }
-
-        case .PREFIX_DECREMENT { _emitUnaryPrefix("--", node, precedence) }
-        case .PREFIX_INCREMENT { _emitUnaryPrefix("++", node, precedence) }
-
-        case .POSTFIX_DECREMENT { _emitUnaryPostfix("--", node, precedence) }
-        case .POSTFIX_INCREMENT { _emitUnaryPostfix("++", node, precedence) }
-
-        case .ADD { _emitBinary("+", node, precedence, .ADD) }
-        case .BITWISE_AND { _emitBinary("&", node, precedence, .BITWISE_AND) }
-        case .BITWISE_OR { _emitBinary("|", node, precedence, .BITWISE_OR) }
-        case .BITWISE_XOR { _emitBinary("^", node, precedence, .BITWISE_XOR) }
-        case .DIVIDE { _emitBinary("/", node, precedence, .MULTIPLY) }
-        case .EQUAL { _emitBinary("==", node, precedence, .COMPARE) }
-        case .GREATER_THAN { _emitBinary(">", node, precedence, .COMPARE) }
-        case .GREATER_THAN_OR_EQUAL { _emitBinary(">=", node, precedence, .COMPARE) }
-        case .LESS_THAN { _emitBinary("<", node, precedence, .COMPARE) }
-        case .LESS_THAN_OR_EQUAL { _emitBinary("<=", node, precedence, .COMPARE) }
-        case .LOGICAL_AND { _emitBinary("&&", node, precedence, .LOGICAL_AND) }
-        case .LOGICAL_OR { _emitBinary("||", node, precedence, .LOGICAL_OR) }
-        case .LOGICAL_XOR { _emitBinary("^^", node, precedence, .LOGICAL_XOR) }
-        case .MULTIPLY { _emitBinary("*", node, precedence, .MULTIPLY) }
-        case .NOT_EQUAL { _emitBinary("!=", node, precedence, .COMPARE) }
-        case .REMAINDER { _emitBinary("%", node, precedence, .MULTIPLY) }
-        case .SHIFT_LEFT { _emitBinary("<<", node, precedence, .SHIFT) }
-        case .SHIFT_RIGHT { _emitBinary(">>", node, precedence, .SHIFT) }
-        case .SUBTRACT { _emitBinary("-", node, precedence, .ADD) }
-
-        case .ASSIGN { _emitBinary("=", node, precedence, .ASSIGN) }
-        case .ASSIGN_ADD { _emitBinary("+=", node, precedence, .ASSIGN) }
-        case .ASSIGN_BITWISE_AND { _emitBinary("&=", node, precedence, .ASSIGN) }
-        case .ASSIGN_BITWISE_OR { _emitBinary("|=", node, precedence, .ASSIGN) }
-        case .ASSIGN_BITWISE_XOR { _emitBinary("^=", node, precedence, .ASSIGN) }
-        case .ASSIGN_DIVIDE { _emitBinary("/=", node, precedence, .ASSIGN) }
-        case .ASSIGN_MULTIPLY { _emitBinary("*=", node, precedence, .ASSIGN) }
-        case .ASSIGN_REMAINDER { _emitBinary("%=", node, precedence, .ASSIGN) }
-        case .ASSIGN_SHIFT_LEFT { _emitBinary("<<=", node, precedence, .ASSIGN) }
-        case .ASSIGN_SHIFT_RIGHT { _emitBinary(">>=", node, precedence, .ASSIGN) }
-        case .ASSIGN_SUBTRACT { _emitBinary("-=", node, precedence, .ASSIGN) }
-
-        default {
-          _emit(node.kind.toString)
-        }
+  def _emitCommaSeparatedExpressions(node Node) {
+    for child = node; child != null; child = child.nextSibling {
+      if child != node {
+        _emit("," + _space)
       }
+      _emit(child, .COMMA)
     }
+  }
 
-    def _emitUnaryPrefix(operator string, node Node, precedence Precedence) {
-      _emit(operator)
-      _emit(node.unaryValue, .UNARY_PREFIX)
-    }
+  def _emit(node Node, precedence Precedence) {
+    assert(node.kind.isExpression)
 
-    def _emitUnaryPostfix(operator string, node Node, precedence Precedence) {
-      _emit(node.unaryValue, .UNARY_POSTFIX)
-      _emit(operator)
-    }
-
-    def _emitBinary(operator string, node Node, outer Precedence, inner Precedence) {
-      var isRightAssociative = node.kind.isBinaryAssign
-      if inner as int < outer as int {
+    switch node.kind {
+      case .CALL {
+        _emit(node.callTarget, .UNARY_POSTFIX)
         _emit("(")
-      }
-      _emit(node.binaryLeft, ((inner as int) + (isRightAssociative as int)) as Precedence)
-      _emit(" " + operator + " ")
-      _emit(node.binaryRight, ((inner as int) + (!isRightAssociative as int)) as Precedence)
-      if inner as int < outer as int {
+        _emitCommaSeparatedExpressions(node.callTarget.nextSibling)
         _emit(")")
       }
+
+      case .DOT {
+        _emit(node.dotTarget, .MEMBER)
+        _emit(".")
+        _emit(node.symbol != null ? node.symbol.name : node.asString)
+      }
+
+      case .HOOK {
+        if Precedence.ASSIGN as int < precedence as int {
+          _emit("(")
+        }
+        _emit(node.hookTest, .LOGICAL_OR)
+        _emit(" ? ")
+        _emit(node.hookTrue, .ASSIGN)
+        _emit(" : ")
+        _emit(node.hookFalse, .ASSIGN)
+        if Precedence.ASSIGN as int < precedence as int {
+          _emit(")")
+        }
+      }
+
+      case .NAME {
+        _emit(node.symbol.name)
+      }
+
+      case .SEQUENCE {
+        if Precedence.COMMA as int <= precedence as int {
+          _emit("(")
+        }
+        _emitCommaSeparatedExpressions(node.firstChild)
+        if Precedence.COMMA as int <= precedence as int {
+          _emit(")")
+        }
+      }
+
+      case .TYPE {
+        _emit(node.resolvedType.symbol.name)
+      }
+
+      case .BOOL {
+        _emit(node.asBool.toString)
+      }
+
+      case .FLOAT {
+        var text = node.asFloat.toString
+
+        # "10" => "10.0"
+        # "10" => "10." (minify)
+        if !("." in text) && !("e" in text) {
+          text += _shouldMinify ? "." : ".0"
+        }
+
+        # "0.5" => ".5" (minify)
+        if _shouldMinify && text.startsWith("0.") && text.count > 2 {
+          text = text.slice(1)
+        }
+
+        _emit(text)
+      }
+
+      case .INT {
+        _emit(node.asInt.toString)
+      }
+
+      case .INDEX {
+        _emit(node.binaryLeft, .MEMBER)
+        _emit("[")
+        _emit(node.binaryRight, .LOWEST)
+        _emit("]")
+      }
+
+      case .COMPLEMENT { _emitUnaryPrefix("~", node, precedence) }
+      case .NEGATIVE { _emitUnaryPrefix("-", node, precedence) }
+      case .NOT { _emitUnaryPrefix("!", node, precedence) }
+      case .POSITIVE { _emitUnaryPrefix("+", node, precedence) }
+
+      case .PREFIX_DECREMENT { _emitUnaryPrefix("--", node, precedence) }
+      case .PREFIX_INCREMENT { _emitUnaryPrefix("++", node, precedence) }
+
+      case .POSTFIX_DECREMENT { _emitUnaryPostfix("--", node, precedence) }
+      case .POSTFIX_INCREMENT { _emitUnaryPostfix("++", node, precedence) }
+
+      case .ADD { _emitBinary("+", node, precedence, .ADD) }
+      case .BITWISE_AND { _emitBinary("&", node, precedence, .BITWISE_AND) }
+      case .BITWISE_OR { _emitBinary("|", node, precedence, .BITWISE_OR) }
+      case .BITWISE_XOR { _emitBinary("^", node, precedence, .BITWISE_XOR) }
+      case .DIVIDE { _emitBinary("/", node, precedence, .MULTIPLY) }
+      case .EQUAL { _emitBinary("==", node, precedence, .COMPARE) }
+      case .GREATER_THAN { _emitBinary(">", node, precedence, .COMPARE) }
+      case .GREATER_THAN_OR_EQUAL { _emitBinary(">=", node, precedence, .COMPARE) }
+      case .LESS_THAN { _emitBinary("<", node, precedence, .COMPARE) }
+      case .LESS_THAN_OR_EQUAL { _emitBinary("<=", node, precedence, .COMPARE) }
+      case .LOGICAL_AND { _emitBinary("&&", node, precedence, .LOGICAL_AND) }
+      case .LOGICAL_OR { _emitBinary("||", node, precedence, .LOGICAL_OR) }
+      case .LOGICAL_XOR { _emitBinary("^^", node, precedence, .LOGICAL_XOR) }
+      case .MULTIPLY { _emitBinary("*", node, precedence, .MULTIPLY) }
+      case .NOT_EQUAL { _emitBinary("!=", node, precedence, .COMPARE) }
+      case .REMAINDER { _emitBinary("%", node, precedence, .MULTIPLY) }
+      case .SHIFT_LEFT { _emitBinary("<<", node, precedence, .SHIFT) }
+      case .SHIFT_RIGHT { _emitBinary(">>", node, precedence, .SHIFT) }
+      case .SUBTRACT { _emitBinary("-", node, precedence, .ADD) }
+
+      case .ASSIGN { _emitBinary("=", node, precedence, .ASSIGN) }
+      case .ASSIGN_ADD { _emitBinary("+=", node, precedence, .ASSIGN) }
+      case .ASSIGN_BITWISE_AND { _emitBinary("&=", node, precedence, .ASSIGN) }
+      case .ASSIGN_BITWISE_OR { _emitBinary("|=", node, precedence, .ASSIGN) }
+      case .ASSIGN_BITWISE_XOR { _emitBinary("^=", node, precedence, .ASSIGN) }
+      case .ASSIGN_DIVIDE { _emitBinary("/=", node, precedence, .ASSIGN) }
+      case .ASSIGN_MULTIPLY { _emitBinary("*=", node, precedence, .ASSIGN) }
+      case .ASSIGN_REMAINDER { _emitBinary("%=", node, precedence, .ASSIGN) }
+      case .ASSIGN_SHIFT_LEFT { _emitBinary("<<=", node, precedence, .ASSIGN) }
+      case .ASSIGN_SHIFT_RIGHT { _emitBinary(">>=", node, precedence, .ASSIGN) }
+      case .ASSIGN_SUBTRACT { _emitBinary("-=", node, precedence, .ASSIGN) }
+
+      default {
+        _emit(node.kind.toString)
+      }
+    }
+  }
+
+  def _emitUnaryPrefix(operator string, node Node, precedence Precedence) {
+    var value = node.unaryValue
+    var kind = value.kind
+
+    _emit(operator)
+
+    if operator[0] == '-' && (kind == .NEGATIVE || kind == .PREFIX_DECREMENT || value.isNumberLessThanZero) ||
+        operator[0] == '+' && (kind == .POSITIVE || kind == .PREFIX_INCREMENT) {
+      _emit(" ")
     }
 
-    def _emit(text string) {
-      _code += text
-    }
+    _emit(value, .UNARY_PREFIX)
+  }
 
-    def toString string {
-      return _code
+  def _emitUnaryPostfix(operator string, node Node, precedence Precedence) {
+    _emit(node.unaryValue, .UNARY_POSTFIX)
+    _emit(operator)
+  }
+
+  def _emitBinary(operator string, node Node, outer Precedence, inner Precedence) {
+    var isRightAssociative = node.kind.isBinaryAssign
+    if inner as int < outer as int {
+      _emit("(")
     }
+    _emit(node.binaryLeft, ((inner as int) + (isRightAssociative as int)) as Precedence)
+    _emit(_space + operator + _space)
+    _emit(node.binaryRight, ((inner as int) + (!isRightAssociative as int)) as Precedence)
+    if inner as int < outer as int {
+      _emit(")")
+    }
+  }
+
+  def _emit(text string) {
+    _code += text
+  }
+
+  def toString string {
+    return _code
   }
 }

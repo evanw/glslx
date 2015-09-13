@@ -286,6 +286,10 @@ namespace GLSLX {
       return kind == .SEQUENCE && !hasChildren
     }
 
+    def isNumberLessThanZero bool {
+      return kind == .INT && asInt < 0 || kind == .FLOAT && asFloat < 0
+    }
+
     def isValidStorageLocation bool {
       assert(kind.isExpression)
       switch kind {
