@@ -116,6 +116,10 @@ namespace GLSLX {
     def isBinaryAssign bool {
       return self as int >= ASSIGN && self as int <= ASSIGN_SUBTRACT
     }
+
+    def isJump bool {
+      return self == BREAK || self == CONTINUE || self == DISCARD || self == RETURN
+    }
   }
 
   class Node {

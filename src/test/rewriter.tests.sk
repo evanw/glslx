@@ -454,5 +454,53 @@ int main(int i) {
 }
 ").trimLocalVariables
 
+# Compact if statements into a single return statement
+test("
+int main(bool b) {
+  if (b) return 1;
+  else return 2;
+}
+", "
+int main(bool b) {
+  return b ? 1 : 2;
+}
+").compactSyntaxTree
+
+# Compact if statements into a single return statement
+test("
+int main(int i) {
+  if (i < 0) return -1;
+  if (i > 0) return 1;
+  return 0;
+}
+", "
+int main(int i) {
+  return i < 0 ? -1 : i > 0 ? 1 : 0;
+}
+").compactSyntaxTree
+
+# Remove dead code after jumps
+test("
+void foo();
+
+int main(bool b) {
+  while (b) { break; foo(); }
+  while (b) { continue; foo(); }
+  if (b) { discard; foo(); }
+  return 0; foo();
+}
+", "
+void foo();
+
+int main(bool b) {
+  for (; b;)
+    break;
+  for (; b;) ;
+  if (b)
+    discard;
+  return 0;
+}
+").compactSyntaxTree
+
   }
 }

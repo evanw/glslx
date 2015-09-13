@@ -193,6 +193,19 @@ class GLSLX.Rewriter {
       }
 
       case .BLOCK {
+        # Remove everything after a jump
+        for child = node.firstChild; child != null; child = child.nextSibling {
+          if !child.kind.isJump {
+            continue
+          }
+          if child.nextSibling != null {
+            while child.nextSibling != null {
+              child.nextSibling.remove
+            }
+            _reportCodeChange
+          }
+        }
+
         # Collapse this block into the parent block if possible, being careful about scope
         if node.parent != null && node.parent.kind == .BLOCK {
           var mayNeedScope = false
@@ -239,7 +252,6 @@ class GLSLX.Rewriter {
         if node.doWhileTest.isFalse {
           node.replaceWith(Node.createBlock.appendChild(node.doWhileBody.remove))
           _reportCodeChange
-          return
         }
       }
 
@@ -250,7 +262,24 @@ class GLSLX.Rewriter {
         if node.forTest != null && node.forTest.isTrue {
           node.forTest.replaceWith(Node.createSequence)
           _reportCodeChange
-          return
+        }
+
+        # Remove trailing continues
+        if node.forBody.kind == .CONTINUE {
+          node.forBody.replaceWith(Node.createBlock)
+          _reportCodeChange
+        } else {
+          while node.forBody.hasChildren && node.forBody.lastChild.kind == .CONTINUE {
+            node.forBody.lastChild.remove
+            _reportCodeChange
+          }
+        }
+      }
+
+      case .FUNCTION {
+        var function = node.symbol.asFunction
+        if function.block != null {
+          _compact(function.block)
         }
       }
 
@@ -276,6 +305,17 @@ class GLSLX.Rewriter {
           }
           _reportCodeChange
           return
+        }
+
+        # Turn if-else statements into a single return statement
+        if node.ifFalse != null && node.ifTrue.kind == .RETURN && node.ifFalse.kind == .RETURN {
+          var yes = node.ifTrue.returnValue
+          var no = node.ifFalse.returnValue
+          if yes != null && no != null {
+            node.replaceWith(Node.createReturn(Node.createHook(node.ifTest.remove, yes.remove, no.remove).withType(yes.resolvedType)))
+            _reportCodeChange
+            return
+          }
         }
 
         # Turn if-else statements into shorter conditional expressions when possible
@@ -335,10 +375,19 @@ class GLSLX.Rewriter {
         }
       }
 
-      case .FUNCTION {
-        var function = node.symbol.asFunction
-        if function.block != null {
-          _compact(function.block)
+      case .RETURN {
+        # Merge with previous if statements if possible
+        var previous = node.previousSibling
+        while previous != null && previous.kind == .IF && previous.ifFalse == null && previous.ifTrue.kind == .RETURN {
+          var yes = previous.ifTrue.returnValue
+          var no = node.returnValue
+          if yes == null || no == null {
+            break
+          }
+          node.replaceWith(Node.createReturn(Node.createHook(previous.ifTest.remove, yes.remove, no.remove).withType(yes.resolvedType)))
+          previous.remove
+          previous = node.previousSibling
+          _reportCodeChange
         }
       }
 
