@@ -15,6 +15,9 @@ namespace GLSLX {
     # Non-standard modifiers
     const FRAGMENT = 1 << 11
     const VERTEX   = 1 << 12
+
+    # Internal compiler flags
+    const IS_IMPORTED = 1 << 13
   }
 
   class Symbol {
@@ -22,6 +25,7 @@ namespace GLSLX {
     var name string
     var scope Scope
     var flags = 0
+    var _resolvedType Type = null
 
     # Keyword modifiers
     def isAttribute bool { return (flags & ATTRIBUTE) != 0 }
@@ -38,6 +42,41 @@ namespace GLSLX {
     # Non-standard modifiers
     def isFragment bool { return (flags & FRAGMENT) != 0 }
     def isVertex bool   { return (flags & VERTEX) != 0 }
+
+    # Internal compiler flags
+    def isImported bool { return (flags & IS_IMPORTED) != 0 }
+
+    def isObject bool { return self is ObjectSymbol }
+    def isFunction bool { return self is FunctionSymbol }
+    def isVariable bool { return self is VariableSymbol }
+    def isOverloadedFunction bool { return self is OverloadedFunctionSymbol }
+
+    def asObject ObjectSymbol {
+      assert(isObject)
+      return self as ObjectSymbol
+    }
+
+    def asFunction FunctionSymbol {
+      assert(isFunction)
+      return self as FunctionSymbol
+    }
+
+    def asVariable VariableSymbol {
+      assert(isVariable)
+      return self as VariableSymbol
+    }
+
+    def asOverloadedFunction OverloadedFunctionSymbol {
+      assert(isOverloadedFunction)
+      return self as OverloadedFunctionSymbol
+    }
+
+    def resolvedType Type {
+      if _resolvedType == null {
+        _resolvedType = Type.new(self)
+      }
+      return _resolvedType
+    }
   }
 
   class ObjectSymbol : Symbol {
@@ -53,5 +92,9 @@ namespace GLSLX {
   class VariableSymbol : Symbol {
     var type Node = null
     var value Node = null
+  }
+
+  class OverloadedFunctionSymbol : Symbol {
+    var symbols List<FunctionSymbol> = []
   }
 }

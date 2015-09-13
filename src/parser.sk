@@ -1,4 +1,4 @@
-namespace GLSLX {
+namespace GLSLX.Parser {
   var pratt Pratt = null
 
   def typeParselet(type Type) fn(ParserContext, Token) Node {
@@ -483,16 +483,26 @@ namespace GLSLX {
   }
 
   def parseFunction(flags int, type Node, name Range, context ParserContext) Node {
+    var function = FunctionSymbol.new(name, name.toString, Scope.new(.FUNCTION, context.scope))
+    function.flags |= flags
+    function.returnType = type
+
+    # Merge adjacent function symbols to support overloading
     var previous = context.scope.symbols.get(name.toString, null)
-    if previous != null {
+    if previous == null {
+      context.scope.define(function)
+    } else if previous.isFunction {
+      var overloaded = OverloadedFunctionSymbol.new(null, function.name, context.scope)
+      overloaded.symbols.append(previous.asFunction)
+      overloaded.symbols.append(function)
+      context.scope.redefine(overloaded)
+    } else if previous.isOverloadedFunction {
+      previous.asOverloadedFunction.symbols.append(function)
+    } else {
       context.log.syntaxErrorDuplicateSymbolDefinition(name, previous.range)
       return null
     }
 
-    var function = FunctionSymbol.new(name, name.toString, Scope.new(.FUNCTION, context.scope))
-    function.flags |= flags
-    function.returnType = type
-    context.scope.define(function)
     context.pushScope(function.scope)
 
     # Takes no arguments
@@ -520,19 +530,14 @@ namespace GLSLX {
           return null
         }
 
-        # Check for duplicates
-        var previousArgument = context.scope.symbols.get(argumentName.toString, null)
-        if previousArgument != null {
-          context.log.syntaxErrorDuplicateSymbolDefinition(argumentName, previousArgument.range)
-          return null
-        }
-
         # Create the argument
         var argument = VariableSymbol.new(argumentName, argumentName.toString, context.scope)
         argument.flags |= argumentFlags
         argument.type = argumentType
-        context.scope.define(argument)
         function.arguments.append(argument)
+        if !tryToDefineUniquelyInScope(context, argument) {
+          return null
+        }
 
         # Parse another argument?
         if !context.eat(.COMMA) {
@@ -559,16 +564,10 @@ namespace GLSLX {
   def parseVariables(flags int, type Node, name Range, context ParserContext) Node {
     var variables = Node.createVariables(type)
     while true {
-      var previous = context.scope.symbols.get(name.toString, null)
-      if previous != null {
-        context.log.syntaxErrorDuplicateSymbolDefinition(name, previous.range)
-        return null
-      }
-
       var variable = VariableSymbol.new(name, name.toString, context.scope)
       variable.flags |= flags
       variable.type = type
-      context.scope.define(variable)
+      tryToDefineUniquelyInScope(context, variable)
 
       if context.eat(.ASSIGN) {
         variable.value = pratt.parse(context, .COMMA)
@@ -593,23 +592,32 @@ namespace GLSLX {
     }
   }
 
-  def parse(log Log, tokens List<Token>) Node {
-    var context = ParserContext.new(log, tokens)
-    var global = Node.createGlobal
+  def tryToDefineUniquelyInScope(context ParserContext, symbol Symbol) bool {
+    var previous = context.scope.symbols.get(symbol.name, null)
+    if previous != null {
+      if previous.isOverloadedFunction {
+        previous = previous.asOverloadedFunction.symbols.first
+      }
+      context.log.syntaxErrorDuplicateSymbolDefinition(symbol.range, previous.range)
+      return false
+    }
+    context.scope.define(symbol)
+    return true
+  }
 
+  def parse(log Log, tokens List<Token>, global Node, scope Scope) {
     if pratt == null {
       pratt = createExpressionParser
     }
 
-    context.pushScope(Scope.new(.GLOBAL, null))
+    var context = ParserContext.new(log, tokens)
+    context.pushScope(scope)
     while !context.eat(.END_OF_FILE) {
       var statement = parseStatement(context)
       if statement == null {
-        return null
+        break
       }
       global.appendChild(statement)
     }
-
-    return global
   }
 }

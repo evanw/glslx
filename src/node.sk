@@ -492,7 +492,7 @@ namespace GLSLX {
 
     def variablesType Node {
       assert(kind == .VARIABLES)
-      assert(childCount > 1)
+      assert(childCount >= 1)
       assert(_firstChild.kind.isExpression)
       return _firstChild
     }

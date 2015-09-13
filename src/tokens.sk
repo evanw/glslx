@@ -107,8 +107,8 @@ namespace GLSLX {
 
   namespace TokenKind {
     def fromKeyword(text string) TokenKind {
-      assert(text in _keywords)
-      return _keywords[text]
+      assert(text in Tokenizer.keywords)
+      return Tokenizer.keywords[text]
     }
   }
 
@@ -116,7 +116,9 @@ namespace GLSLX {
     var range Range
     var kind TokenKind
   }
+}
 
+namespace GLSLX.Tokenizer {
   def tokenize(log Log, source Source) List<Token> {
     var parts List<string> = (source.contents as dynamic).split(_tokenRegex)
     var tokens List<Token> = []
@@ -133,10 +135,10 @@ namespace GLSLX {
 
         # Identifier
         if c >= 'A' && c <= 'Z' || c >= 'a' && c <= 'z' || c == '_' {
-          var keyword = _keywords.get(part, .END_OF_FILE)
+          var keyword = keywords.get(part, .END_OF_FILE)
           if keyword != .END_OF_FILE {
             tokens.append(Token.new(range, keyword))
-          } else if isReservedWord(part) {
+          } else if part in reservedWords {
             log.syntaxErrorReservedWord(range)
           } else {
             tokens.append(Token.new(range, .IDENTIFIER))
@@ -150,7 +152,7 @@ namespace GLSLX {
 
         # Operator
         else {
-          var kind = _operators.get(part, .END_OF_FILE)
+          var kind = operators.get(part, .END_OF_FILE)
           if kind != .END_OF_FILE {
             tokens.append(Token.new(range, kind))
           }
@@ -167,18 +169,6 @@ namespace GLSLX {
 
     tokens.append(Token.new(Range.new(source, start, start), .END_OF_FILE))
     return tokens
-  }
-
-  def isKeywordOrReservedWord(text string) bool {
-    return isKeyword(text) || isReservedWord(text)
-  }
-
-  def isKeyword(text string) bool {
-    return text in _keywords
-  }
-
-  def isReservedWord(text string) bool {
-    return text in _reservedWords
   }
 
   const _tokenRegex = dynamic.RegExp.new(
@@ -210,7 +200,7 @@ namespace GLSLX {
     ")$"
   )
 
-  const _keywords StringMap<TokenKind> = {
+  const keywords StringMap<TokenKind> = {
     # Standard keywords
     "attribute": .ATTRIBUTE,
     "bool": .BOOL,
@@ -256,7 +246,7 @@ namespace GLSLX {
     "while": .WHILE,
   }
 
-  const _operators StringMap<TokenKind> = {
+  const operators StringMap<TokenKind> = {
     # Unary
     "~": .COMPLEMENT,
     "--": .DECREMENT,
@@ -310,7 +300,7 @@ namespace GLSLX {
     ";": .SEMICOLON,
   }
 
-  const _reservedWords = {
+  const reservedWords = {
     "asm": 0,
     "cast": 0,
     "class": 0,

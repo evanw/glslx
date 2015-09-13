@@ -6,16 +6,8 @@ namespace GLSLX {
     var output = doc.getElementById("output")
     var compile = => {
       var log = Log.new
-      var tokens = tokenize(log, Source.new("<stdin>", input.value))
-      var global Node = null
-      if log.isEmpty {
-        global = parse(log, tokens)
-      }
-      if log.isEmpty {
-        output.value = Emitter.new(global).toString
-      } else {
-        output.value = log.toString
-      }
+      var result = Compiler.compile(log, Source.new("stdin.glsl", input.value))
+      output.value = log.hasErrors ? log.toString : result
     }
     input.oninput = compile
     compile()

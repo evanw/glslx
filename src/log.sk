@@ -98,7 +98,7 @@ namespace GLSLX {
     }
 
     def syntaxErrorDuplicateSymbolDefinition(range Range, previous Range) {
-      error(range, "There is already a symbol called \"" + range.toString + " in the current scope")
+      error(range, "There is already a symbol called \"" + range.toString + "\" in the current scope")
       note(previous, "The previous definition of \"" + previous.toString + "\" is here")
     }
 

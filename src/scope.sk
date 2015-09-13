@@ -16,6 +16,12 @@ namespace GLSLX {
       symbols[symbol.name] = symbol
     }
 
+    def redefine(symbol Symbol) {
+      assert(symbol.name in symbols)
+      assert(symbols[symbol.name] != symbol)
+      symbols[symbol.name] = symbol
+    }
+
     def find(name string) Symbol {
       var symbol = symbols.get(name, null)
       if symbol != null { return symbol }
