@@ -204,7 +204,7 @@ namespace GLSLX {
 
         case .FLOAT {
           var text = node.asFloat.toString
-          if !("." in text) {
+          if !("." in text) && !("e" in text) {
             text += ".0"
           }
           _emit(text)
@@ -212,6 +212,13 @@ namespace GLSLX {
 
         case .INT {
           _emit(node.asInt.toString)
+        }
+
+        case .INDEX {
+          _emit(node.binaryLeft, .MEMBER)
+          _emit("[")
+          _emit(node.binaryRight, .LOWEST)
+          _emit("]")
         }
 
         case .COMPLEMENT { _emitUnaryPrefix("~", node, precedence) }
@@ -233,7 +240,6 @@ namespace GLSLX {
         case .EQUAL { _emitBinary("==", node, precedence, .COMPARE) }
         case .GREATER_THAN { _emitBinary(">", node, precedence, .COMPARE) }
         case .GREATER_THAN_OR_EQUAL { _emitBinary(">=", node, precedence, .COMPARE) }
-        case .INDEX { _emitBinary("[]", node, precedence, .ASSIGN) }
         case .LESS_THAN { _emitBinary("<", node, precedence, .COMPARE) }
         case .LESS_THAN_OR_EQUAL { _emitBinary("<=", node, precedence, .COMPARE) }
         case .LOGICAL_AND { _emitBinary("&&", node, precedence, .LOGICAL_AND) }
