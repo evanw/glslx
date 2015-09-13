@@ -1,6 +1,7 @@
 namespace GLSLX {
   enum NodeKind {
     # Other
+    GLOBAL
     VARIABLE
 
     # Statements
@@ -11,6 +12,7 @@ namespace GLSLX {
     DO_WHILE
     EXPRESSION
     FOR
+    FUNCTION
     IF
     RETURN
     VARIABLES
@@ -284,6 +286,10 @@ namespace GLSLX {
   }
 
   namespace Node {
+    def createGlobal Node {
+      return new(.GLOBAL)
+    }
+
     def createVariable(symbol VariableSymbol) Node {
       return new(.VARIABLE).withSymbol(symbol)
     }
@@ -325,6 +331,10 @@ namespace GLSLX {
         .appendChild(test == null ? createSequence : test)
         .appendChild(update == null ? createSequence : update)
         .appendChild(body)
+    }
+
+    def createFunction(symbol FunctionSymbol) Node {
+      return new(.FUNCTION).withSymbol(symbol)
     }
 
     def createIf(test Node, yes Node, no Node) Node {

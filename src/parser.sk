@@ -359,11 +359,11 @@ namespace GLSLX {
       if !context.expect(.IDENTIFIER) {
         return null
       }
-      var variables = Node.createVariables(type)
-      if !parseVariables(flags, type, name, context, variable => variables.appendChild(Node.createVariable(variable).withRange(context.spanSince(variable.range)))) {
-        return null
+      if context.eat(.LEFT_PARENTHESIS) {
+        return parseFunction(flags, type, name, context)
       }
-      if !context.expect(.SEMICOLON) {
+      var variables = parseVariables(flags, type, name, context)
+      if variables == null {
         return null
       }
       return variables.withRange(context.spanSince(token.range))
@@ -482,12 +482,7 @@ namespace GLSLX {
     return Node.createType(type).withRange(context.spanSince(token.range))
   }
 
-  def parseStruct(context ParserContext) ObjectSymbol {
-    context.unexpectedToken
-    return null
-  }
-
-  def parseFunction(flags int, type Node, name Range, context ParserContext) FunctionSymbol {
+  def parseFunction(flags int, type Node, name Range, context ParserContext) Node {
     var previous = context.scope.symbols.get(name.toString, null)
     if previous != null {
       context.log.syntaxErrorDuplicateSymbolDefinition(name, previous.range)
@@ -558,15 +553,16 @@ namespace GLSLX {
     }
 
     context.popScope
-    return function
+    return Node.createFunction(function).withRange(context.spanSince(type.range))
   }
 
-  def parseVariables(flags int, type Node, name Range, context ParserContext, callback fn(VariableSymbol)) bool {
+  def parseVariables(flags int, type Node, name Range, context ParserContext) Node {
+    var variables = Node.createVariables(type)
     while true {
       var previous = context.scope.symbols.get(name.toString, null)
       if previous != null {
         context.log.syntaxErrorDuplicateSymbolDefinition(name, previous.range)
-        return false
+        return null
       }
 
       var variable = VariableSymbol.new(name, name.toString, context.scope)
@@ -577,79 +573,41 @@ namespace GLSLX {
       if context.eat(.ASSIGN) {
         variable.value = pratt.parse(context, .COMMA)
         if variable.value == null {
-          return false
+          return null
         }
       }
 
-      callback(variable)
+      variables.appendChild(Node.createVariable(variable).withRange(context.spanSince(variable.range)))
 
       if !context.eat(.COMMA) {
-        return true
+        if !context.expect(.SEMICOLON) {
+          return null
+        }
+        return variables
       }
 
       name = context.current.range
       if !context.expect(.IDENTIFIER) {
-        return false
+        return null
       }
     }
   }
 
-  def parseGlobalStatement(context ParserContext, global Global) bool {
-    # Parse a struct
-    if context.current.kind == .STRUCT {
-      var object = parseStruct(context)
-      if object != null {
-        global.objects.append(object)
-        return true
-      }
-      return false
-    }
-
-    # Parse leading flags
-    var flags = parseFlags(context)
-
-    # Parse the type
-    var type = parseType(context, .REPORT_ERRORS)
-    if type == null {
-      return false
-    }
-
-    # Parse the identifier
-    var name = context.current.range
-    if !context.expect(.IDENTIFIER) {
-      return false
-    }
-
-    # Parse a function
-    if context.eat(.LEFT_PARENTHESIS) {
-      var function = parseFunction(flags, type, name, context)
-      if function != null {
-        global.functions.append(function)
-        return true
-      }
-      return false
-    }
-
-    # Parse a variable
-    if !parseVariables(flags, type, name, context, variable => global.variables.append(variable)) {
-      return false
-    }
-    return context.expect(.SEMICOLON)
-  }
-
-  def parse(log Log, tokens List<Token>) Global {
+  def parse(log Log, tokens List<Token>) Node {
     var context = ParserContext.new(log, tokens)
-    var global = Global.new
+    var global = Node.createGlobal
 
     if pratt == null {
       pratt = createExpressionParser
     }
 
-    context.pushScope(global.scope)
+    context.pushScope(Scope.new(.GLOBAL, null))
     while !context.eat(.END_OF_FILE) {
-      if !parseGlobalStatement(context, global) {
+      var statement = parseStatement(context)
+      if statement == null {
         return null
       }
+      global.appendChild(statement)
     }
 
     return global

@@ -1,5 +1,5 @@
 WATCH = node_modules/.bin/watch src
-BUILD = node_modules/.bin/skewc src/*.sk --target=js --output-file=www/compiled.js
+BUILD = node_modules/.bin/skewc src/*.sk --target=js --output-file=www/compiled.js --verbose
 
 default: debug
 

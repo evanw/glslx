@@ -7,7 +7,7 @@ namespace GLSLX {
     var compile = => {
       var log = Log.new
       var tokens = tokenize(log, Source.new("<stdin>", input.value))
-      var global Global = null
+      var global Node = null
       if log.isEmpty {
         global = parse(log, tokens)
       }

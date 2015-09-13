@@ -3,12 +3,10 @@ namespace GLSLX {
     var _code = ""
     var _indent = ""
 
-    def new(global Global) {
-      for variable in global.variables {
-        _emit(variable)
-      }
-      for function in global.functions {
-        _emit(function)
+    def new(node Node) {
+      for child = node.firstChild; child != null; child = child.nextSibling {
+        _emit(child)
+        _emit("\n")
       }
     }
 
@@ -72,6 +70,29 @@ namespace GLSLX {
           _emit(node.forBody)
         }
 
+        case .FUNCTION {
+          var function = node.symbol as FunctionSymbol
+          _emit(function.returnType, .LOWEST)
+          _emit(" ")
+          _emit(function.name)
+          _emit("(")
+          for argument in function.arguments {
+            if argument != function.arguments.first {
+              _emit(", ")
+            }
+            _emit(argument.type, .LOWEST)
+            _emit(" ")
+            _emit(argument.name)
+          }
+          _emit(")")
+          if function.body != null {
+            _emit(" ")
+            _emit(function.body)
+          } else {
+            _emit(";")
+          }
+        }
+
         case .IF {
           _emit("if (")
           _emit(node.ifTest, .LOWEST)
@@ -95,12 +116,12 @@ namespace GLSLX {
         case .VARIABLES {
           _emit(node.variablesType, .LOWEST)
           for child = node.variablesType.nextSibling; child != null; child = child.nextSibling {
-            var symbol = child.symbol as VariableSymbol
+            var variable = child.symbol as VariableSymbol
             _emit(child.previousSibling.previousSibling == null ? " " : ", ")
-            _emit(symbol.name)
-            if symbol.value != null {
+            _emit(variable.name)
+            if variable.value != null {
               _emit(" = ")
-              _emit(symbol.value, .COMMA)
+              _emit(variable.value, .COMMA)
             }
           }
           _emit(";")
@@ -262,40 +283,6 @@ namespace GLSLX {
       _emit(node.binaryRight, ((inner as int) + (!isRightAssociative as int)) as Precedence)
       if inner as int < outer as int {
         _emit(")")
-      }
-    }
-
-    def _emit(variable VariableSymbol) {
-      _emit(variable.type, .LOWEST)
-      _emit(" ")
-      _emit(variable.name)
-      if variable.value != null {
-        _emit(" = ")
-        _emit(variable.value, .COMMA)
-      }
-      _emit(";\n")
-    }
-
-    def _emit(function FunctionSymbol) {
-      _emit(function.returnType, .LOWEST)
-      _emit(" ")
-      _emit(function.name)
-      _emit("(")
-      for argument in function.arguments {
-        if argument != function.arguments.first {
-          _emit(", ")
-        }
-        _emit(argument.type, .LOWEST)
-        _emit(" ")
-        _emit(argument.name)
-      }
-      _emit(")")
-      if function.body != null {
-        _emit(" ")
-        _emit(function.body)
-        _emit("\n")
-      } else {
-        _emit(";\n")
       }
     }
 

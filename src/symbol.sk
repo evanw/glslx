@@ -40,13 +40,6 @@ namespace GLSLX {
     def isVertex bool   { return (flags & VERTEX) != 0 }
   }
 
-  class Global {
-    var scope = Scope.new(.GLOBAL, null)
-    var objects List<ObjectSymbol> = []
-    var functions List<FunctionSymbol> = []
-    var variables List<VariableSymbol> = []
-  }
-
   class ObjectSymbol : Symbol {
     var variables List<VariableSymbol> = []
   }
