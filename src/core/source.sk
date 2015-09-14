@@ -7,6 +7,7 @@ namespace GLSLX {
   class Source {
     var name string
     var contents string
+    var tokens List<Token> = null
 
     # This maps line numbers to indices within contents
     var _lineOffsets List<int> = null

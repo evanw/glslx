@@ -1,5 +1,5 @@
 namespace GLSLX.Resolver {
-  def resolve(log Log, global Node, data CompilationData) {
+  def resolve(log Log, global Node, data CompilerData) {
     var resolver = Resolver.new(log, data)
     resolver._resolve(global)
     resolver._finalize(global)
@@ -8,7 +8,7 @@ namespace GLSLX.Resolver {
 
 class GLSLX.Resolver {
   const _log Log
-  const _data CompilationData
+  const _data CompilerData
   var _versions List<Node> = []
   var _generatedExtensions StringMap<Node> = {}
   var _returnType Type = null

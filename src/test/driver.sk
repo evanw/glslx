@@ -7,8 +7,11 @@ namespace GLSLX.Tests {
     over run {
       rename(compactWhitespace(_input))
       var log = Log.new
-      var output = Compiler.compile(log, [Source.new("<stdin>", _input)], _options)
-      if output == null { output = log.toString }
+      var result = Compiler.compile(log, [Source.new("<stdin>", _input)], _options)
+      var output = log.toString
+      if result != null && result.shaders.count == 1 {
+        output = result.shaders.first.contents
+      }
       expectString(trimNewlines(_expected), trimNewlines(output))
     }
 

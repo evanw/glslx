@@ -443,7 +443,7 @@ namespace GLSLX.Parser {
       return null
     }
 
-    var symbol = StructSymbol.new(name, name.toString, Scope.new(.STRUCT, context.scope))
+    var symbol = StructSymbol.new(context.compilationData.nextSymbolID, name, name.toString, Scope.new(.STRUCT, context.scope))
     symbol.flags |= flags
     if !tryToDefineUniquelyInScope(context, symbol) {
       return null
@@ -654,8 +654,7 @@ namespace GLSLX.Parser {
         case .IDENTIFIER {
           if context.scope.kind != .GLOBAL { return flags }
           switch context.current.range.toString {
-            case "fragment" { flags |= Symbol.FRAGMENT }
-            case "vertex" { flags |= Symbol.VERTEX }
+            case "export" { flags |= Symbol.EXPORTED }
             default { return flags }
           }
         }
@@ -720,7 +719,7 @@ namespace GLSLX.Parser {
 
   def parseFunction(flags int, type Node, name Range, context ParserContext) Node {
     var originalScope = context.scope
-    var function = FunctionSymbol.new(name, name.toString, Scope.new(.FUNCTION, originalScope))
+    var function = FunctionSymbol.new(context.compilationData.nextSymbolID, name, name.toString, Scope.new(.FUNCTION, originalScope))
     function.flags |= flags | (function.name == "main" ? Symbol.EXPORTED : 0)
     function.returnType = type
     context.pushScope(function.scope)
@@ -751,7 +750,7 @@ namespace GLSLX.Parser {
         }
 
         # Create the argument
-        var argument = VariableSymbol.new(argumentName, argumentName.toString, context.scope, .ARGUMENT)
+        var argument = VariableSymbol.new(context.compilationData.nextSymbolID, argumentName, argumentName.toString, context.scope, .ARGUMENT)
         argument.flags |= argumentFlags
         argument.type = argumentType
         function.arguments.append(argument)
@@ -833,7 +832,7 @@ namespace GLSLX.Parser {
   def parseVariables(flags int, type Node, name Range, context ParserContext) Node {
     var variables = Node.createVariables(flags, type)
     while true {
-      var variable = VariableSymbol.new(name, name.toString, context.scope,
+      var variable = VariableSymbol.new(context.compilationData.nextSymbolID, name, name.toString, context.scope,
         context.scope.kind == .GLOBAL ? .GLOBAL :
         context.scope.kind == .STRUCT ? .STRUCT :
         .LOCAL)
@@ -880,7 +879,7 @@ namespace GLSLX.Parser {
     return true
   }
 
-  def parse(log Log, tokens List<Token>, global Node, data CompilationData, scope Scope) {
+  def parse(log Log, tokens List<Token>, global Node, data CompilerData, scope Scope) {
     if pratt == null {
       pratt = createExpressionParser
     }

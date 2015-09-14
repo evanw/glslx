@@ -12,17 +12,13 @@ namespace GLSLX {
     const UNIFORM   = 1 << 9
     const VARYING   = 1 << 10
 
-    # Non-standard modifiers
-    const FRAGMENT = 1 << 11
-    const VERTEX   = 1 << 12
-
     # Internal compiler flags
-    const EXPORTED = 1 << 13
-    const IMPORTED = 1 << 14
+    const EXPORTED = 1 << 11
+    const IMPORTED = 1 << 12
   }
 
   class Symbol {
-    const id = _createID
+    const id int
     var range Range
     var name string
     var scope Scope
@@ -41,14 +37,10 @@ namespace GLSLX {
     def isOut bool       { return (flags & OUT) != 0 }
     def isUniform bool   { return (flags & UNIFORM) != 0 }
     def isVarying bool   { return (flags & VARYING) != 0 }
-    def isExported bool  { return (flags & (ATTRIBUTE | EXPORTED | UNIFORM | VARYING)) != 0 }
-
-    # Non-standard modifiers
-    def isFragment bool { return (flags & FRAGMENT) != 0 }
-    def isVertex bool   { return (flags & VERTEX) != 0 }
 
     # Internal compiler flags
     def isImported bool { return (flags & IMPORTED) != 0 }
+    def isExported bool { return (flags & (ATTRIBUTE | UNIFORM | VARYING | EXPORTED)) != 0 }
     def isImportedOrExported bool  { return isImported || isExported }
 
     def isStruct bool { return self is StructSymbol }
@@ -114,14 +106,5 @@ namespace GLSLX {
     var type Node = null
     var value Node = null
     var arraySize Node = null
-  }
-
-  namespace Symbol {
-    def _createID int {
-      _nextID++
-      return _nextID
-    }
-
-    var _nextID = 0
   }
 }

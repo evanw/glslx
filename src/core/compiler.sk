@@ -3,6 +3,7 @@ namespace GLSLX {
     var renameInternalSymbols = false
     var compactSyntaxTree = false
     var removeWhitespace = false
+    var exportMultiple = false
     var trimVariables = false
   }
 
@@ -14,32 +15,104 @@ namespace GLSLX {
     WARN
   }
 
-  class CompilationData {
+  class CompilerData {
     const currentExtensions StringMap<ExtensionBehavior> = {}
+    var _nextSymbolID = 0
+
+    def nextSymbolID int {
+      _nextSymbolID++
+      return _nextSymbolID
+    }
 
     def extensionBehavior(name string) ExtensionBehavior {
       return currentExtensions.get(name, .DEFAULT)
     }
   }
+
+  class CompilerResult {
+    const shaders List<Source>
+    const renaming StringMap<string>
+  }
 }
 
 namespace GLSLX.Compiler {
-  def compile(log Log, sources List<Source>, options CompilerOptions) string {
+  def compile(log Log, sources List<Source>, options CompilerOptions) CompilerResult {
     if log.hasErrors {
       return null
     }
 
-    var apiTokens = Tokenizer.tokenize(log, Source.new("<api>", API))
+    # Generate tokens once
+    sources.prepend(Source.new("<api>", API))
+    for source in sources {
+      source.tokens = Tokenizer.tokenize(log, source)
+    }
     if log.hasErrors {
       return null
     }
 
     var global = Node.createGlobal
     var scope = Scope.new(.GLOBAL, null)
-    var data = CompilationData.new
+    var data = CompilerData.new
 
-    Parser.parse(log, apiTokens, global, data, scope)
+    # Parse everything next
+    for source in sources {
+      Parser.parse(log, source.tokens, global, data, scope)
+      if source == sources.first {
+        _markGlobalSymbolsAsImported(scope)
+      }
+    }
+    if log.hasErrors {
+      return null
+    }
 
+    # Then run type checking
+    Resolver.resolve(log, global, data)
+    if log.hasErrors {
+      return null
+    }
+
+    # Imported symbols are just there for type checking and shouldn't be emitted
+    _removeImportedSymbols(global)
+
+    # Multiple export mode is more complicated. Everything is already compiled,
+    # and in theory we could quickly export all shaders from that, but in
+    # practice it's simpler if the source code is just compiled over again once
+    # per shader.
+    var shaders List<Source> = []
+    for root in _collectAllExportedFunctions(scope) {
+      var shaderGlobal = Node.createGlobal
+      var shaderScope = Scope.new(.GLOBAL, null)
+      var shaderData = CompilerData.new
+      var shaderLog = Log.new
+
+      # Parse everything again
+      for source in sources {
+        Parser.parse(shaderLog, source.tokens, shaderGlobal, shaderData, shaderScope)
+        if source == sources.first {
+          _markGlobalSymbolsAsImported(shaderScope)
+        }
+      }
+
+      # Flow types through the tree
+      Resolver.resolve(shaderLog, shaderGlobal, shaderData)
+
+      # Optimize it and trim it down
+      _removeImportedSymbols(shaderGlobal)
+      _unexportAllFunctionsExcept(shaderScope, root)
+      Rewriter.rewrite(shaderGlobal, options)
+
+      # TODO: Need to rename everything together
+
+      # Generate the code for this shader
+      Rewriter.rewrite(shaderGlobal, options)
+      Renamer.rename(shaderGlobal, options)
+      shaders.append(Source.new(root.name, Emitter.emit(shaderGlobal, options)))
+    }
+
+    return CompilerResult.new(shaders, null)
+  }
+
+  def _markGlobalSymbolsAsImported(scope Scope) {
     for symbol in scope.symbols.values {
       if symbol.isFunction {
         for function = symbol.asFunction; function != null; function = function.previousOverload {
@@ -49,35 +122,28 @@ namespace GLSLX.Compiler {
         symbol.flags |= Symbol.IMPORTED
       }
     }
-
-    for source in sources {
-      var sourceTokens = Tokenizer.tokenize(log, source)
-      if log.hasErrors {
-        return null
-      }
-
-      Parser.parse(log, sourceTokens, global, data, scope)
-      if log.hasErrors {
-        return null
-      }
-    }
-
-    Resolver.resolve(log, global, data)
-
-    if log.hasErrors {
-      return null
-    }
-
-    # Imported symbols are just there for type checking and shouldn't be emitted
-    removeImportedSymbols(global)
-
-    Rewriter.rewrite(global, options)
-    Renamer.rename(global, options)
-    return Emitter.emit(global, options)
   }
 
-  def removeImportedSymbols(node Node) {
-    for child = node.firstChild, nextChild Node = null; child != null; child = nextChild {
+  def _collectAllExportedFunctions(scope Scope) List<FunctionSymbol> {
+    var symbols List<FunctionSymbol> = []
+    for symbol in scope.symbols.values {
+      if symbol.isFunction && symbol.isExported {
+        symbols.append(symbol.asFunction)
+      }
+    }
+    return symbols
+  }
+
+  def _unexportAllFunctionsExcept(scope Scope, function FunctionSymbol) {
+    for symbol in scope.symbols.values {
+      if symbol.id != function.id {
+        symbol.flags &= ~Symbol.EXPORTED
+      }
+    }
+  }
+
+  def _removeImportedSymbols(global Node) {
+    for child = global.firstChild, nextChild Node = null; child != null; child = nextChild {
       nextChild = child.nextSibling
 
       if (child.kind == .FUNCTION || child.kind == .STRUCT) && child.symbol.isImported {

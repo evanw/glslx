@@ -125,7 +125,11 @@ Advanced:
       var result = Compiler.compile(log, sources, options)
       return {
         "log": log.toString,
-        "output": result,
+        "shaders": result != null ? result.shaders.map<dynamic>(source => ({
+          "name": source.name,
+          "contents": source.contents,
+        })) : null,
+        "renaming": result != null ? result.renaming : null,
       }
     }
 

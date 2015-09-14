@@ -3,13 +3,13 @@ BUILD = node_modules/.bin/skewc src/core/*.sk src/lib/*.sk --target=js --verbose
 
 default: debug
 
-debug: node_modules
+debug: | node_modules
 	$(BUILD) src/exports/*.sk --output-file=www/compiled.js --inline-functions
 
-release: node_modules
+release: | node_modules
 	$(BUILD) src/exports/*.sk --output-file=www/compiled.js --release
 
-test: node_modules
+test: | node_modules
 	$(BUILD) src/test/*.sk --output-file=test.js --release
 	node test.js
 	rm -f test.js
@@ -29,5 +29,5 @@ npm: test release
 	cat www/compiled.js >> npm/glslx
 	chmod +x npm/glslx
 
-node_modules: package.json
+node_modules:
 	npm install

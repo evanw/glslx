@@ -8,8 +8,8 @@ namespace GLSLX.Rewriter {
       }
 
       if options.trimVariables {
-        rewriter._scanVariables(global)
-        rewriter._trimVariables(global)
+        rewriter._scanSymbols(global)
+        rewriter._trimSymbols(global)
       }
 
       if !rewriter._codeWasChanged {
@@ -83,16 +83,16 @@ class GLSLX.Rewriter {
     _codeWasChanged = true
   }
 
-  def _scanVariables(node Node) {
+  def _scanSymbols(node Node) {
     for child = node.firstChild; child != null; child = child.nextSibling {
-      _scanVariables(child)
+      _scanSymbols(child)
     }
 
     switch node.kind {
       case .VARIABLE {
         var variable = node.symbol.asVariable
         if variable.value != null {
-          _scanVariables(variable.value)
+          _scanSymbols(variable.value)
         }
         if variable.kind == .LOCAL || variable.kind == .GLOBAL {
           _variables.append(variable)
@@ -104,7 +104,8 @@ class GLSLX.Rewriter {
       case .FUNCTION {
         var function = node.symbol.asFunction
         if function.block != null {
-          _scanVariables(function.block)
+          _scanSymbols(function.block)
+          _useCounts[function.id] = 0
         }
       }
 
@@ -127,10 +128,10 @@ class GLSLX.Rewriter {
     }
   }
 
-  def _trimVariables(node Node) {
+  def _trimSymbols(node Node) {
     for child = node.firstChild, next Node = null; child != null; child = next {
       next = child.nextSibling
-      _trimVariables(child)
+      _trimSymbols(child)
     }
 
     switch node.kind {
@@ -139,14 +140,17 @@ class GLSLX.Rewriter {
           node.remove
           _reportCodeChange
         } else if node.variableInitializer != null {
-          _trimVariables(node.variableInitializer)
+          _trimSymbols(node.variableInitializer)
         }
       }
 
       case .FUNCTION {
         var function = node.symbol.asFunction
-        if function.block != null {
-          _trimVariables(function.block)
+        if _isUnused(function) && !function.isImportedOrExported {
+          node.remove
+          _reportCodeChange
+        } else if function.block != null {
+          _trimSymbols(function.block)
         }
       }
 
