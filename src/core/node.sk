@@ -12,6 +12,8 @@ namespace GLSLX {
     DISCARD
     DO_WHILE
     EXPRESSION
+    EXTENSION
+    EXTENSION_BLOCK
     FOR
     FUNCTION
     IF
@@ -561,6 +563,14 @@ namespace GLSLX {
       return new(.EXPRESSION).appendChild(value)
     }
 
+    def createExtension(name string, behavior ExtensionBehavior) Node {
+      return new(.EXTENSION).withText(name).withInt(behavior)
+    }
+
+    def createExtensionBlock Node {
+      return new(.EXTENSION_BLOCK)
+    }
+
     def createFor(setup Node, test Node, update Node, body Node) Node {
       assert(setup == null || setup.kind.isExpression || setup.kind == .VARIABLES)
       assert(test == null || test.kind.isExpression)
@@ -585,6 +595,7 @@ namespace GLSLX {
     }
 
     def createPrecision(flags int, type Node) Node {
+      assert(type.kind.isExpression)
       return new(.PRECISION).withInt(flags).appendChild(type)
     }
 
@@ -598,6 +609,7 @@ namespace GLSLX {
     }
 
     def createVariables(flags int, type Node) Node {
+      assert(type.kind.isExpression)
       return new(.VARIABLES).withInt(flags).appendChild(type)
     }
 
@@ -690,6 +702,19 @@ namespace GLSLX {
       assert(childCount == 1)
       assert(_firstChild.kind.isExpression)
       return _firstChild
+    }
+
+    def extensionName string {
+      assert(kind == .EXTENSION)
+      assert(childCount == 0)
+      assert(_text != null)
+      return _text
+    }
+
+    def extensionBehavior ExtensionBehavior {
+      assert(kind == .EXTENSION)
+      assert(childCount == 0)
+      return _literal as ExtensionBehavior
     }
 
     def forSetup Node {

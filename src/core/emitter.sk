@@ -2,6 +2,16 @@ namespace GLSLX.Emitter {
   def emit(global Node, options CompilerOptions) string {
     return Emitter.new(global, options).toString
   }
+
+  def _shouldSeparateWithExtraNewline(before Node, after Node) bool {
+    return _isFunctionWithBlock(before) || _isFunctionWithBlock(after) || before.kind != after.kind && (
+      before.kind == .PRECISION || after.kind == .PRECISION ||
+      before.kind == .EXTENSION || after.kind == .EXTENSION)
+  }
+
+  def _isFunctionWithBlock(node Node) bool {
+    return node.kind == .FUNCTION && node.symbol.asFunction.block != null
+  }
 }
 
 class GLSLX.Emitter {
@@ -19,17 +29,13 @@ class GLSLX.Emitter {
     }
 
     for child = node.firstChild; child != null; child = child.nextSibling {
-      if child.previousSibling != null && (_isFunctionWithBlock(child.previousSibling) || _isFunctionWithBlock(child)) {
+      if child.previousSibling != null && _shouldSeparateWithExtraNewline(child.previousSibling, child) {
         _emit(_newline)
       }
 
       _emit(child)
       _emit(_newline)
     }
-  }
-
-  def _isFunctionWithBlock(node Node) bool {
-    return node.kind == .FUNCTION && node.symbol.asFunction.block != null
   }
 
   def _increaseIndent {
@@ -102,6 +108,18 @@ class GLSLX.Emitter {
       case .EXPRESSION {
         _emit(node.expressionValue, .LOWEST)
         _emit(";")
+      }
+
+      case .EXTENSION {
+        _emitNewlineBeforePragma
+        _emit("#extension " + node.extensionName + _space + ":" + _space)
+        switch node.extensionBehavior {
+          case .DISABLE { _emit("disable") }
+          case .ENABLE { _emit("enable") }
+          case .REQUIRE { _emit("require") }
+          case .WARN { _emit("warn") }
+        }
+        _emitNewlineAfterPragma
       }
 
       case .FOR {

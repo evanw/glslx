@@ -27,6 +27,7 @@ namespace GLSLX {
     var name string
     var scope Scope
     var flags = 0
+    var requiredExtension string = null
     var _resolvedType Type = null
 
     # Keyword modifiers

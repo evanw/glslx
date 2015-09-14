@@ -266,5 +266,35 @@ vec4 texture2DProjLod(sampler2D sampler, vec4 coord, float lod);
 vec4 textureCube(samplerCube sampler, vec3 coord);
 vec4 textureCube(samplerCube sampler, vec3 coord, float bias);
 vec4 textureCubeLod(samplerCube sampler, vec3 coord, float lod);
+
+#extension GL_OES_standard_derivatives {
+  float dFdx(float v);
+  float dFdy(float v);
+  float fwidth(float v);
+  vec2 dFdx(vec2 v);
+  vec2 dFdy(vec2 v);
+  vec2 fwidth(vec2 v);
+  vec3 dFdx(vec3 v);
+  vec3 dFdy(vec3 v);
+  vec3 fwidth(vec3 v);
+  vec4 dFdx(vec4 v);
+  vec4 dFdy(vec4 v);
+  vec4 fwidth(vec4 v);
+}
+
+#extension GL_EXT_frag_depth {
+  float gl_FragDepthEXT;
+}
+
+#extension GL_EXT_shader_texture_lod {
+  vec4 texture2DGradEXT(sampler2D sampler, vec2 P, vec2 dPdx, vec2 dPdy);
+  vec4 texture2DLodEXT(sampler2D sampler, vec2 coord, float lod);
+  vec4 texture2DProjGradEXT(sampler2D sampler, vec3 P, vec2 dPdx, vec2 dPdy);
+  vec4 texture2DProjGradEXT(sampler2D sampler, vec4 P, vec2 dPdx, vec2 dPdy);
+  vec4 texture2DProjLodEXT(sampler2D sampler, vec3 coord, float lod);
+  vec4 texture2DProjLodEXT(sampler2D sampler, vec4 coord, float lod);
+  vec4 textureCubeGradEXT(samplerCube sampler, vec3 P, vec3 dPdx, vec3 dPdy);
+  vec4 textureCubeLodEXT(samplerCube sampler, vec3 coord, float lod);
+}
 "
 }

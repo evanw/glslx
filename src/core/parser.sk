@@ -95,6 +95,12 @@ namespace GLSLX.Parser {
         context.log.syntaxErrorBadSymbolReference(token.range)
         return null
       }
+
+      # Check extension usage
+      if symbol.requiredExtension != null && context.compilationData.extensionBehavior(symbol.requiredExtension) == .DISABLE {
+        context.log.syntaxErrorDisabledExtension(token.range, name, symbol.requiredExtension)
+      }
+
       return Node.createName(symbol).withRange(token.range)
     })
 
@@ -196,6 +202,76 @@ namespace GLSLX.Parser {
     }
     context.popScope
     return Node.createDoWhile(body, test).withRange(context.spanSince(token.range))
+  }
+
+  const _extensionBehaviors StringMap<ExtensionBehavior> = {
+    "disable": .DISABLE,
+    "enable": .ENABLE,
+    "require": .REQUIRE,
+    "warn": .WARN,
+  }
+
+  # From https://www.khronos.org/registry/webgl/extensions/
+  const _knownWebGLExtensions StringMap<int> = {
+    "GL_OES_standard_derivatives": 0,
+    "GL_EXT_frag_depth": 0,
+    "GL_EXT_draw_buffers": 0,
+    "GL_EXT_shader_texture_lod": 0,
+  }
+
+  def parseExtension(context ParserContext) Node {
+    var token = context.next
+    var range = context.current.range
+    if !context.expect(.IDENTIFIER) {
+      return null
+    }
+    var name = range.toString
+
+    # Parse an extension block (a non-standard addition)
+    if context.eat(.LEFT_BRACE) {
+      if !(name in context.compilationData.currentExtensions) {
+        context.compilationData.currentExtensions[name] = .DEFAULT # Silence warnings about this name
+      }
+      var block = Node.createExtensionBlock
+      while !context.eat(.RIGHT_BRACE) {
+        var statement = parseStatement(context)
+        if statement == null {
+          return null
+        }
+        block.appendChild(statement)
+
+        # Copy the extension name onto each symbol
+        if statement.kind == .VARIABLES {
+          for child = statement.variablesType.nextSibling; child != null; child = child.nextSibling {
+            child.symbol.requiredExtension = name
+          }
+        } else if statement.symbol != null {
+          statement.symbol.requiredExtension = name
+        }
+      }
+      return block.withRange(context.spanSince(token.range))
+    }
+
+    # Warn about typos
+    if !(name in _knownWebGLExtensions) && !(name in context.compilationData.currentExtensions) {
+      context.log.syntaxWarningUnknownExtension(range, name)
+    }
+
+    # Parse a regular extension pragma
+    if !context.expect(.COLON) {
+      return null
+    }
+    var text = context.current.range.toString
+    if !(text in _extensionBehaviors) {
+      context.unexpectedToken
+      return null
+    }
+    context.next
+
+    # Activate or deactivate the extension
+    var behavior = _extensionBehaviors[text]
+    context.compilationData.currentExtensions[name] = behavior
+    return Node.createExtension(name, behavior).withRange(context.spanSince(token.range)).withInternalRange(range)
   }
 
   def parseFor(context ParserContext) Node {
@@ -464,6 +540,7 @@ namespace GLSLX.Parser {
       case .CONTINUE { return checkForLoopAndSemicolon(context, context.next.range, Node.createContinue) }
       case .DISCARD { return checkForSemicolon(context, context.next.range, Node.createDiscard) }
       case .DO { return parseDoWhile(context) }
+      case .EXTENSION { return parseExtension(context) }
       case .FOR { return parseFor(context) }
       case .IF { return parseIf(context) }
       case .LEFT_BRACE { return parseBlock(context) }
@@ -509,8 +586,16 @@ namespace GLSLX.Parser {
       return
     }
 
-    var isOutsideFunction = context.scope.kind == .GLOBAL || context.scope.kind == .STRUCT
-    var shouldBeOutsideFunction = node.kind == .STRUCT || node.kind == .FUNCTION || node.kind == .PRECISION || node.kind == .VERSION
+    var isOutsideFunction =
+      context.scope.kind == .GLOBAL ||
+      context.scope.kind == .STRUCT
+
+    var shouldBeOutsideFunction =
+      node.kind == .EXTENSION ||
+      node.kind == .FUNCTION ||
+      node.kind == .PRECISION ||
+      node.kind == .STRUCT ||
+      node.kind == .VERSION
 
     if shouldBeOutsideFunction && !isOutsideFunction {
       context.log.syntaxErrorInsideFunction(node.range)
@@ -533,6 +618,8 @@ namespace GLSLX.Parser {
       if statement == null {
         return null
       }
+
+      # Obsolete statements are functions that were merged with their prototype declaration
       if statement.kind != .OBSOLETE {
         checkStatementLocation(context, statement)
         block.appendChild(statement)
@@ -793,19 +880,32 @@ namespace GLSLX.Parser {
     return true
   }
 
-  def parse(log Log, tokens List<Token>, global Node, scope Scope) {
+  def parse(log Log, tokens List<Token>, global Node, data CompilationData, scope Scope) {
     if pratt == null {
       pratt = createExpressionParser
     }
 
-    var context = ParserContext.new(log, tokens)
+    var context = ParserContext.new(log, tokens, data)
     context.pushScope(scope)
     while !context.eat(.END_OF_FILE) {
       var statement = parseStatement(context)
       if statement == null {
         break
       }
-      if statement.kind != .OBSOLETE {
+
+      # Extension blocks are temporary and don't exist in the parsed result
+      if statement.kind == .EXTENSION_BLOCK {
+        while statement.hasChildren {
+          var child = statement.firstChild.remove
+          if child.kind != .OBSOLETE {
+            checkStatementLocation(context, child)
+            global.appendChild(child)
+          }
+        }
+      }
+
+      # Obsolete statements are functions that were merged with their prototype declaration
+      else if statement.kind != .OBSOLETE {
         checkStatementLocation(context, statement)
         global.appendChild(statement)
       }

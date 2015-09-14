@@ -98,6 +98,7 @@ namespace GLSLX {
     SEMICOLON
 
     # Pragmas
+    EXTENSION
     VERSION
 
     # Literals
@@ -156,7 +157,7 @@ namespace GLSLX.Tokenizer {
 
         # Pragma
         else if c == '#' {
-          tokens.append(Token.new(range, .VERSION))
+          tokens.append(Token.new(range, part[1] == 'v' ? .VERSION : .EXTENSION))
         }
 
         # Operator
@@ -200,7 +201,7 @@ namespace GLSLX.Tokenizer {
     "//.*|" + # Single-line comment
     "&&|\\|\\||\\^\\^|\\+\\+|--|<<=?|>>=?|[()[\\]{}\\.,?:;]|[+\\-*/%=!<>&|^~]=?|" + # Operator
     "[A-Za-z_][A-Za-z0-9_]*\\b|" + # Identifier
-    "#version\\b" + # Pragma
+    "#(?:version|extension)\\b" + # Pragma
 
     ")"
   )

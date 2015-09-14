@@ -23,6 +23,7 @@ namespace GLSLX {
   class ParserContext {
     var log Log
     var _tokens List<Token>
+    var compilationData CompilationData
     var _index = 0
     var _scope Scope = null
 

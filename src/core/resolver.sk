@@ -1,12 +1,30 @@
 namespace GLSLX.Resolver {
-  def resolve(log Log, node Node) {
-    Resolver.new(log)._resolve(node)
+  def resolve(log Log, global Node, data CompilationData) {
+    var resolver = Resolver.new(log, data)
+    resolver._resolve(global)
+    resolver._finalize(global)
   }
 }
 
 class GLSLX.Resolver {
   const _log Log
+  const _data CompilationData
+  var _versions List<Node> = []
+  var _generatedExtensions StringMap<Node> = {}
   var _returnType Type = null
+
+  def _finalize(global Node) {
+    for version in _versions {
+      version.remove
+    }
+    var first = global.firstChild
+    if !_versions.isEmpty {
+      global.insertChildBefore(first, _versions.first)
+    }
+    for extension in _generatedExtensions.values {
+      global.insertChildBefore(first, extension)
+    }
+  }
 
   def _resolve(node Node) {
     if node.resolvedType != null {
@@ -60,6 +78,9 @@ class GLSLX.Resolver {
 
       case .EXPRESSION {
         _resolve(node.expressionValue)
+      }
+
+      case .EXTENSION {
       }
 
       case .FOR {
@@ -120,6 +141,7 @@ class GLSLX.Resolver {
       }
 
       case .VERSION {
+        _versions.append(node)
       }
 
       case .WHILE {
@@ -167,6 +189,12 @@ class GLSLX.Resolver {
 
         else {
           node.resolvedType = symbol.resolvedType
+        }
+
+        # Make sure the extension is enabled if it hasn't been specified
+        var name = symbol.requiredExtension
+        if name != null && !(name in _generatedExtensions) && _data.extensionBehavior(name) == .DEFAULT {
+          _generatedExtensions[name] = Node.createExtension(name, .ENABLE)
         }
       }
 
@@ -420,6 +448,7 @@ class GLSLX.Resolver {
 
       # Narrow down by argument types
       if overloads.count != 1 {
+        var overloadsBeforeTypeFilter = overloads.clone
         overloads.removeIf(overload => {
           for i in 0..arguments.count {
             if overload.arguments[i].type.resolvedType != arguments[i].resolvedType {
@@ -428,6 +457,23 @@ class GLSLX.Resolver {
           }
           return false
         })
+
+        # Narrow down by argument types with "conversions" to get better error messages
+        if overloads.count != 1 {
+          overloads = overloadsBeforeTypeFilter
+          overloads.removeIf(overload => {
+            for i in 0..arguments.count {
+              var from = overload.arguments[i].type.resolvedType
+              var to = arguments[i].resolvedType
+              var fromSize = _sizeOfType(from)
+              var toSize = _sizeOfType(to)
+              if from != to && (fromSize == 0 || toSize == 0 || fromSize != toSize) {
+                return true
+              }
+            }
+            return false
+          })
+        }
       }
     }
 
@@ -528,6 +574,16 @@ class GLSLX.Resolver {
     .INT, .IVEC2, .IVEC3, .IVEC4,
     .MAT2, .MAT3, .MAT4,
   ]
+
+  def _sizeOfType(type Type) int {
+    switch type {
+      case .BOOL, .FLOAT, .INT { return 1 }
+      case .BVEC2, .IVEC2, .VEC2 { return 2 }
+      case .BVEC3, .IVEC3, .VEC3 { return 3 }
+      case .BVEC4, .IVEC4, .VEC4 { return 4 }
+      default { return 0 }
+    }
+  }
 
   def _validateSwizzle(range Range, type Type, name string, swizzleStrings List<string>, swizzleTypes List<Type>, isAssignTarget bool) Type {
     var count = name.count

@@ -1,8 +1,26 @@
-class GLSLX.CompilerOptions {
-  var renameInternalSymbols = false
-  var trimLocalVariables = false
-  var compactSyntaxTree = false
-  var removeWhitespace = false
+namespace GLSLX {
+  class CompilerOptions {
+    var renameInternalSymbols = false
+    var trimLocalVariables = false
+    var compactSyntaxTree = false
+    var removeWhitespace = false
+  }
+
+  enum ExtensionBehavior {
+    DEFAULT
+    DISABLE
+    ENABLE
+    REQUIRE
+    WARN
+  }
+
+  class CompilationData {
+    const currentExtensions StringMap<ExtensionBehavior> = {}
+
+    def extensionBehavior(name string) ExtensionBehavior {
+      return currentExtensions.get(name, .DEFAULT)
+    }
+  }
 }
 
 namespace GLSLX.Compiler {
@@ -20,8 +38,9 @@ namespace GLSLX.Compiler {
 
     var global = Node.createGlobal
     var scope = Scope.new(.GLOBAL, null)
+    var data = CompilationData.new
 
-    Parser.parse(log, apiTokens, global, scope)
+    Parser.parse(log, apiTokens, global, data, scope)
 
     for symbol in scope.symbols.values {
       if symbol.isFunction {
@@ -33,13 +52,13 @@ namespace GLSLX.Compiler {
       }
     }
 
-    Parser.parse(log, sourceTokens, global, scope)
+    Parser.parse(log, sourceTokens, global, data, scope)
 
     if log.hasErrors {
       return null
     }
 
-    Resolver.resolve(log, global)
+    Resolver.resolve(log, global, data)
 
     if log.hasErrors {
       return null

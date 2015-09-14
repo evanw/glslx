@@ -73,6 +73,14 @@ namespace GLSLX {
   }
 
   class Log {
+    def syntaxWarningUnknownExtension(range Range, name string) {
+      warning(range, "The extension \"" + name + "\" is not in the known list of valid WebGL extensions")
+    }
+
+    def syntaxErrorDisabledExtension(range Range, name string, extension string) {
+      error(range, "Cannot use \"" + name + "\" from disabled extension \"" + extension + "\"")
+    }
+
     def syntaxErrorExtraData(range Range, text string) {
       error(range, "Syntax error \"" + text + "\"")
     }
@@ -120,6 +128,11 @@ namespace GLSLX {
 
     def syntaxErrorOutsideFunction(range Range) {
       error(range, "This statement cannot be used outside a function")
+    }
+
+    def syntaxErrorDifferentReturnType(range Range, name string, type Type, expected Type, previous Range) {
+      error(range, "Cannot change the return type of \"" + name + "\" to type \"" + type.toString + "\"")
+      note(previous, "The forward declaration of \"" + name + "\" has a return type of \"" + expected.toString + "\"")
     }
   }
 
@@ -198,11 +211,6 @@ namespace GLSLX {
 
     def semanticErrorBadStorage(range Range) {
       error(range, "Cannot store to this location")
-    }
-
-    def syntaxErrorDifferentReturnType(range Range, name string, type Type, expected Type, previous Range) {
-      error(range, "Cannot change the return type of \"" + name + "\" to type \"" + type.toString + "\"")
-      note(previous, "The forward declaration of \"" + name + "\" has a return type of \"" + expected.toString + "\"")
     }
   }
 
