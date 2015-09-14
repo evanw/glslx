@@ -13,10 +13,10 @@ namespace GLSLX {
     DO_WHILE
     EXPRESSION
     EXTENSION
-    EXTENSION_BLOCK
     FOR
     FUNCTION
     IF
+    MODIFIER_BLOCK
     PRECISION
     RETURN
     STRUCT
@@ -567,10 +567,6 @@ namespace GLSLX {
       return new(.EXTENSION).withText(name).withInt(behavior)
     }
 
-    def createExtensionBlock Node {
-      return new(.EXTENSION_BLOCK)
-    }
-
     def createFor(setup Node, test Node, update Node, body Node) Node {
       assert(setup == null || setup.kind.isExpression || setup.kind == .VARIABLES)
       assert(test == null || test.kind.isExpression)
@@ -592,6 +588,10 @@ namespace GLSLX {
       assert(yes.kind.isStatement)
       assert(no == null || no.kind.isStatement)
       return new(.IF).appendChild(test).appendChild(yes).appendChild(no)
+    }
+
+    def createModifierBlock Node {
+      return new(.MODIFIER_BLOCK)
     }
 
     def createPrecision(flags int, type Node) Node {

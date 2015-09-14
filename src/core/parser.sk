@@ -204,6 +204,30 @@ namespace GLSLX.Parser {
     return Node.createDoWhile(body, test).withRange(context.spanSince(token.range))
   }
 
+  def parseExportOrImport(context ParserContext) Node {
+    var token = context.next
+    var old = context.flags
+    context.flags |= token.kind == .EXPORT ? Symbol.EXPORTED : Symbol.IMPORTED
+
+    # Parse a modifier block
+    if context.eat(.LEFT_BRACE) {
+      var node = Node.createModifierBlock
+      if !parseStatements(context, node) || !context.expect(.RIGHT_BRACE) {
+        return null
+      }
+      context.flags = old
+      return node.withRange(context.spanSince(token.range))
+    }
+
+    # Just parse a single statement
+    var statement = parseStatement(context)
+    if statement == null {
+      return null
+    }
+    context.flags = old
+    return statement
+  }
+
   const _extensionBehaviors StringMap<ExtensionBehavior> = {
     "disable": .DISABLE,
     "enable": .ENABLE,
@@ -232,21 +256,17 @@ namespace GLSLX.Parser {
       if !(name in context.compilationData.currentExtensions) {
         context.compilationData.currentExtensions[name] = .DEFAULT # Silence warnings about this name
       }
-      var block = Node.createExtensionBlock
-      while !context.eat(.RIGHT_BRACE) {
-        var statement = parseStatement(context)
-        if statement == null {
-          return null
-        }
-        block.appendChild(statement)
-
-        # Copy the extension name onto each symbol
-        if statement.kind == .VARIABLES {
-          for child = statement.variablesType.nextSibling; child != null; child = child.nextSibling {
-            child.symbol.requiredExtension = name
+      var block = Node.createModifierBlock
+      if !parseStatements(context, block) || !context.expect(.RIGHT_BRACE) {
+        return null
+      }
+      for child = block.firstChild; child != null; child = child.nextSibling {
+        if child.kind == .VARIABLES {
+          for variable = child.variablesType.nextSibling; variable != null; variable = variable.nextSibling {
+            variable.symbol.requiredExtension = name
           }
-        } else if statement.symbol != null {
-          statement.symbol.requiredExtension = name
+        } else if child.symbol != null {
+          child.symbol.requiredExtension = name
         }
       }
       return block.withRange(context.spanSince(token.range))
@@ -444,7 +464,7 @@ namespace GLSLX.Parser {
     }
 
     var symbol = StructSymbol.new(context.compilationData.nextSymbolID, name, name.toString, Scope.new(.STRUCT, context.scope))
-    symbol.flags |= flags
+    symbol.flags |= context.flags | flags
     if !tryToDefineUniquelyInScope(context, symbol) {
       return null
     }
@@ -540,6 +560,7 @@ namespace GLSLX.Parser {
       case .CONTINUE { return checkForLoopAndSemicolon(context, context.next.range, Node.createContinue) }
       case .DISCARD { return checkForSemicolon(context, context.next.range, Node.createDiscard) }
       case .DO { return parseDoWhile(context) }
+      case .EXPORT, .IMPORT { return parseExportOrImport(context) }
       case .EXTENSION { return parseExtension(context) }
       case .FOR { return parseFor(context) }
       case .IF { return parseIf(context) }
@@ -608,28 +629,9 @@ namespace GLSLX.Parser {
     var token = context.current
     var block = Node.createBlock
     context.pushScope(Scope.new(.LOCAL, context.scope))
-
-    if !context.expect(.LEFT_BRACE) {
+    if !context.expect(.LEFT_BRACE) || !parseStatements(context, block) || !context.expect(.RIGHT_BRACE) {
       return null
     }
-
-    while !context.peek(.RIGHT_BRACE) && !context.peek(.END_OF_FILE) {
-      var statement = parseStatement(context)
-      if statement == null {
-        return null
-      }
-
-      # Obsolete statements are functions that were merged with their prototype declaration
-      if statement.kind != .OBSOLETE {
-        checkStatementLocation(context, statement)
-        block.appendChild(statement)
-      }
-    }
-
-    if !context.expect(.RIGHT_BRACE) {
-      return null
-    }
-
     context.popScope
     return block.withRange(context.spanSince(token.range))
   }
@@ -638,7 +640,6 @@ namespace GLSLX.Parser {
     var flags = 0
     while true {
       switch context.current.kind {
-        # Keyword modifiers
         case .ATTRIBUTE { flags |= Symbol.ATTRIBUTE }
         case .CONST     { flags |= Symbol.CONST }
         case .HIGHP     { flags |= Symbol.HIGHP }
@@ -649,16 +650,6 @@ namespace GLSLX.Parser {
         case .OUT       { flags |= Symbol.OUT }
         case .UNIFORM   { flags |= Symbol.UNIFORM }
         case .VARYING   { flags |= Symbol.VARYING }
-
-        # Non-standard modifiers
-        case .IDENTIFIER {
-          if context.scope.kind != .GLOBAL { return flags }
-          switch context.current.range.toString {
-            case "export" { flags |= Symbol.EXPORTED }
-            default { return flags }
-          }
-        }
-
         default { return flags }
       }
       context.next
@@ -720,7 +711,7 @@ namespace GLSLX.Parser {
   def parseFunction(flags int, type Node, name Range, context ParserContext) Node {
     var originalScope = context.scope
     var function = FunctionSymbol.new(context.compilationData.nextSymbolID, name, name.toString, Scope.new(.FUNCTION, originalScope))
-    function.flags |= flags | (function.name == "main" ? Symbol.EXPORTED : 0)
+    function.flags |= context.flags | flags | (function.name == "main" ? Symbol.EXPORTED : 0)
     function.returnType = type
     context.pushScope(function.scope)
 
@@ -830,13 +821,13 @@ namespace GLSLX.Parser {
   }
 
   def parseVariables(flags int, type Node, name Range, context ParserContext) Node {
-    var variables = Node.createVariables(flags, type)
+    var variables = Node.createVariables(context.flags | flags, type)
     while true {
       var variable = VariableSymbol.new(context.compilationData.nextSymbolID, name, name.toString, context.scope,
         context.scope.kind == .GLOBAL ? .GLOBAL :
         context.scope.kind == .STRUCT ? .STRUCT :
         .LOCAL)
-      variable.flags |= flags
+      variable.flags |= context.flags | flags
       variable.type = type
       tryToDefineUniquelyInScope(context, variable)
 
@@ -879,26 +870,20 @@ namespace GLSLX.Parser {
     return true
   }
 
-  def parse(log Log, tokens List<Token>, global Node, data CompilerData, scope Scope) {
-    if pratt == null {
-      pratt = createExpressionParser
-    }
-
-    var context = ParserContext.new(log, tokens, data)
-    context.pushScope(scope)
-    while !context.eat(.END_OF_FILE) {
+  def parseStatements(context ParserContext, parent Node) bool {
+    while !context.peek(.END_OF_FILE) && !context.peek(.RIGHT_BRACE) {
       var statement = parseStatement(context)
       if statement == null {
-        break
+        return false
       }
 
       # Extension blocks are temporary and don't exist in the parsed result
-      if statement.kind == .EXTENSION_BLOCK {
+      if statement.kind == .MODIFIER_BLOCK {
         while statement.hasChildren {
           var child = statement.firstChild.remove
           if child.kind != .OBSOLETE {
             checkStatementLocation(context, child)
-            global.appendChild(child)
+            parent.appendChild(child)
           }
         }
       }
@@ -906,8 +891,22 @@ namespace GLSLX.Parser {
       # Obsolete statements are functions that were merged with their prototype declaration
       else if statement.kind != .OBSOLETE {
         checkStatementLocation(context, statement)
-        global.appendChild(statement)
+        parent.appendChild(statement)
       }
+    }
+
+    return true
+  }
+
+  def parse(log Log, tokens List<Token>, global Node, data CompilerData, scope Scope) {
+    if pratt == null {
+      pratt = createExpressionParser
+    }
+
+    var context = ParserContext.new(log, tokens, data)
+    context.pushScope(scope)
+    if parseStatements(context, global) {
+      context.expect(.END_OF_FILE)
     }
   }
 }

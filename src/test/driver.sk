@@ -10,13 +10,16 @@ namespace GLSLX.Tests {
       var result = Compiler.compile(log, [Source.new("<stdin>", _input)], _options)
       var output = log.toString
       if result != null && result.shaders.count == 1 {
-        output = result.shaders.first.contents
+        output = "\n".join(result.shaders.map<string>(source => source.contents))
       }
       expectString(trimNewlines(_expected), trimNewlines(output))
     }
 
-    def renameInternalSymbols CompilerTest {
-      _options.renameInternalSymbols = true
+    def reset CompilerTest {
+      _options.compactSyntaxTree = false
+      _options.removeWhitespace = false
+      _options.renameSymbols = .NONE
+      _options.trimSymbols = false
       return self
     }
 
@@ -30,8 +33,8 @@ namespace GLSLX.Tests {
       return self
     }
 
-    def trimVariables CompilerTest {
-      _options.trimVariables = true
+    def trimSymbols CompilerTest {
+      _options.trimSymbols = true
       return self
     }
   }
@@ -66,7 +69,7 @@ namespace GLSLX.Tests {
   }
 
   def test(input string, expected string) CompilerTest {
-    return CompilerTest.new(trimNewlines(input), expected)
+    return CompilerTest.new(trimNewlines(input), expected).reset
   }
 
   @entry

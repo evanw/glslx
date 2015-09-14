@@ -1,10 +1,21 @@
 namespace GLSLX {
+  enum OutputFormat {
+    JSON
+    CPP
+    SKEW
+  }
+
+  enum RenameSymbols {
+    ALL
+    INTERNAL_ONLY
+    NONE
+  }
+
   class CompilerOptions {
-    var renameInternalSymbols = false
-    var compactSyntaxTree = false
-    var removeWhitespace = false
-    var exportMultiple = false
-    var trimVariables = false
+    var compactSyntaxTree = true
+    var removeWhitespace = true
+    var renameSymbols = RenameSymbols.ALL
+    var trimSymbols = true
   }
 
   enum ExtensionBehavior {
@@ -32,6 +43,57 @@ namespace GLSLX {
   class CompilerResult {
     const shaders List<Source>
     const renaming StringMap<string>
+
+    def output(format OutputFormat) string {
+      switch format {
+        case .JSON {
+          return dynamic.JSON.stringify({
+            "shaders": shaders == null ? null : shaders.map<dynamic>(source => ({
+              "name": source.name,
+              "contents": source.contents,
+            })),
+            "renaming": renaming,
+          }, null, 2) + "\n"
+        }
+
+        case .CPP {
+          if shaders != null {
+          var code = ""
+            for shader in shaders {
+              code += "static const char GLSLX_SOURCE_" + _transformName(shader.name) + "[] = " + dynamic.JSON.stringify(shader.contents) + ";\n"
+            }
+            if renaming != null {
+              code += "\n"
+              for name in renaming.keys {
+                code += "static const char GLSLX_NAME_" + _transformName(name) + "[] = " + dynamic.JSON.stringify(renaming[name]) + ";\n"
+              }
+            }
+            return code
+          }
+        }
+
+        case .SKEW {
+          if shaders != null {
+          var code = ""
+            for shader in shaders {
+              code += "const GLSLX_SOURCE_" + _transformName(shader.name) + " = " + dynamic.JSON.stringify(shader.contents) + "\n"
+            }
+            if renaming != null {
+              code += "\n"
+              for name in renaming.keys {
+                code += "const GLSLX_NAME_" + _transformName(name) + " = " + dynamic.JSON.stringify(renaming[name]) + "\n"
+              }
+            }
+            return code
+          }
+        }
+      }
+      return null
+    }
+
+    def _transformName(name string) string {
+      return (name as dynamic).replace(dynamic.RegExp.new("([a-z0-9])([A-Z])", "g"), "$1_$2").toUpperCase()
+    }
   }
 }
 
@@ -57,9 +119,6 @@ namespace GLSLX.Compiler {
     # Parse everything next
     for source in sources {
       Parser.parse(log, source.tokens, global, data, scope)
-      if source == sources.first {
-        _markGlobalSymbolsAsImported(scope)
-      }
     }
     if log.hasErrors {
       return null
@@ -71,14 +130,12 @@ namespace GLSLX.Compiler {
       return null
     }
 
-    # Imported symbols are just there for type checking and shouldn't be emitted
-    _removeImportedSymbols(global)
-
     # Multiple export mode is more complicated. Everything is already compiled,
     # and in theory we could quickly export all shaders from that, but in
     # practice it's simpler if the source code is just compiled over again once
     # per shader.
-    var shaders List<Source> = []
+    var names List<string> = []
+    var globals List<Node> = []
     for root in _collectAllExportedFunctions(scope) {
       var shaderGlobal = Node.createGlobal
       var shaderScope = Scope.new(.GLOBAL, null)
@@ -88,40 +145,25 @@ namespace GLSLX.Compiler {
       # Parse everything again
       for source in sources {
         Parser.parse(shaderLog, source.tokens, shaderGlobal, shaderData, shaderScope)
-        if source == sources.first {
-          _markGlobalSymbolsAsImported(shaderScope)
-        }
       }
 
       # Flow types through the tree
       Resolver.resolve(shaderLog, shaderGlobal, shaderData)
 
       # Optimize it and trim it down
-      _removeImportedSymbols(shaderGlobal)
       _unexportAllFunctionsExcept(shaderScope, root)
       Rewriter.rewrite(shaderGlobal, options)
-
-      # TODO: Need to rename everything together
-
-      # Generate the code for this shader
-      Rewriter.rewrite(shaderGlobal, options)
-      Renamer.rename(shaderGlobal, options)
-      shaders.append(Source.new(root.name, Emitter.emit(shaderGlobal, options)))
+      globals.append(shaderGlobal)
+      names.append(root.name)
     }
 
-    return CompilerResult.new(shaders, null)
-  }
-
-  def _markGlobalSymbolsAsImported(scope Scope) {
-    for symbol in scope.symbols.values {
-      if symbol.isFunction {
-        for function = symbol.asFunction; function != null; function = function.previousOverload {
-          function.flags |= Symbol.IMPORTED
-        }
-      } else {
-        symbol.flags |= Symbol.IMPORTED
-      }
+    # Rename everything together
+    var shaders List<Source> = []
+    var renaming = Renamer.rename(globals, options)
+    for i in 0..names.count {
+      shaders.append(Source.new(names[i], Emitter.emit(globals[i], options)))
     }
+    return CompilerResult.new(shaders, renaming)
   }
 
   def _collectAllExportedFunctions(scope Scope) List<FunctionSymbol> {
@@ -138,31 +180,8 @@ namespace GLSLX.Compiler {
     for symbol in scope.symbols.values {
       if symbol.id != function.id {
         symbol.flags &= ~Symbol.EXPORTED
-      }
-    }
-  }
-
-  def _removeImportedSymbols(global Node) {
-    for child = global.firstChild, nextChild Node = null; child != null; child = nextChild {
-      nextChild = child.nextSibling
-
-      if (child.kind == .FUNCTION || child.kind == .STRUCT) && child.symbol.isImported {
-        child.remove
-      }
-
-      else if child.kind == .VARIABLES {
-        for variable = child.variablesType.nextSibling, nextVariable Node = null; variable != null; variable = nextVariable {
-          nextVariable = variable.nextSibling
-          assert(variable.kind == .VARIABLE)
-
-          if variable.symbol.isImported {
-            variable.remove
-          }
-        }
-
-        if child.variablesType.nextSibling == null {
-          child.remove
-        }
+      } else {
+        symbol.name = "main"
       }
     }
   }

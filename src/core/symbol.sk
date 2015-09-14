@@ -37,11 +37,12 @@ namespace GLSLX {
     def isOut bool       { return (flags & OUT) != 0 }
     def isUniform bool   { return (flags & UNIFORM) != 0 }
     def isVarying bool   { return (flags & VARYING) != 0 }
+    def isAttributeOrUniformOrVarying bool { return (flags & (ATTRIBUTE | UNIFORM | VARYING)) != 0 }
 
     # Internal compiler flags
     def isImported bool { return (flags & IMPORTED) != 0 }
-    def isExported bool { return (flags & (ATTRIBUTE | UNIFORM | VARYING | EXPORTED)) != 0 }
-    def isImportedOrExported bool  { return isImported || isExported }
+    def isExported bool { return (flags & EXPORTED) != 0 }
+    def isImportedOrExported bool  { return (flags & (IMPORTED | EXPORTED)) != 0 }
 
     def isStruct bool { return self is StructSymbol }
     def isFunction bool { return self is FunctionSymbol }

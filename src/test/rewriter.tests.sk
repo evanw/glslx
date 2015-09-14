@@ -435,7 +435,7 @@ int foo(int a) {
 int main(int i) {
   return i + foo(i);
 }
-").trimVariables
+").trimSymbols
 
 # Don't remove unused variables when the initializer has side effects
 test("
@@ -452,7 +452,7 @@ int main(int i) {
   int j = foo();
   return i;
 }
-").trimVariables
+").trimSymbols
 
 # Compact if statements into a single return statement
 test("
@@ -516,6 +516,23 @@ void main(int i) {
     i++;
 }
 ").compactSyntaxTree
+
+# Check that calling forward-declared functions works
+test("
+void foo();
+void main() { foo(); }
+void foo() { main(); }
+", "
+void foo();
+
+void main() {
+  foo();
+}
+
+void foo() {
+  main();
+}
+")
 
   }
 }

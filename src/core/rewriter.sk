@@ -7,7 +7,7 @@ namespace GLSLX.Rewriter {
         rewriter._compact(global)
       }
 
-      if options.trimVariables {
+      if options.trimSymbols {
         rewriter._scanSymbols(global)
         rewriter._trimSymbols(global)
       }
@@ -103,9 +103,9 @@ class GLSLX.Rewriter {
 
       case .FUNCTION {
         var function = node.symbol.asFunction
+        _useCounts[function.id] = 0
         if function.block != null {
           _scanSymbols(function.block)
-          _useCounts[function.id] = 0
         }
       }
 
@@ -146,7 +146,7 @@ class GLSLX.Rewriter {
 
       case .FUNCTION {
         var function = node.symbol.asFunction
-        if _isUnused(function) && !function.isImportedOrExported {
+        if _isUnused(function) && !function.isExported {
           node.remove
           _reportCodeChange
         } else if function.block != null {

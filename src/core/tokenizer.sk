@@ -44,6 +44,10 @@ namespace GLSLX {
     VOID
     WHILE
 
+    # Non-standard keywords
+    EXPORT
+    IMPORT
+
     # Unary
     COMPLEMENT
     DECREMENT
@@ -262,6 +266,10 @@ namespace GLSLX.Tokenizer {
     "vec4": .VEC4,
     "void": .VOID,
     "while": .WHILE,
+
+    # Non-standard keywords
+    "export": .EXPORT,
+    "import": .IMPORT,
   }
 
   const operators StringMap<TokenKind> = {

@@ -8,6 +8,18 @@
 }
 
 namespace GLSLX {
+  const outputFormats StringMap<OutputFormat> = {
+    "json": .JSON,
+    "c++": .CPP,
+    "skew": .SKEW,
+  }
+
+  const renameSymbols StringMap<RenameSymbols> = {
+    "all": .ALL,
+    "internal-only": .INTERNAL_ONLY,
+    "none": .NONE,
+  }
+
   def printUsage {
     console.log("
 Usage: glslx [sources] [flags]
@@ -15,24 +27,24 @@ Usage: glslx [sources] [flags]
   --output=PATH
     Set the path to the output file. Defaults to standard out.
 
-  --release
-    Implies all of the flags below.
+  --format=FORMAT
+    Set the output format, must be json, c++, or skew. Defaults to json.
 
 
 
 Advanced:
 
-  --rename-internal-symbols
-    Rename all symbols that aren't needed for binding at runtime.
+  --disable-rewriting
+    Disable syntax tree rewriting, useful to check for driver bugs.
 
-  --compact-syntax-tree
-    Rewrite the code to take up less space, like to JavaScript minification.
+  --pretty-print
+    Format the output nicely instead of minifying it.
 
-  --remove-whitespace
-    Just remove whitespace without.
+  --renaming=MODE
+    Valid modes are all, internal-only, or none. Defaults to all.
 
-  --trim-variables
-    Inline constants and remove unused locals.
+  --keep-symbols
+    Don't inline constants or remove unused symbols.
 ")
   }
 
@@ -118,18 +130,14 @@ Advanced:
       }
       var log = Log.new
       var options = CompilerOptions.new
-      options.renameInternalSymbols = args ? !!args.renameInternalSymbols : true
-      options.compactSyntaxTree = args ? !!args.compactSyntaxTree : true
-      options.removeWhitespace = args ? !!args.removeWhitespace : true
-      options.trimVariables = args ? !!args.trimVariables : true
+      options.renameSymbols = renameSymbols.get(args.renaming, .ALL)
+      if args.disableRewriting { options.compactSyntaxTree = false }
+      if args.prettyPrint { options.removeWhitespace = false }
+      if args.keepSymbols { options.trimSymbols = false }
       var result = Compiler.compile(log, sources, options)
       return {
         "log": log.toString,
-        "shaders": result != null ? result.shaders.map<dynamic>(source => ({
-          "name": source.name,
-          "contents": source.contents,
-        })) : null,
-        "renaming": result != null ? result.renaming : null,
+        "output": result != null ? result.output(outputFormats.get(args.format, .JSON)) : null,
       }
     }
 
@@ -138,6 +146,7 @@ Advanced:
       var args List<string> = process.argv.slice(2)
       var options = CompilerOptions.new
       var sources List<Source> = []
+      var outputFormat = OutputFormat.JSON
       var outputPath string = null
       var fs = require("fs")
 
@@ -148,34 +157,49 @@ Advanced:
         }
 
         switch arg {
-          case "--rename-internal-symbols" {
-            options.renameInternalSymbols = true
+          case "--disable-rewriting" {
+            options.compactSyntaxTree = false
           }
-          case "--compact-syntax-tree" {
-            options.compactSyntaxTree = true
+
+          case "--pretty-print" {
+            options.removeWhitespace = false
           }
-          case "--remove-whitespace" {
-            options.removeWhitespace = true
+
+          case "--keep-symbols" {
+            options.trimSymbols = false
           }
-          case "--trim-variables" {
-            options.trimVariables = true
-          }
+
           case "--help", "-h" {
             printUsage
             return
           }
-          case "--release" {
-            options.renameInternalSymbols = true
-            options.trimVariables = true
-            options.compactSyntaxTree = true
-            options.removeWhitespace = true
-          }
+
           default {
             if arg.startsWith("--output=") {
               outputPath = arg.slice("--output=".count)
-            } else {
+            }
+
+            else if arg.startsWith("--format=") {
+              var text = arg.slice("--format=".count)
+              if !(text in outputFormats) {
+                console.log("invalid output format \"" + text + "\"")
+                process.exit(1)
+              }
+              outputFormat = outputFormats[text]
+            }
+
+            else if arg.startsWith("--renaming=") {
+              var text = arg.slice("--renaming=".count)
+              if !(text in renameSymbols) {
+                console.log("invalid symbol renaming mode \"" + text + "\"")
+                process.exit(1)
+              }
+              options.renameSymbols = renameSymbols[text]
+            }
+
+            else {
               console.log("invalid flag \"" + arg + "\"")
-              return
+              process.exit(1)
             }
           }
         }
@@ -191,10 +215,10 @@ Advanced:
 
       if result != null {
         if outputPath != null {
-          fs.writeFileSync(outputPath, result)
+          fs.writeFileSync(outputPath, result.output(outputFormat))
           printLogWithColor(log)
         } else {
-          process.stdout.write(result)
+          process.stdout.write(result.output(outputFormat))
         }
       } else {
         printLogWithColor(log)

@@ -30,6 +30,10 @@ class GLSLX.Emitter {
     }
 
     for child = node.firstChild; child != null; child = child.nextSibling {
+      if _isImportedNode(child) {
+        continue
+      }
+
       if child.previousSibling != null && _shouldSeparateWithExtraNewline(child.previousSibling, child) {
         _emit(_newline)
       }
@@ -37,9 +41,13 @@ class GLSLX.Emitter {
       _emit(child)
       _emit(_newline)
     }
+  }
 
-    if _removeWhitespace {
-      _emit("\n")
+  def _isImportedNode(node Node) bool {
+    switch node.kind {
+      case .FUNCTION, .STRUCT { return (node.symbol.flags & Symbol.IMPORTED) != 0 }
+      case .VARIABLES { return (node.variablesFlags & Symbol.IMPORTED) != 0 }
+      default { return false }
     }
   }
 
@@ -227,7 +235,7 @@ class GLSLX.Emitter {
       }
 
       case .VARIABLES {
-        _emitFlags(node.variablesType.nextSibling.symbol.flags)
+        _emitFlags(node.variablesFlags)
         _emit(node.variablesType, .LOWEST)
         for child = node.variablesType.nextSibling; child != null; child = child.nextSibling {
           var variable = child.symbol as VariableSymbol

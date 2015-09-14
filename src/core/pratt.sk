@@ -24,6 +24,7 @@ namespace GLSLX {
     var log Log
     var _tokens List<Token>
     var compilationData CompilerData
+    var flags = 0
     var _index = 0
     var _scope Scope = null
 
