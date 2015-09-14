@@ -15,9 +15,11 @@ namespace GLSLX {
     FOR
     FUNCTION
     IF
+    PRECISION
     RETURN
     STRUCT
     VARIABLES
+    VERSION
     WHILE
 
     # Expressions
@@ -582,6 +584,10 @@ namespace GLSLX {
       return new(.IF).appendChild(test).appendChild(yes).appendChild(no)
     }
 
+    def createPrecision(flags int, type Node) Node {
+      return new(.PRECISION).withInt(flags).appendChild(type)
+    }
+
     def createReturn(value Node) Node {
       assert(value == null || value.kind.isExpression)
       return new(.RETURN).appendChild(value)
@@ -593,6 +599,10 @@ namespace GLSLX {
 
     def createVariables(flags int, type Node) Node {
       return new(.VARIABLES).withInt(flags).appendChild(type)
+    }
+
+    def createVersion(version int) Node {
+      return new(.VERSION).withInt(version)
     }
 
     def createWhile(test Node, body Node) Node {
@@ -731,11 +741,30 @@ namespace GLSLX {
       return _firstChild._nextSibling._nextSibling
     }
 
+    def precisionFlag int {
+      assert(kind == .PRECISION)
+      assert(childCount == 1)
+      return _literal as int
+    }
+
+    def precisionType Node {
+      assert(kind == .PRECISION)
+      assert(childCount == 1)
+      assert(_firstChild.kind.isExpression)
+      return _firstChild
+    }
+
     def returnValue Node {
       assert(kind == .RETURN)
       assert(childCount <= 1)
       assert(_firstChild == null || _firstChild.kind.isExpression)
       return _firstChild
+    }
+
+    def variablesFlags int {
+      assert(kind == .VARIABLES)
+      assert(childCount >= 1)
+      return _literal as int
     }
 
     def variablesType Node {
@@ -745,9 +774,9 @@ namespace GLSLX {
       return _firstChild
     }
 
-    def variablesFlags int {
-      assert(kind == .VARIABLES)
-      assert(childCount >= 1)
+    def versionNumber int {
+      assert(kind == .VERSION)
+      assert(childCount == 0)
       return _literal as int
     }
 

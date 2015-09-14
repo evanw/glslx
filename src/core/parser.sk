@@ -276,6 +276,15 @@ namespace GLSLX.Parser {
     return Node.createIf(test, yes, no).withRange(context.spanSince(token.range))
   }
 
+  def parseVersion(context ParserContext) Node {
+    var token = context.next
+    var range = context.current.range
+    if !context.expect(.INT_LITERAL) {
+      return null
+    }
+    return Node.createVersion((range.toString as dynamic) | 0).withRange(context.spanSince(token.range))
+  }
+
   def parseWhile(context ParserContext) Node {
     var token = context.next
     context.pushScope(Scope.new(.LOOP, context.scope))
@@ -310,6 +319,26 @@ namespace GLSLX.Parser {
       }
     }
     return Node.createReturn(value).withRange(context.spanSince(token.range))
+  }
+
+  def parsePrecision(context ParserContext) Node {
+    var token = context.next
+    var flag = 0
+    switch context.current.kind {
+      case .LOWP { flag = Symbol.LOWP }
+      case .MEDIUMP { flag = Symbol.MEDIUMP }
+      case .HIGHP { flag = Symbol.HIGHP }
+      default {
+        context.unexpectedToken
+        return null
+      }
+    }
+    context.next
+    var type = parseType(context, .REPORT_ERRORS)
+    if type == null {
+      return null
+    }
+    return checkForSemicolon(context, token.range, Node.createPrecision(flag, type))
   }
 
   def parseStruct(context ParserContext, flags int) Node {
@@ -391,8 +420,10 @@ namespace GLSLX.Parser {
       case .FOR { return parseFor(context) }
       case .IF { return parseIf(context) }
       case .LEFT_BRACE { return parseBlock(context) }
+      case .PRECISION { return parsePrecision(context) }
       case .RETURN { return parseReturn(context) }
       case .SEMICOLON { return Node.createBlock.withRange(context.next.range) }
+      case .VERSION { return parseVersion(context) }
       case .WHILE { return parseWhile(context) }
     }
 
@@ -450,7 +481,7 @@ namespace GLSLX.Parser {
     }
 
     var isOutsideFunction = context.scope.kind == .GLOBAL || context.scope.kind == .STRUCT
-    var shouldBeOutsideFunction = node.kind == .STRUCT || node.kind == .FUNCTION
+    var shouldBeOutsideFunction = node.kind == .STRUCT || node.kind == .FUNCTION || node.kind == .PRECISION || node.kind == .VERSION
 
     if shouldBeOutsideFunction && !isOutsideFunction {
       context.log.syntaxErrorInsideFunction(node.range)
@@ -612,6 +643,11 @@ namespace GLSLX.Parser {
           return null
         }
 
+        # Array size
+        if !parseArraySize(context, argument) {
+          return null
+        }
+
         # Parse another argument?
         if !context.eat(.COMMA) {
           break
@@ -667,6 +703,17 @@ namespace GLSLX.Parser {
     return isObsolete ? Node.createObsolete : Node.createFunction(function).withRange(context.spanSince(type.range))
   }
 
+  def parseArraySize(context ParserContext, variable VariableSymbol) bool {
+    if context.eat(.LEFT_BRACKET) {
+      variable.arraySize = pratt.parse(context, .LOWEST)
+      if variable.arraySize == null || !context.expect(.RIGHT_BRACKET) {
+        return false
+      }
+      variable.type = Node.createType(variable.type.resolvedType.arrayType).withRange(variable.type.range)
+    }
+    return true
+  }
+
   def parseVariables(flags int, type Node, name Range, context ParserContext) Node {
     var variables = Node.createVariables(flags, type)
     while true {
@@ -678,11 +725,17 @@ namespace GLSLX.Parser {
       variable.type = type
       tryToDefineUniquelyInScope(context, variable)
 
+      # Initial value
       if context.eat(.ASSIGN) {
         variable.value = pratt.parse(context, .COMMA)
         if variable.value == null {
           return null
         }
+      }
+
+      # Array size
+      if !parseArraySize(context, variable) {
+        return null
       }
 
       variables.appendChild(Node.createVariable(variable).withRange(context.spanSince(variable.range)))

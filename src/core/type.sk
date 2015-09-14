@@ -1,8 +1,27 @@
 namespace GLSLX {
   class Type {
     const symbol Symbol
+    const isArrayOf Type
+    var _arrayType Type = null
+
+    def rootType Type {
+      if isArrayOf != null {
+        return isArrayOf.rootType
+      }
+      return self
+    }
+
+    def arrayType Type {
+      if _arrayType == null {
+        _arrayType = Type.new(null, self)
+      }
+      return _arrayType
+    }
 
     def toString string {
+      if isArrayOf != null {
+        return isArrayOf.toString + "[]"
+      }
       return symbol.name
     }
   }

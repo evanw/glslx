@@ -44,19 +44,19 @@ class GLSLX.Emitter {
     }
   }
 
-  def _emitFlags(symbol Symbol) {
-    if symbol.isAttribute { _emit("attribute ") }
-    if symbol.isConst { _emit("const ") }
-    if symbol.isUniform { _emit("uniform ") }
-    if symbol.isVarying { _emit("varying ") }
+  def _emitFlags(flags int) {
+    if (flags & Symbol.ATTRIBUTE) != 0 { _emit("attribute ") }
+    if (flags & Symbol.CONST) != 0 { _emit("const ") }
+    if (flags & Symbol.UNIFORM) != 0 { _emit("uniform ") }
+    if (flags & Symbol.VARYING) != 0 { _emit("varying ") }
 
-    if symbol.isHighp { _emit("highp ") }
-    if symbol.isLowp { _emit("lowp ") }
-    if symbol.isMediump { _emit("mediump ") }
+    if (flags & Symbol.HIGHP) != 0 { _emit("highp ") }
+    if (flags & Symbol.LOWP) != 0 { _emit("lowp ") }
+    if (flags & Symbol.MEDIUMP) != 0 { _emit("mediump ") }
 
-    if symbol.isIn { _emit("in ") }
-    if symbol.isInout { _emit("inout ") }
-    if symbol.isOut { _emit("out ") }
+    if (flags & Symbol.IN) != 0 { _emit("in ") }
+    if (flags & Symbol.INOUT) != 0 { _emit("inout ") }
+    if (flags & Symbol.OUT) != 0 { _emit("out ") }
   }
 
   def _emit(node Node) {
@@ -125,7 +125,7 @@ class GLSLX.Emitter {
 
       case .FUNCTION {
         var function = node.symbol as FunctionSymbol
-        _emitFlags(function)
+        _emitFlags(function.flags)
         _emit(function.returnType, .LOWEST)
         _emit(" ")
         _emit(function.name)
@@ -134,10 +134,10 @@ class GLSLX.Emitter {
           if argument != function.arguments.first {
             _emit("," + _space)
           }
-          _emitFlags(argument)
+          _emitFlags(argument.flags)
           _emit(argument.type, .LOWEST)
           _emit(" ")
-          _emit(argument.name)
+          _emit(argument)
         }
         _emit(")")
         if function.block != null {
@@ -164,6 +164,13 @@ class GLSLX.Emitter {
         }
       }
 
+      case .PRECISION {
+        _emit("precision ")
+        _emitFlags(node.precisionFlag)
+        _emit(node.precisionType, .LOWEST)
+        _emit(";")
+      }
+
       case .RETURN {
         var value = node.returnValue
         _emit("return")
@@ -178,7 +185,7 @@ class GLSLX.Emitter {
 
       case .STRUCT {
         var symbol = node.symbol.asStruct
-        _emitFlags(symbol)
+        _emitFlags(symbol.flags)
         _emit("struct " + symbol.name + _space + "{" + _newline)
         _increaseIndent
         for child = node.firstChild; child != null; child = child.nextSibling {
@@ -191,18 +198,20 @@ class GLSLX.Emitter {
       }
 
       case .VARIABLES {
-        _emitFlags(node.variablesType.nextSibling.symbol)
+        _emitFlags(node.variablesType.nextSibling.symbol.flags)
         _emit(node.variablesType, .LOWEST)
         for child = node.variablesType.nextSibling; child != null; child = child.nextSibling {
           var variable = child.symbol as VariableSymbol
           _emit(child.previousSibling.previousSibling == null ? " " : "," + _space)
-          _emit(variable.name)
-          if variable.value != null {
-            _emit(_space + "=" + _space)
-            _emit(variable.value, .COMMA)
-          }
+          _emit(variable)
         }
         _emit(";")
+      }
+
+      case .VERSION {
+        _emitNewlineBeforePragma
+        _emit("#version " + node.versionNumber.toString)
+        _emitNewlineAfterPragma
       }
 
       case .WHILE {
@@ -215,6 +224,18 @@ class GLSLX.Emitter {
       default {
         _emit(node.kind.toString)
       }
+    }
+  }
+
+  def _emitNewlineBeforePragma {
+    if _code != "" && !_code.endsWith("\n") {
+      _emit("\n")
+    }
+  }
+
+  def _emitNewlineAfterPragma {
+    if _removeWhitespace {
+      _emit("\n")
     }
   }
 
@@ -242,6 +263,19 @@ class GLSLX.Emitter {
         _emit("," + _space)
       }
       _emit(child, .COMMA)
+    }
+  }
+
+  def _emit(variable VariableSymbol) {
+    _emit(variable.name)
+    if variable.arraySize != null {
+      _emit("[")
+      _emit(variable.arraySize, .LOWEST)
+      _emit("]")
+    }
+    if variable.value != null {
+      _emit(_space + "=" + _space)
+      _emit(variable.value, .COMMA)
     }
   }
 
@@ -291,7 +325,7 @@ class GLSLX.Emitter {
       }
 
       case .TYPE {
-        _emit(node.resolvedType.symbol.name)
+        _emit(node.resolvedType.rootType.symbol.name)
       }
 
       case .BOOL {

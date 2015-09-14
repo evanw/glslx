@@ -97,6 +97,9 @@ namespace GLSLX {
     RIGHT_PARENTHESIS
     SEMICOLON
 
+    # Pragmas
+    VERSION
+
     # Literals
     FLOAT_LITERAL
     IDENTIFIER
@@ -151,6 +154,11 @@ namespace GLSLX.Tokenizer {
           tokens.append(Token.new(range, _intRegex.test(part) ? .INT_LITERAL : .FLOAT_LITERAL))
         }
 
+        # Pragma
+        else if c == '#' {
+          tokens.append(Token.new(range, .VERSION))
+        }
+
         # Operator
         else {
           var kind = operators.get(part, .END_OF_FILE)
@@ -191,7 +199,8 @@ namespace GLSLX.Tokenizer {
     "/\\*(?:.|\n)*?\\*/|" + # Multi-line comment
     "//.*|" + # Single-line comment
     "&&|\\|\\||\\^\\^|\\+\\+|--|<<=?|>>=?|[()[\\]{}\\.,?:;]|[+\\-*/%=!<>&|^~]=?|" + # Operator
-    "[A-Za-z_][A-Za-z0-9_]*\\b" + # Identifier
+    "[A-Za-z_][A-Za-z0-9_]*\\b|" + # Identifier
+    "#version\\b" + # Pragma
 
     ")"
   )

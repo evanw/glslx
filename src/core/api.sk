@@ -1,12 +1,8 @@
 namespace GLSLX {
+  # This is from https://www.khronos.org/registry/gles/specs/2.0/GLSL_ES_Specification_1.0.17.pdf
   const API = "
 highp vec4 gl_Position; // should be written to
 mediump float gl_PointSize; // may be written to
-
-const bool gl_FrontFacing;
-const mediump vec2 gl_PointCoord;
-const mediump vec4 gl_FragCoord;
-mediump vec4 gl_FragColor;
 
 const int gl_MaxVertexAttribs;
 const int gl_MaxVertexUniformVectors;
@@ -16,6 +12,12 @@ const int gl_MaxCombinedTextureImageUnits;
 const int gl_MaxTextureImageUnits;
 const int gl_MaxFragmentUniformVectors;
 const int gl_MaxDrawBuffers;
+
+const bool gl_FrontFacing;
+const mediump vec2 gl_PointCoord;
+const mediump vec4 gl_FragCoord;
+mediump vec4 gl_FragColor;
+mediump vec4 gl_FragData[gl_MaxDrawBuffers];
 
 struct gl_DepthRangeParameters {
   float near; // n

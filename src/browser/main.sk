@@ -10,7 +10,7 @@ namespace GLSLX {
       options.renameInternalSymbols = true
       options.trimLocalVariables = true
       options.compactSyntaxTree = true
-      # options.removeWhitespace = true
+      options.removeWhitespace = true
       var result = Compiler.compile(log, Source.new("stdin.glsl", input.value), options)
       output.value = log.hasErrors ? log.toString : result
     }

@@ -25,12 +25,20 @@ class GLSLX.Resolver {
         var symbol = node.symbol.asVariable
         _resolve(symbol.type)
 
+        # Variables must have a type
         var type = symbol.type.resolvedType
         if type == .VOID {
           _log.semanticErrorBadVariableType(symbol.type.range, type)
           type = .ERROR
         }
 
+        # Array size
+        if symbol.arraySize != null {
+          _resolveAsExpression(symbol.arraySize)
+          _checkConversion(symbol.arraySize, .INT)
+        }
+
+        # Initial value
         if symbol.value != null {
           _resolveAsExpression(symbol.value)
           _checkConversion(symbol.value, type)
@@ -90,6 +98,9 @@ class GLSLX.Resolver {
         }
       }
 
+      case .PRECISION {
+      }
+
       case .RETURN {
         if node.returnValue != null {
           _resolve(node.returnValue)
@@ -106,6 +117,9 @@ class GLSLX.Resolver {
 
       case .VARIABLES {
         _resolveChildren(node)
+      }
+
+      case .VERSION {
       }
 
       case .WHILE {
@@ -277,6 +291,12 @@ class GLSLX.Resolver {
             case .MAT2 { node.resolvedType = .VEC2 }
             case .MAT3 { node.resolvedType = .VEC3 }
             case .MAT4 { node.resolvedType = .VEC4 }
+
+            default {
+              if leftType.isArrayOf != null {
+                node.resolvedType = leftType.isArrayOf
+              }
+            }
           }
         }
       }

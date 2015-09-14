@@ -72,7 +72,7 @@ namespace GLSLX {
 
     def resolvedType Type {
       if _resolvedType == null {
-        _resolvedType = Type.new(self)
+        _resolvedType = Type.new(self, null)
       }
       return _resolvedType
     }
@@ -112,6 +112,7 @@ namespace GLSLX {
     var kind VariableKind
     var type Node = null
     var value Node = null
+    var arraySize Node = null
   }
 
   namespace Symbol {
