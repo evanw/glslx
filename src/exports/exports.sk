@@ -106,21 +106,26 @@ Advanced:
 
   @entry
   def main {
-    var root = dynamic.typeof(exports) != "undefined" ? exports : window
-    root.GLSLX = {
-      "compile": (input dynamic, args dynamic) dynamic => {
-        var source = Source.new("<stdin>", input + "")
-        var log = Log.new
-        var options = CompilerOptions.new
-        options.renameInternalSymbols = !!args.renameInternalSymbols
-        options.compactSyntaxTree = !!args.compactSyntaxTree
-        options.removeWhitespace = !!args.removeWhitespace
-        options.trimVariables = !!args.trimVariables
-        var result = Compiler.compile(log, [source], options)
-        return {
-          "log": log.toString,
-          "output": result,
+    var root = dynamic.typeof(exports) != "undefined" ? exports : (window.GLSLX = {})
+    root.compile = (input dynamic, args dynamic) dynamic => {
+      var sources List<Source> = []
+      if input is string {
+        sources.append(Source.new("<stdin>", input))
+      } else {
+        for i in 0..input.length {
+          sources.append(Source.new(input[i].name, input[i].contents))
         }
+      }
+      var log = Log.new
+      var options = CompilerOptions.new
+      options.renameInternalSymbols = args ? !!args.renameInternalSymbols : true
+      options.compactSyntaxTree = args ? !!args.compactSyntaxTree : true
+      options.removeWhitespace = args ? !!args.removeWhitespace : true
+      options.trimVariables = args ? !!args.trimVariables : true
+      var result = Compiler.compile(log, sources, options)
+      return {
+        "log": log.toString,
+        "output": result,
       }
     }
 
