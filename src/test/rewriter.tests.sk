@@ -502,5 +502,20 @@ int main(bool b) {
 }
 ").compactSyntaxTree
 
+# Check that for statements can absorb the previous expression into the setup area
+test("
+void main(int i) {
+  i = 0;
+  while (i < 10) {
+    i++;
+  }
+}
+", "
+void main(int i) {
+  for (i = 0; i < 10;)
+    i++;
+}
+").compactSyntaxTree
+
   }
 }

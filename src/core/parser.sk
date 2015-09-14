@@ -208,12 +208,32 @@ namespace GLSLX.Parser {
     # Setup
     var setup Node = null
     if !context.eat(.SEMICOLON) {
-      setup = pratt.parse(context, .LOWEST)
-      if setup == null {
-        return null
+      # Check for a type
+      var flags = parseFlags(context)
+      var type Node = null
+      if flags != 0 {
+        type = parseType(context, .REPORT_ERRORS)
+        if type == null {
+          return null
+        }
+      } else {
+        type = parseType(context, .IGNORE_ERRORS)
       }
-      if !context.expect(.SEMICOLON) {
-        return null
+
+      # Try to parse a variable
+      if type != null {
+        setup = parseAfterType(context, token.range, flags, type, .AVOID_FUNCTIONS)
+        if setup == null {
+          return null
+        }
+      } else {
+        setup = pratt.parse(context, .LOWEST)
+        if setup == null {
+          return null
+        }
+        if !context.expect(.SEMICOLON) {
+          return null
+        }
       }
     }
 
@@ -409,6 +429,33 @@ namespace GLSLX.Parser {
     return node.withRange(context.spanSince(range))
   }
 
+  enum Allow {
+    AVOID_FUNCTIONS
+    ALLOW_FUNCTIONS
+  }
+
+  def parseAfterType(context ParserContext, range Range, flags int, type Node, allow Allow) Node {
+    var name = context.current.range
+    if flags == 0 && !context.peek(.IDENTIFIER) {
+      var value = pratt.resume(context, .LOWEST, type)
+      if value == null {
+        return null
+      }
+      return checkForSemicolon(context, range, Node.createExpression(value))
+    }
+    if !context.expect(.IDENTIFIER) {
+      return null
+    }
+    if context.eat(.LEFT_PARENTHESIS) {
+      return parseFunction(flags, type, name, context)
+    }
+    var variables = parseVariables(flags, type, name, context)
+    if variables == null {
+      return null
+    }
+    return variables.withRange(context.spanSince(range))
+  }
+
   def parseStatement(context ParserContext) Node {
     var token = context.current
 
@@ -427,7 +474,7 @@ namespace GLSLX.Parser {
       case .WHILE { return parseWhile(context) }
     }
 
-    # Try to parse a variable
+    # Try to parse a variable or function
     var flags = parseFlags(context)
     var type Node = null
     if context.eat(.STRUCT) {
@@ -446,25 +493,7 @@ namespace GLSLX.Parser {
       type = parseType(context, .IGNORE_ERRORS)
     }
     if type != null {
-      var name = context.current.range
-      if flags == 0 && !context.peek(.IDENTIFIER) {
-        var value = pratt.resume(context, .LOWEST, type)
-        if value == null {
-          return null
-        }
-        return checkForSemicolon(context, token.range, Node.createExpression(value))
-      }
-      if !context.expect(.IDENTIFIER) {
-        return null
-      }
-      if context.eat(.LEFT_PARENTHESIS) {
-        return parseFunction(flags, type, name, context)
-      }
-      var variables = parseVariables(flags, type, name, context)
-      if variables == null {
-        return null
-      }
-      return variables.withRange(context.spanSince(token.range))
+      return parseAfterType(context, token.range, flags, type, .ALLOW_FUNCTIONS)
     }
 
     # Parse an expression

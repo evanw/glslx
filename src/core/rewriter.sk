@@ -258,6 +258,13 @@ class GLSLX.Rewriter {
       case .FOR {
         _compactBlockStatement(node.forBody)
 
+        # Tuck the previous expression inside the setup location if empty
+        if node.forSetup == null && node.previousSibling != null && node.previousSibling.kind == .EXPRESSION {
+          node.firstChild.replaceWith(node.previousSibling.expressionValue.remove)
+          node.previousSibling.remove
+          _reportCodeChange
+        }
+
         # No need to keep "true" around
         if node.forTest != null && node.forTest.isTrue {
           node.forTest.replaceWith(Node.createSequence)

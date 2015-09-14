@@ -107,9 +107,15 @@ class GLSLX.Emitter {
       case .FOR {
         _emit("for" + _space + "(")
         if node.forSetup != null {
-          _emit(node.forSetup, .LOWEST)
+          if node.forSetup.kind == .VARIABLES {
+            _emit(node.forSetup)
+          } else {
+            _emit(node.forSetup, .LOWEST)
+            _emit(";")
+          }
+        } else {
+          _emit(";")
         }
-        _emit(";")
         if node.forTest != null {
           _emit(_space)
           _emit(node.forTest, .LOWEST)
