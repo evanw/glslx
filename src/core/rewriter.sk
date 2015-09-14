@@ -7,9 +7,9 @@ namespace GLSLX.Rewriter {
         rewriter._compact(global)
       }
 
-      if options.trimLocalVariables {
-        rewriter._scanLocalVariables(global)
-        rewriter._trimLocalVariables(global)
+      if options.trimVariables {
+        rewriter._scanVariables(global)
+        rewriter._trimVariables(global)
       }
 
       if !rewriter._codeWasChanged {
@@ -75,7 +75,7 @@ namespace GLSLX.Rewriter {
 
 class GLSLX.Rewriter {
   var _codeWasChanged = false
-  var _localVariables List<VariableSymbol> = []
+  var _variables List<VariableSymbol> = []
   var _useCounts IntMap<int> = {}
   var _mutationCounts IntMap<int> = {}
 
@@ -83,19 +83,19 @@ class GLSLX.Rewriter {
     _codeWasChanged = true
   }
 
-  def _scanLocalVariables(node Node) {
+  def _scanVariables(node Node) {
     for child = node.firstChild; child != null; child = child.nextSibling {
-      _scanLocalVariables(child)
+      _scanVariables(child)
     }
 
     switch node.kind {
       case .VARIABLE {
         var variable = node.symbol.asVariable
         if variable.value != null {
-          _scanLocalVariables(variable.value)
+          _scanVariables(variable.value)
         }
-        if variable.kind == .LOCAL {
-          _localVariables.append(variable)
+        if variable.kind == .LOCAL || variable.kind == .GLOBAL {
+          _variables.append(variable)
           _useCounts[variable.id] = 0
           _mutationCounts[variable.id] = 0
         }
@@ -104,7 +104,7 @@ class GLSLX.Rewriter {
       case .FUNCTION {
         var function = node.symbol.asFunction
         if function.block != null {
-          _scanLocalVariables(function.block)
+          _scanVariables(function.block)
         }
       }
 
@@ -127,26 +127,26 @@ class GLSLX.Rewriter {
     }
   }
 
-  def _trimLocalVariables(node Node) {
+  def _trimVariables(node Node) {
     for child = node.firstChild, next Node = null; child != null; child = next {
       next = child.nextSibling
-      _trimLocalVariables(child)
+      _trimVariables(child)
     }
 
     switch node.kind {
       case .VARIABLE {
-        if _isConstant(node.symbol) || _isUnused(node.symbol) && node.variableInitializer != null && node.variableInitializer.hasNoSideEffects {
+        if _isConstant(node.symbol) || _isUnused(node.symbol) && (node.variableInitializer == null || node.variableInitializer.hasNoSideEffects) {
           node.remove
           _reportCodeChange
         } else if node.variableInitializer != null {
-          _trimLocalVariables(node.variableInitializer)
+          _trimVariables(node.variableInitializer)
         }
       }
 
       case .FUNCTION {
         var function = node.symbol.asFunction
         if function.block != null {
-          _trimLocalVariables(function.block)
+          _trimVariables(function.block)
         }
       }
 
@@ -528,7 +528,7 @@ class GLSLX.Rewriter {
       }
 
       case .POSITIVE {
-        node.become(node.unaryValue)
+        node.become(node.unaryValue.remove)
       }
 
       case .ADD {

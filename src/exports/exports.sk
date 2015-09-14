@@ -1,0 +1,196 @@
+@import {
+  const console dynamic
+  const exports dynamic
+  const module dynamic
+  const process dynamic
+  const require dynamic
+  const window dynamic
+}
+
+namespace GLSLX {
+  def printUsage {
+    console.log("
+Usage: glslx [sources] [flags]
+
+  --output=PATH
+    Set the path to the output file. Defaults to standard out.
+
+  --release
+    Implies all of the flags below.
+
+
+
+Advanced:
+
+  --rename-internal-symbols
+    Rename all symbols that aren't needed for binding at runtime.
+
+  --compact-syntax-tree
+    Rewrite the code to take up less space, like to JavaScript minification.
+
+  --remove-whitespace
+    Just remove whitespace without.
+
+  --trim-variables
+    Inline constants and remove unused locals.
+")
+  }
+
+  def printWithColor(color Terminal.Color, text string) {
+    Terminal.setColor(color)
+    Terminal.write(text)
+    Terminal.setColor(.DEFAULT)
+  }
+
+  def printError(text string) {
+    printWithColor(.RED, "error: ")
+    printWithColor(.BOLD, text + "\n")
+  }
+
+  def printNote(text string) {
+    printWithColor(.GRAY, "note: ")
+    printWithColor(.BOLD, text + "\n")
+  }
+
+  def printWarning(text string) {
+    printWithColor(.MAGENTA, "warning: ")
+    printWithColor(.BOLD, text + "\n")
+  }
+
+  def printLogWithColor(log Log) {
+    var terminalWidth = Terminal.width
+
+    for diagnostic in log.diagnostics {
+      if diagnostic.range != null {
+        printWithColor(.BOLD, diagnostic.range.locationString + ": ")
+      }
+      switch diagnostic.kind {
+        case .WARNING {
+          printWarning(diagnostic.text)
+        }
+        case .ERROR {
+          printError(diagnostic.text)
+        }
+      }
+      if diagnostic.range != null {
+        var formatted = diagnostic.range.format(terminalWidth)
+        Terminal.print(formatted.line)
+        printWithColor(.GREEN, formatted.range + "\n")
+      }
+      if diagnostic.noteRange != null {
+        printWithColor(.BOLD, diagnostic.noteRange.locationString + ": ")
+        printNote(diagnostic.noteText)
+        var formatted = diagnostic.noteRange.format(terminalWidth)
+        Terminal.print(formatted.line)
+        printWithColor(.GREEN, formatted.range + "\n")
+      }
+    }
+
+    # Print the summary
+    var hasErrors = log.hasErrors
+    var hasWarnings = log.hasWarnings
+    var summary = ""
+    if hasWarnings {
+      summary += log.warningCount.toString + " warning" + Log.plural(log.warningCount)
+      if hasErrors {
+        summary += " and "
+      }
+    }
+    if hasErrors {
+      summary += log.errorCount.toString + " error" + Log.plural(log.errorCount)
+    }
+    if hasWarnings || hasErrors {
+      Terminal.print(summary + " generated")
+    }
+  }
+
+  @entry
+  def main {
+    var root = dynamic.typeof(exports) != "undefined" ? exports : window
+    root.GLSLX = {
+      "compile": (input dynamic, args dynamic) dynamic => {
+        var source = Source.new("<stdin>", input + "")
+        var log = Log.new
+        var options = CompilerOptions.new
+        options.renameInternalSymbols = !!args.renameInternalSymbols
+        options.compactSyntaxTree = !!args.compactSyntaxTree
+        options.removeWhitespace = !!args.removeWhitespace
+        options.trimVariables = !!args.trimVariables
+        var result = Compiler.compile(log, [source], options)
+        return {
+          "log": log.toString,
+          "output": result,
+        }
+      }
+    }
+
+    # Also include a small command-line utility
+    if dynamic.typeof(require) != "undefined" && dynamic.typeof(module) != "undefined" && require.main == module {
+      var args List<string> = process.argv.slice(2)
+      var options = CompilerOptions.new
+      var sources List<Source> = []
+      var outputPath string = null
+      var fs = require("fs")
+
+      for arg in args {
+        if !arg.startsWith("-") {
+          sources.append(Source.new(arg, fs.readFileSync(arg, "utf8")))
+          continue
+        }
+
+        switch arg {
+          case "--rename-internal-symbols" {
+            options.renameInternalSymbols = true
+          }
+          case "--compact-syntax-tree" {
+            options.compactSyntaxTree = true
+          }
+          case "--remove-whitespace" {
+            options.removeWhitespace = true
+          }
+          case "--trim-variables" {
+            options.trimVariables = true
+          }
+          case "--help", "-h" {
+            printUsage
+            return
+          }
+          case "--release" {
+            options.renameInternalSymbols = true
+            options.trimVariables = true
+            options.compactSyntaxTree = true
+            options.removeWhitespace = true
+          }
+          default {
+            if arg.startsWith("--output=") {
+              outputPath = arg.slice("--output=".count)
+            } else {
+              console.log("invalid flag \"" + arg + "\"")
+              return
+            }
+          }
+        }
+      }
+
+      if sources.isEmpty {
+        printUsage
+        return
+      }
+
+      var log = Log.new
+      var result = Compiler.compile(log, sources, options)
+
+      if result != null {
+        if outputPath != null {
+          fs.writeFileSync(outputPath, result)
+          printLogWithColor(log)
+        } else {
+          process.stdout.write(result)
+        }
+      } else {
+        printLogWithColor(log)
+        process.exit(1)
+      }
+    }
+  }
+}

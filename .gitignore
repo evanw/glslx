@@ -1,3 +1,4 @@
 .DS_Store
+/npm/glslx
 /node_modules/
 /www/compiled.js

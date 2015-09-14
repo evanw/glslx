@@ -7,18 +7,13 @@ namespace GLSLX.Tests {
     over run {
       rename(compactWhitespace(_input))
       var log = Log.new
-      var output = Compiler.compile(log, Source.new("<stdin>", _input), _options)
+      var output = Compiler.compile(log, [Source.new("<stdin>", _input)], _options)
       if output == null { output = log.toString }
       expectString(trimNewlines(_expected), trimNewlines(output))
     }
 
     def renameInternalSymbols CompilerTest {
       _options.renameInternalSymbols = true
-      return self
-    }
-
-    def trimLocalVariables CompilerTest {
-      _options.trimLocalVariables = true
       return self
     }
 
@@ -29,6 +24,11 @@ namespace GLSLX.Tests {
 
     def removeWhitespace CompilerTest {
       _options.removeWhitespace = true
+      return self
+    }
+
+    def trimVariables CompilerTest {
+      _options.trimVariables = true
       return self
     }
   }

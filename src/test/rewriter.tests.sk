@@ -435,7 +435,7 @@ int foo(int a) {
 int main(int i) {
   return i + foo(i);
 }
-").trimLocalVariables
+").trimVariables
 
 # Don't remove unused variables when the initializer has side effects
 test("
@@ -452,7 +452,7 @@ int main(int i) {
   int j = foo();
   return i;
 }
-").trimLocalVariables
+").trimVariables
 
 # Compact if statements into a single return statement
 test("

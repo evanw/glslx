@@ -1,0 +1,10 @@
+{
+  "name": "glslx",
+  "version": "0.1.0",
+  "description": "",
+  "bin": {
+    "glslx": "glslx"
+  },
+  "main": "glslx",
+  "author": "Evan Wallace"
+}

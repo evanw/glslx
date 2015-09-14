@@ -23,6 +23,7 @@ class GLSLX.Emitter {
 
   def new(node Node, options CompilerOptions) {
     _removeWhitespace = options.removeWhitespace
+
     if _removeWhitespace {
       _space = ""
       _newline = ""
@@ -35,6 +36,10 @@ class GLSLX.Emitter {
 
       _emit(child)
       _emit(_newline)
+    }
+
+    if _removeWhitespace {
+      _emit("\n")
     }
   }
 
@@ -359,25 +364,41 @@ class GLSLX.Emitter {
       case .FLOAT {
         var value = node.asFloat
         var text = value.toString
+
+        # Check to see if exponential form is smaller
         var exponential string = (value as dynamic).toExponential()
-
-        # "10" => "10.0"
-        # "10" => "10." (minify)
-        if !("." in text) && !("e" in text) {
-          text += _removeWhitespace ? "." : ".0"
-        }
-
-        # "0.5" => ".5" (minify)
-        if _removeWhitespace && text.startsWith("0.") && text.count > 2 {
-          text = text.slice(1)
-        }
-
-        # Pick the shortest representation
-        if _removeWhitespace && exponential.count < text.count {
+        if exponential.count < text.count {
           text = exponential
         }
 
-        _emit(text)
+        # Strip off the exponent
+        var e = text.indexOf("e")
+        var exponent = ""
+        if e != -1 {
+          exponent = text.slice(e)
+          text = text.slice(0, e)
+        }
+
+        # 32-bit floating point only needs six digits
+        text = (+((+(text as dynamic)).toFixed(6))).toString()
+
+        # Make sure there's a dot if there isn't an exponent
+        if exponent == "" && !("." in text) {
+          text += _removeWhitespace ? "." : ".0"
+        }
+
+        # Strip the leading zero
+        if _removeWhitespace && text.startsWith("0.") && text != "0." {
+          text = text.slice(1)
+        }
+
+        # Strip the leading zero with a minus sign
+        if _removeWhitespace && text.startsWith("-0.") && text != "-0." {
+          text = "-" + text.slice(2)
+        }
+
+        # Put the exponent back
+        _emit(text + exponent)
       }
 
       case .INT {

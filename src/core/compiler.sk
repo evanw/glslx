@@ -1,9 +1,9 @@
 namespace GLSLX {
   class CompilerOptions {
     var renameInternalSymbols = false
-    var trimLocalVariables = false
     var compactSyntaxTree = false
     var removeWhitespace = false
+    var trimVariables = false
   }
 
   enum ExtensionBehavior {
@@ -24,14 +24,12 @@ namespace GLSLX {
 }
 
 namespace GLSLX.Compiler {
-  def compile(log Log, source Source, options CompilerOptions) string {
+  def compile(log Log, sources List<Source>, options CompilerOptions) string {
     if log.hasErrors {
       return null
     }
 
-    var apiTokens = Tokenizer.tokenize(log, Source.new("api.glsl", API))
-    var sourceTokens = Tokenizer.tokenize(log, source)
-
+    var apiTokens = Tokenizer.tokenize(log, Source.new("<api>", API))
     if log.hasErrors {
       return null
     }
@@ -52,10 +50,16 @@ namespace GLSLX.Compiler {
       }
     }
 
-    Parser.parse(log, sourceTokens, global, data, scope)
+    for source in sources {
+      var sourceTokens = Tokenizer.tokenize(log, source)
+      if log.hasErrors {
+        return null
+      }
 
-    if log.hasErrors {
-      return null
+      Parser.parse(log, sourceTokens, global, data, scope)
+      if log.hasErrors {
+        return null
+      }
     }
 
     Resolver.resolve(log, global, data)
