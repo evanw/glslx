@@ -37,7 +37,7 @@ namespace GLSLX {
     def isOut bool       { return (flags & OUT) != 0 }
     def isUniform bool   { return (flags & UNIFORM) != 0 }
     def isVarying bool   { return (flags & VARYING) != 0 }
-    def isAttributeOrUniformOrVarying bool { return (flags & (ATTRIBUTE | UNIFORM | VARYING)) != 0 }
+    def isAttributeOrUniform bool { return (flags & (ATTRIBUTE | UNIFORM)) != 0 }
 
     # Internal compiler flags
     def isImported bool { return (flags & IMPORTED) != 0 }

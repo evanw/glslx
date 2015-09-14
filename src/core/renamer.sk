@@ -51,16 +51,21 @@ class GLSLX.Renamer {
     _aliasArgumentAndLocalVariablesFromDifferentFunctions
 
     # Do the renaming
-    var renaming StringMap<string> = {}
+    var renaming StringMap<string> = null
     var groups = _extractGroups(_namingGroupsUnionFind, null)
     groups.sort((a, b) => _countUses(b) <=> _countUses(a))
     for group in groups {
       var name string = null
       for info in group {
         for symbol in info.symbols.values {
-          if !symbol.isImportedOrExported && (_renameSymbols != .INTERNAL_ONLY || !symbol.isAttributeOrUniformOrVarying) {
+          if !symbol.isImportedOrExported && (_renameSymbols != .INTERNAL_ONLY || !symbol.isAttributeOrUniform) {
             if name == null {
               name = _generateSymbolName
+            }
+            if symbol.isAttributeOrUniform {
+              if renaming == null {
+                renaming = {}
+              }
               renaming[symbol.name] = name
             }
             symbol.name = name
