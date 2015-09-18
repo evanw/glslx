@@ -120,6 +120,7 @@ Advanced:
   def main {
     var root = dynamic.typeof(exports) != "undefined" ? exports : (window.GLSLX = {})
     root.compile = (input dynamic, args dynamic) dynamic => {
+      args = args || ({} as dynamic)
       var sources List<Source> = []
       if input is string {
         sources.append(Source.new("<stdin>", input))

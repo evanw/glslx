@@ -40,7 +40,11 @@ textarea, pre {
     Because it actually parses and understands the code, the minification should be much more robust than other minifiers based on regular expressions.
     It doesn't include a preprocessor because it's meant to be used after the preprocessing step.
     It also includes automatic insertion of "#extension" statements so their absence can't mess stuff up.
-    This can be installed through npm (npm install glslx) or by downloading the source code from <a href="https://github.com/evanw/glslx">https://github.com/evanw/glslx</a>.
+  </p>
+  <p>
+    The compiler is <a href="https://www.npmjs.org/package/glslx">published on npm</a> and is also available as an <a href="glslx.js">independent download</a>.
+    That one file works in the browser, as a command-line node script, and as a node module that can be required by other code.
+    The source code lives at <a href="https://github.com/evanw/glslx">https://github.com/evanw/glslx</a>.
   </p>
 
   <h2>Input</h2>
@@ -125,7 +129,7 @@ import {
   float gl_FragDepthEXT;
 }</pre>
 </body>
-<script src="compiled.js"></script>
+<script src="glslx.js"></script>
 <script>
 
 (function() {
