@@ -2,7 +2,6 @@ namespace GLSLX {
   enum NodeKind {
     # Other
     GLOBAL
-    OBSOLETE
     VARIABLE
 
     # Statements
@@ -526,10 +525,6 @@ namespace GLSLX {
   namespace Node {
     def createGlobal Node {
       return new(.GLOBAL)
-    }
-
-    def createObsolete Node {
-      return new(.OBSOLETE)
     }
 
     def createVariable(symbol VariableSymbol) Node {

@@ -81,6 +81,7 @@ namespace GLSLX {
     var returnType Node = null
     var block Node = null
     var previousOverload FunctionSymbol = null
+    var sibling FunctionSymbol = null # Forward-declared functions are linked to their implementation and vice versa
 
     def hasSameArgumentTypesAs(function FunctionSymbol) bool {
       if arguments.count != function.arguments.count {

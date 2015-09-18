@@ -767,32 +767,40 @@ namespace GLSLX.Parser {
 
     var previous = originalScope.symbols.get(name.toString, null)
     var hasBlock = !context.eat(.SEMICOLON)
-    var isObsolete = false
 
     # Merge adjacent function symbols to support overloading
     if previous == null {
       originalScope.define(function)
     } else if previous.isFunction {
       for link = previous.asFunction; link != null; link = link.previousOverload {
-        if link.hasSameArgumentTypesAs(function) {
-          if link.returnType.resolvedType != function.returnType.resolvedType {
-            context.log.syntaxErrorDifferentReturnType(function.returnType.range, function.name,
-              function.returnType.resolvedType, link.returnType.resolvedType, link.returnType.range)
-          } else if link.block != null || !hasBlock {
-            context.log.syntaxErrorDuplicateSymbolDefinition(function.range, link.range)
-          } else {
-            link.flags |= function.flags
-            link.block = function.block
-            function = link
-          }
-          isObsolete = true
-          break
+        if !link.hasSameArgumentTypesAs(function) {
+          continue
         }
+
+        # Overloading by return type is not allowed
+        if link.returnType.resolvedType != function.returnType.resolvedType {
+          context.log.syntaxErrorDifferentReturnType(function.returnType.range, function.name,
+            function.returnType.resolvedType, link.returnType.resolvedType, link.returnType.range)
+        }
+
+        # Defining a function more than once is not allowed
+        else if link.block != null || !hasBlock {
+          context.log.syntaxErrorDuplicateSymbolDefinition(function.range, link.range)
+        }
+
+        # Merge the function with its forward declaration
+        else {
+          assert(link.sibling == null)
+          assert(function.sibling == null)
+          link.sibling = function
+          function.sibling = link
+        }
+        break
       }
-      if !isObsolete {
-        function.previousOverload = previous.asFunction
-        originalScope.redefine(function)
-      }
+
+      # Use a singly-linked list to store the function overloads
+      function.previousOverload = previous.asFunction
+      originalScope.redefine(function)
     } else {
       context.log.syntaxErrorDuplicateSymbolDefinition(name, previous.range)
       return null
@@ -806,7 +814,7 @@ namespace GLSLX.Parser {
     }
 
     context.popScope
-    return isObsolete ? Node.createObsolete : Node.createFunction(function).withRange(context.spanSince(type.range))
+    return Node.createFunction(function).withRange(context.spanSince(type.range))
   }
 
   def parseArraySize(context ParserContext, variable VariableSymbol) bool {
@@ -881,15 +889,10 @@ namespace GLSLX.Parser {
       if statement.kind == .MODIFIER_BLOCK {
         while statement.hasChildren {
           var child = statement.firstChild.remove
-          if child.kind != .OBSOLETE {
-            checkStatementLocation(context, child)
-            parent.appendChild(child)
-          }
+          checkStatementLocation(context, child)
+          parent.appendChild(child)
         }
-      }
-
-      # Obsolete statements are functions that were merged with their prototype declaration
-      else if statement.kind != .OBSOLETE {
+      } else {
         checkStatementLocation(context, statement)
         parent.appendChild(statement)
       }

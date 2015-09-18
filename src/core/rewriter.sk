@@ -175,7 +175,10 @@ class GLSLX.Rewriter {
   }
 
   def _isUnused(symbol Symbol) bool {
-    return _useCounts.get(symbol.id, -1) == 0
+    return _useCounts.get(symbol.id, -1) == 0 && (
+      !symbol.isFunction ||
+      symbol.asFunction.sibling == null ||
+      _useCounts.get(symbol.asFunction.sibling.id, -1) == 0)
   }
 
   def _isConstant(symbol Symbol) bool {
