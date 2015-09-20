@@ -33,6 +33,11 @@ namespace GLSLX.Tests {
       return self
     }
 
+    def renameAll CompilerTest {
+      _options.renameSymbols = .ALL
+      return self
+    }
+
     def trimSymbols CompilerTest {
       _options.trimSymbols = true
       return self

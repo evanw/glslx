@@ -794,6 +794,8 @@ namespace GLSLX.Parser {
           assert(function.sibling == null)
           link.sibling = function
           function.sibling = link
+          function.flags |= link.flags
+          link.flags = function.flags
         }
         break
       }

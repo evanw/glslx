@@ -182,6 +182,10 @@ namespace GLSLX.Compiler {
         symbol.flags &= ~Symbol.EXPORTED
       } else {
         symbol.name = "main"
+        var sibling = symbol.asFunction.sibling
+        if sibling != null {
+          sibling.name = symbol.name
+        }
       }
     }
   }

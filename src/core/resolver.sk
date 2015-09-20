@@ -600,7 +600,7 @@ class GLSLX.Resolver {
             return .ERROR
           }
           if isAssignTarget && name.get(i) in name.slice(0, i) {
-            _log.semanticErrorBadSwizzleAssignment(range, name.get(i))
+            _log.semanticErrorBadSwizzleAssignment(range.slice(i, i + 1), name.get(i))
             return .ERROR
           }
         }
@@ -633,7 +633,7 @@ class GLSLX.Resolver {
   }
 
   def _checkConversion(node Node, type Type) {
-    if node.resolvedType != type && node.resolvedType != .ERROR {
+    if node.resolvedType != type && node.resolvedType != .ERROR && type != .ERROR {
       _log.semanticErrorBadConversion(node.range, node.resolvedType, type)
       node.resolvedType = .ERROR
     }

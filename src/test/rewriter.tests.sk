@@ -520,19 +520,36 @@ void main(int i) {
 # Check that calling forward-declared functions works
 test("
 void foo();
-void main() { foo(); }
-void foo() { main(); }
+export void bar() { foo(); }
+void foo() { bar(); }
 ", "
-void foo();
+void a();
 
 void main() {
-  foo();
+  a();
 }
 
-void foo() {
+void a() {
   main();
 }
-")
+").renameAll.trimSymbols
+
+# Check that calling forward-declared functions works
+test("
+void foo();
+void bar() { foo(); }
+export void foo() { bar(); }
+", "
+void main();
+
+void a() {
+  main();
+}
+
+void main() {
+  a();
+}
+").renameAll.trimSymbols
 
   }
 }

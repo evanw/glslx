@@ -78,7 +78,7 @@ class GLSLX.Renamer {
 
   def _scanForSymbols(node Node) {
     if node.symbol != null {
-      _recordSymbol(node.symbol)
+      _recordSymbol(node.symbol).useCount++
     }
 
     for child = node.firstChild; child != null; child = child.nextSibling {
@@ -95,11 +95,15 @@ class GLSLX.Renamer {
       }
 
       case .FUNCTION {
+        assert(node.symbol.id in _symbolInfoMap) # Should be added from _recordSymbol() above
         var function = node.symbol.asFunction
         _enclosingFunctionLabel = _symbolInfoMap[node.symbol.id].label
+        if function.sibling != null {
+          _namingGroupsUnionFind.union(_enclosingFunctionLabel, _recordSymbol(function.sibling).label)
+        }
         _scanForSymbols(function.returnType)
         for argument in function.arguments {
-          _recordSymbol(argument)
+          _recordSymbol(argument).useCount++
           _scanForSymbols(argument.type)
         }
         if function.block != null {
@@ -110,7 +114,7 @@ class GLSLX.Renamer {
     }
   }
 
-  def _recordSymbol(symbol Symbol) {
+  def _recordSymbol(symbol Symbol) SymbolInfo {
     var info = _symbolInfoMap.get(symbol.id, null)
 
     if info == null {
@@ -130,7 +134,7 @@ class GLSLX.Renamer {
       _localVariableUnionFind.union(_enclosingFunctionLabel, info.label)
     }
 
-    info.useCount++
+    return info
   }
 
   def _generateSymbolName string {
