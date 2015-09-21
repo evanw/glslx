@@ -551,5 +551,18 @@ void main() {
 }
 ").renameAll.trimSymbols
 
+# Check for renaming locals
+test("
+export void foo() {
+  vec4 bar = gl_FragCoord;
+  gl_FragColor = bar;
+}
+", "
+void main() {
+  vec4 a = gl_FragCoord;
+  gl_FragColor = a;
+}
+").renameAll.trimSymbols
+
   }
 }

@@ -809,7 +809,10 @@ namespace GLSLX.Parser {
     }
 
     if hasBlock {
+      var old = context.flags
+      context.flags &= ~(Symbol.EXPORTED | Symbol.IMPORTED)
       function.block = parseBlock(context)
+      context.flags &= old
       if function.block == null {
         return null
       }
