@@ -271,6 +271,10 @@ class GLSLX.Resolver {
           leftType == .INT && rightType in INT_TYPES ? rightType :
           leftType == .MAT2 && rightType == .VEC2 || leftType == .MAT3 && rightType == .VEC3 || leftType == .MAT3 && rightType == .VEC3 ? rightType :
 
+          node.kind == .MULTIPLY && (leftType == .VEC2 && rightType == .MAT2 || leftType == .MAT2 && rightType == .VEC2) ? .VEC2 :
+          node.kind == .MULTIPLY && (leftType == .VEC3 && rightType == .MAT3 || leftType == .MAT3 && rightType == .VEC3) ? .VEC3 :
+          node.kind == .MULTIPLY && (leftType == .VEC4 && rightType == .MAT4 || leftType == .MAT4 && rightType == .VEC4) ? .VEC4 :
+
           .ERROR
       }
 
