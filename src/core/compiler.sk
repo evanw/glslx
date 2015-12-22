@@ -152,7 +152,7 @@ namespace GLSLX.Compiler {
 
       # Optimize it and trim it down
       _unexportAllFunctionsExcept(shaderScope, root)
-      Rewriter.rewrite(shaderGlobal, options)
+      Rewriter.rewrite(shaderGlobal, shaderData, options)
       globals.append(shaderGlobal)
       names.append(root.name)
     }

@@ -1,5 +1,5 @@
 namespace GLSLX.Rewriter {
-  def rewrite(global Node, options CompilerOptions) {
+  def rewrite(global Node, data CompilerData, options CompilerOptions) {
     while true {
       var rewriter = Rewriter.new
 
@@ -10,6 +10,7 @@ namespace GLSLX.Rewriter {
       if options.trimSymbols {
         rewriter._scanSymbols(global)
         rewriter._trimSymbols(global)
+        rewriter._trimUnreferencedExtensions(global, data)
       }
 
       if !rewriter._codeWasChanged {
@@ -78,6 +79,7 @@ class GLSLX.Rewriter {
   var _variables List<VariableSymbol> = []
   var _useCounts IntMap<int> = {}
   var _mutationCounts IntMap<int> = {}
+  var _referencedExtensions StringMap<int> = {}
 
   def _reportCodeChange {
     _codeWasChanged = true
@@ -123,6 +125,12 @@ class GLSLX.Rewriter {
           if count != -1 {
             _mutationCounts[id] = count + 1
           }
+        }
+
+        # Track referenced extensions
+        var name = node.symbol.requiredExtension
+        if name != null {
+          _referencedExtensions[name] = 0
         }
       }
     }
@@ -170,6 +178,15 @@ class GLSLX.Rewriter {
           node.replaceWith(node.symbol.asVariable.value.clone)
           _reportCodeChange
         }
+      }
+    }
+  }
+
+  def _trimUnreferencedExtensions(node Node, data CompilerData) {
+    for child = node.firstChild, next Node = null; child != null; child = next {
+      next = child.nextSibling
+      if child.kind == .EXTENSION && !(child.extensionName in _referencedExtensions) && data.extensionBehavior(child.extensionName) == .DEFAULT {
+        child.remove
       }
     }
   }

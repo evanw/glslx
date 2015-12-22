@@ -564,5 +564,55 @@ void main() {
 }
 ").renameAll.trimSymbols
 
+# Test implicit extensions
+test("
+export void foo() {
+  gl_FragColor = dFdx(gl_FragCoord);
+}
+
+export void bar() {
+  gl_FragColor = gl_FragCoord;
+}
+", "
+[foo]
+#extension GL_OES_standard_derivatives : enable
+
+void main() {
+  gl_FragColor = dFdx(gl_FragCoord);
+}
+
+[bar]
+void main() {
+  gl_FragColor = gl_FragCoord;
+}
+").renameAll.trimSymbols
+
+# Test explicit extensions
+test("
+#extension GL_OES_standard_derivatives : enable
+
+export void foo() {
+  gl_FragColor = dFdx(gl_FragCoord);
+}
+
+export void bar() {
+  gl_FragColor = gl_FragCoord;
+}
+", "
+[foo]
+#extension GL_OES_standard_derivatives : enable
+
+void main() {
+  gl_FragColor = dFdx(gl_FragCoord);
+}
+
+[bar]
+#extension GL_OES_standard_derivatives : enable
+
+void main() {
+  gl_FragColor = gl_FragCoord;
+}
+").renameAll.trimSymbols
+
   }
 }

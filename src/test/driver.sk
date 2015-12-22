@@ -9,8 +9,13 @@ namespace GLSLX.Tests {
       var log = Log.new
       var result = Compiler.compile(log, [Source.new("<stdin>", _input)], _options)
       var output = log.toString
-      if result != null && result.shaders.count == 1 {
-        output = "\n".join(result.shaders.map<string>(source => source.contents))
+      if result != null && !result.shaders.isEmpty {
+        output = "\n".join(result.shaders.map<string>(source => {
+          if result.shaders.count != 1 {
+            return "[\(source.name)]\n\(source.contents)"
+          }
+          return source.contents
+        }))
       }
       expectString(trimNewlines(_expected), trimNewlines(output))
     }

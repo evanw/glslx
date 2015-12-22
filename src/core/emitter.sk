@@ -29,17 +29,19 @@ class GLSLX.Emitter {
       _newline = ""
     }
 
+    var previous Node = null
     for child = node.firstChild; child != null; child = child.nextSibling {
       if _isImportedNode(child) {
         continue
       }
 
-      if child.previousSibling != null && _shouldSeparateWithExtraNewline(child.previousSibling, child) {
+      if previous != null && _shouldSeparateWithExtraNewline(previous, child) {
         _emit(_newline)
       }
 
       _emit(child)
       _emit(_newline)
+      previous = child
     }
   }
 
