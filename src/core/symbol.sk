@@ -1,20 +1,20 @@
 namespace GLSLX {
-  namespace Symbol {
+  flags SymbolFlags {
     # Keyword modifiers
-    const ATTRIBUTE = 1 << 1
-    const CONST     = 1 << 2
-    const HIGHP     = 1 << 3
-    const IN        = 1 << 4
-    const INOUT     = 1 << 5
-    const LOWP      = 1 << 6
-    const MEDIUMP   = 1 << 7
-    const OUT       = 1 << 8
-    const UNIFORM   = 1 << 9
-    const VARYING   = 1 << 10
+    ATTRIBUTE
+    CONST
+    HIGHP
+    IN
+    INOUT
+    LOWP
+    MEDIUMP
+    OUT
+    UNIFORM
+    VARYING
 
     # Internal compiler flags
-    const EXPORTED = 1 << 11
-    const IMPORTED = 1 << 12
+    EXPORTED
+    IMPORTED
   }
 
   class Symbol {
@@ -22,27 +22,27 @@ namespace GLSLX {
     var range Range
     var name string
     var scope Scope
-    var flags = 0
+    var flags SymbolFlags = 0
     var requiredExtension string = null
     var _resolvedType Type = null
 
     # Keyword modifiers
-    def isAttribute bool { return (flags & ATTRIBUTE) != 0 }
-    def isConst bool     { return (flags & CONST) != 0 }
-    def isHighp bool     { return (flags & HIGHP) != 0 }
-    def isIn bool        { return (flags & IN) != 0 }
-    def isInout bool     { return (flags & INOUT) != 0 }
-    def isLowp bool      { return (flags & LOWP) != 0 }
-    def isMediump bool   { return (flags & MEDIUMP) != 0 }
-    def isOut bool       { return (flags & OUT) != 0 }
-    def isUniform bool   { return (flags & UNIFORM) != 0 }
-    def isVarying bool   { return (flags & VARYING) != 0 }
-    def isAttributeOrUniform bool { return (flags & (ATTRIBUTE | UNIFORM)) != 0 }
+    def isAttribute bool { return .ATTRIBUTE in flags }
+    def isConst bool     { return .CONST in flags }
+    def isHighp bool     { return .HIGHP in flags }
+    def isIn bool        { return .IN in flags }
+    def isInout bool     { return .INOUT in flags }
+    def isLowp bool      { return .LOWP in flags }
+    def isMediump bool   { return .MEDIUMP in flags }
+    def isOut bool       { return .OUT in flags }
+    def isUniform bool   { return .UNIFORM in flags }
+    def isVarying bool   { return .VARYING in flags }
+    def isAttributeOrUniform bool { return (.ATTRIBUTE | .UNIFORM) in flags }
 
     # Internal compiler flags
-    def isImported bool { return (flags & IMPORTED) != 0 }
-    def isExported bool { return (flags & EXPORTED) != 0 }
-    def isImportedOrExported bool  { return (flags & (IMPORTED | EXPORTED)) != 0 }
+    def isImported bool { return .IMPORTED in flags }
+    def isExported bool { return .EXPORTED in flags }
+    def isImportedOrExported bool  { return (.IMPORTED | .EXPORTED) in flags }
 
     def isStruct bool { return self is StructSymbol }
     def isFunction bool { return self is FunctionSymbol }

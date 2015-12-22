@@ -45,8 +45,8 @@ class GLSLX.Emitter {
 
   def _isImportedNode(node Node) bool {
     switch node.kind {
-      case .FUNCTION, .STRUCT { return (node.symbol.flags & Symbol.IMPORTED) != 0 }
-      case .VARIABLES { return (node.variablesFlags & Symbol.IMPORTED) != 0 }
+      case .FUNCTION, .STRUCT { return .IMPORTED in node.symbol.flags }
+      case .VARIABLES { return .IMPORTED in node.variablesFlags }
       default { return false }
     }
   }
@@ -63,19 +63,19 @@ class GLSLX.Emitter {
     }
   }
 
-  def _emitFlags(flags int) {
-    if (flags & Symbol.ATTRIBUTE) != 0 { _emit("attribute ") }
-    if (flags & Symbol.CONST) != 0 { _emit("const ") }
-    if (flags & Symbol.UNIFORM) != 0 { _emit("uniform ") }
-    if (flags & Symbol.VARYING) != 0 { _emit("varying ") }
+  def _emitFlags(flags SymbolFlags) {
+    if .ATTRIBUTE in flags { _emit("attribute ") }
+    if .CONST in flags { _emit("const ") }
+    if .UNIFORM in flags { _emit("uniform ") }
+    if .VARYING in flags { _emit("varying ") }
 
-    if (flags & Symbol.HIGHP) != 0 { _emit("highp ") }
-    if (flags & Symbol.LOWP) != 0 { _emit("lowp ") }
-    if (flags & Symbol.MEDIUMP) != 0 { _emit("mediump ") }
+    if .HIGHP in flags { _emit("highp ") }
+    if .LOWP in flags { _emit("lowp ") }
+    if .MEDIUMP in flags { _emit("mediump ") }
 
-    if (flags & Symbol.IN) != 0 { _emit("in ") }
-    if (flags & Symbol.INOUT) != 0 { _emit("inout ") }
-    if (flags & Symbol.OUT) != 0 { _emit("out ") }
+    if .IN in flags { _emit("in ") }
+    if .INOUT in flags { _emit("inout ") }
+    if .OUT in flags { _emit("out ") }
   }
 
   def _emit(node Node) {

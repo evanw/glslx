@@ -761,10 +761,10 @@ namespace GLSLX {
       return _firstChild._nextSibling._nextSibling
     }
 
-    def precisionFlag int {
+    def precisionFlag SymbolFlags {
       assert(kind == .PRECISION)
       assert(childCount == 1)
-      return _literal as int
+      return _literal as SymbolFlags
     }
 
     def precisionType Node {
@@ -781,10 +781,10 @@ namespace GLSLX {
       return _firstChild
     }
 
-    def variablesFlags int {
+    def variablesFlags SymbolFlags {
       assert(kind == .VARIABLES)
       assert(childCount >= 1)
-      return _literal as int
+      return _literal as SymbolFlags
     }
 
     def variablesType Node {

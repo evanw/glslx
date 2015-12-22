@@ -207,7 +207,7 @@ namespace GLSLX.Parser {
   def parseExportOrImport(context ParserContext) Node {
     var token = context.next
     var old = context.flags
-    context.flags |= token.kind == .EXPORT ? Symbol.EXPORTED : Symbol.IMPORTED
+    context.flags |= token.kind == .EXPORT ? .EXPORTED : .IMPORTED
 
     # Parse a modifier block
     if context.eat(.LEFT_BRACE) {
@@ -439,11 +439,11 @@ namespace GLSLX.Parser {
 
   def parsePrecision(context ParserContext) Node {
     var token = context.next
-    var flag = 0
+    var flag SymbolFlags = 0
     switch context.current.kind {
-      case .LOWP { flag = Symbol.LOWP }
-      case .MEDIUMP { flag = Symbol.MEDIUMP }
-      case .HIGHP { flag = Symbol.HIGHP }
+      case .LOWP { flag = .LOWP }
+      case .MEDIUMP { flag = .MEDIUMP }
+      case .HIGHP { flag = .HIGHP }
       default {
         context.unexpectedToken
         return null
@@ -530,7 +530,7 @@ namespace GLSLX.Parser {
     ALLOW_FUNCTIONS
   }
 
-  def parseAfterType(context ParserContext, range Range, flags int, type Node, allow Allow) Node {
+  def parseAfterType(context ParserContext, range Range, flags SymbolFlags, type Node, allow Allow) Node {
     var name = context.current.range
     if flags == 0 && !context.peek(.IDENTIFIER) {
       var value = pratt.resume(context, .LOWEST, type)
@@ -636,20 +636,20 @@ namespace GLSLX.Parser {
     return block.withRange(context.spanSince(token.range))
   }
 
-  def parseFlags(context ParserContext) int {
-    var flags = 0
+  def parseFlags(context ParserContext) SymbolFlags {
+    var flags SymbolFlags = 0
     while true {
       switch context.current.kind {
-        case .ATTRIBUTE { flags |= Symbol.ATTRIBUTE }
-        case .CONST     { flags |= Symbol.CONST }
-        case .HIGHP     { flags |= Symbol.HIGHP }
-        case .IN        { flags |= Symbol.IN }
-        case .INOUT     { flags |= Symbol.INOUT }
-        case .LOWP      { flags |= Symbol.LOWP }
-        case .MEDIUMP   { flags |= Symbol.MEDIUMP }
-        case .OUT       { flags |= Symbol.OUT }
-        case .UNIFORM   { flags |= Symbol.UNIFORM }
-        case .VARYING   { flags |= Symbol.VARYING }
+        case .ATTRIBUTE { flags |= .ATTRIBUTE }
+        case .CONST     { flags |= .CONST }
+        case .HIGHP     { flags |= .HIGHP }
+        case .IN        { flags |= .IN }
+        case .INOUT     { flags |= .INOUT }
+        case .LOWP      { flags |= .LOWP }
+        case .MEDIUMP   { flags |= .MEDIUMP }
+        case .OUT       { flags |= .OUT }
+        case .UNIFORM   { flags |= .UNIFORM }
+        case .VARYING   { flags |= .VARYING }
         default { return flags }
       }
       context.next
@@ -708,10 +708,10 @@ namespace GLSLX.Parser {
     return Node.createType(type).withRange(context.spanSince(token.range))
   }
 
-  def parseFunction(flags int, type Node, name Range, context ParserContext) Node {
+  def parseFunction(flags SymbolFlags, type Node, name Range, context ParserContext) Node {
     var originalScope = context.scope
     var function = FunctionSymbol.new(context.compilationData.nextSymbolID, name, name.toString, Scope.new(.FUNCTION, originalScope))
-    function.flags |= context.flags | flags | (function.name == "main" ? Symbol.EXPORTED : 0)
+    function.flags |= context.flags | flags | (function.name == "main" ? .EXPORTED : 0)
     function.returnType = type
     context.pushScope(function.scope)
 
@@ -810,7 +810,7 @@ namespace GLSLX.Parser {
 
     if hasBlock {
       var old = context.flags
-      context.flags &= ~(Symbol.EXPORTED | Symbol.IMPORTED)
+      context.flags &= ~(.EXPORTED | .IMPORTED)
       function.block = parseBlock(context)
       context.flags &= old
       if function.block == null {

@@ -179,7 +179,7 @@ namespace GLSLX.Compiler {
   def _unexportAllFunctionsExcept(scope Scope, function FunctionSymbol) {
     for symbol in scope.symbols.values {
       if symbol.id != function.id {
-        symbol.flags &= ~Symbol.EXPORTED
+        symbol.flags &= ~.EXPORTED
       } else {
         symbol.name = "main"
         var sibling = symbol.asFunction.sibling
