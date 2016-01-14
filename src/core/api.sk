@@ -174,27 +174,27 @@ import {
   float dot(vec2 x, vec2 y);
   float dot(vec3 x, vec3 y);
   float dot(vec4 x, vec4 y);
-  float faceforwar(float N, float I, float Nref);
+  float faceforward(float N, float I, float Nref);
   float length(float x);
   float length(vec2 x);
   float length(vec3 x);
   float length(vec4 x);
   float normalize(float x);
   float reflect(float I, float N);
-  float refrac(float I, float N, float eta);
-  vec2 faceforwar(vec2 N, vec2 I, vec2 Nref);
+  float refract(float I, float N, float eta);
+  vec2 faceforward(vec2 N, vec2 I, vec2 Nref);
   vec2 normalize(vec2 x);
   vec2 reflect(vec2 I, vec2 N);
-  vec2 refrac(vec2 I, vec2 N, float eta);
+  vec2 refract(vec2 I, vec2 N, float eta);
   vec3 cross(vec3 x, vec3 y);
-  vec3 faceforwar(vec3 N, vec3 I, vec3 Nref);
+  vec3 faceforward(vec3 N, vec3 I, vec3 Nref);
   vec3 normalize(vec3 x);
   vec3 reflect(vec3 I, vec3 N);
-  vec3 refrac(vec3 I, vec3 N, float eta);
-  vec4 faceforwar(vec4 N, vec4 I, vec4 Nref);
+  vec3 refract(vec3 I, vec3 N, float eta);
+  vec4 faceforward(vec4 N, vec4 I, vec4 Nref);
   vec4 normalize(vec4 x);
   vec4 reflect(vec4 I, vec4 N);
-  vec4 refrac(vec4 I, vec4 N, float eta);
+  vec4 refract(vec4 I, vec4 N, float eta);
 
   // Matrix Functions
   mat2 matrixCompMult(mat2 x, mat2 y);
