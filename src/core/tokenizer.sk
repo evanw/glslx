@@ -205,7 +205,7 @@ namespace GLSLX.Tokenizer {
 
     # Other
     "[ \t\r\n]|" + # Whitespace
-    "/\\*(?:.|\n)*?\\*/|" + # Multi-line comment
+    "/\\*(?:.|\r\n|\n)*?\\*/|" + # Multi-line comment
     "//.*|" + # Single-line comment
     "&&|\\|\\||\\^\\^|\\+\\+|--|<<=?|>>=?|[()[\\]{}\\.,?:;]|[+\\-*/%=!<>&|^~]=?|" + # Operator
     "[A-Za-z_][A-Za-z0-9_]*\\b|" + # Identifier

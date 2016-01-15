@@ -1,0 +1,43 @@
+namespace GLSLX.Tests {
+  def testParser {
+
+# Test comment parsing
+test("
+// this is a comment
+varying vec2 v2;
+/*
+this is a multi-
+line comment
+*/
+void main() {
+  gl_FragColor.xy = v2;
+}
+", "
+varying vec2 v2;
+
+void main() {
+  gl_FragColor.xy = v2;
+}
+")
+
+# Test comment parsing
+test("
+// this is a comment\r
+varying vec2 v2;\r
+/*\r
+this is a multi-\r
+line comment\r
+*/\r
+void main() {\r
+  gl_FragColor.xy = v2;\r
+}\r
+", "
+varying vec2 v2;
+
+void main() {
+  gl_FragColor.xy = v2;
+}
+")
+
+  }
+}
