@@ -164,10 +164,13 @@ class GLSLX.Rewriter {
 
       case .VARIABLES {
         if node.variablesType.nextSibling == null {
-          if node.parent.kind == .FOR && node == node.forSetup {
-            node.replaceWith(Node.createSequence)
+          # If it lives in a block or is global, remove it. Otherwise we can't
+          # blindly remove it, or we risk removing the true-branch of an
+          # if-statement or the body of a for-loop, leading to an invalid AST.
+          if node.parent.kind == NodeKind.BLOCK || node.parent.kind == NodeKind.GLOBAL {
+              node.remove
           } else {
-            node.remove
+              node.become(Node.createBlock)
           }
           _reportCodeChange
         }
