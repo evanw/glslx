@@ -167,10 +167,10 @@ class GLSLX.Rewriter {
           # If it lives in a block or is global, remove it. Otherwise we can't
           # blindly remove it, or we risk removing the true-branch of an
           # if-statement or the body of a for-loop, leading to an invalid AST.
-          if node.parent.kind == NodeKind.BLOCK || node.parent.kind == NodeKind.GLOBAL {
-              node.remove
+          if node.parent.kind == .BLOCK || node.parent.kind == .GLOBAL {
+            node.remove
           } else {
-              node.become(Node.createBlock)
+            node.become(Node.createBlock)
           }
           _reportCodeChange
         }
