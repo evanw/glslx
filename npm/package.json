@@ -1,7 +1,9 @@
 {
   "name": "glslx",
-  "version": "0.1.9",
+  "version": "0.1.10",
   "description": "",
+  "repository": "https://github.com/evanw/glslx",
+  "license": "MIT",
   "bin": {
     "glslx": "glslx"
   },
