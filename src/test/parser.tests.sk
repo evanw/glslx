@@ -252,5 +252,71 @@ void main() {
 }
 ")
 
+# Test invalid array syntax
+test("
+void main(int[] x) {
+}
+", "
+<stdin>:1:14: error: Expected IDENTIFIER but found LEFT_BRACKET
+void main(int[] x) {
+             ^
+")
+
+# Test invalid array syntax
+test("
+void main(int[2] x) {
+}
+", "
+<stdin>:1:14: error: Expected IDENTIFIER but found LEFT_BRACKET
+void main(int[2] x) {
+             ^
+")
+
+# Test invalid array syntax
+test("
+void main() {
+  int x[2] = int[](1, 2);
+}
+", "
+<stdin>:2:12: error: Expected SEMICOLON but found ASSIGN
+  int x[2] = int[](1, 2);
+           ^
+")
+
+# Test invalid array syntax
+test("
+void main() {
+  int x[2] = int[2](1, 2);
+}
+", "
+<stdin>:2:12: error: Expected SEMICOLON but found ASSIGN
+  int x[2] = int[2](1, 2);
+           ^
+")
+
+# Test invalid array syntax
+test("
+void main() {
+  int x[2];
+  x = int[](1, 2);
+}
+", "
+<stdin>:3:11: error: Unexpected RIGHT_BRACKET
+  x = int[](1, 2);
+          ^
+")
+
+# Test invalid array syntax
+test("
+void main() {
+  int x[2];
+  x = int[2](1, 2);
+}
+", "
+<stdin>:3:7: error: Unexpected type \"int\"
+  x = int[2](1, 2);
+      ~~~
+")
+
   }
 }

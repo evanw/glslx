@@ -515,6 +515,10 @@ class GLSLX.Resolver {
   def _resolveConstructor(type Type, node Node, arguments List<Node>) {
     node.resolvedType = type
 
+    if type == .ERROR {
+      return
+    }
+
     if type in BOOL_AND_INT_AND_FLOAT_TYPES {
       var count = _componentCount(type)
 
