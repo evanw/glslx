@@ -792,5 +792,548 @@ void main() {
                                    ^
 ")
 
+# Assignment addition
+test("
+void main(vec2 v2, vec3 v3, vec4 v4, mat2 m2, mat3 m3, mat4 m4) {
+  v2 += v2;
+  v2 += v3;
+  v2 += v4;
+  v2 += m2;
+  v2 += m3;
+  v2 += m4;
+
+  v3 += v2;
+  v3 += v3;
+  v3 += v4;
+  v3 += m2;
+  v3 += m3;
+  v3 += m4;
+
+  v4 += v2;
+  v4 += v3;
+  v4 += v4;
+  v4 += m2;
+  v4 += m3;
+  v4 += m4;
+
+  m2 += v2;
+  m2 += v3;
+  m2 += v4;
+  m2 += m2;
+  m2 += m3;
+  m2 += m4;
+
+  m3 += v2;
+  m3 += v3;
+  m3 += v4;
+  m3 += m2;
+  m3 += m3;
+  m3 += m4;
+
+  m4 += v2;
+  m4 += v3;
+  m4 += v4;
+  m4 += m2;
+  m4 += m3;
+  m4 += m4;
+}
+", "
+<stdin>:3:6: error: No binary operator \"+=\" for type \"vec2\" and type \"vec3\"
+  v2 += v3;
+     ~~
+<stdin>:4:6: error: No binary operator \"+=\" for type \"vec2\" and type \"vec4\"
+  v2 += v4;
+     ~~
+<stdin>:5:6: error: No binary operator \"+=\" for type \"vec2\" and type \"mat2\"
+  v2 += m2;
+     ~~
+<stdin>:6:6: error: No binary operator \"+=\" for type \"vec2\" and type \"mat3\"
+  v2 += m3;
+     ~~
+<stdin>:7:6: error: No binary operator \"+=\" for type \"vec2\" and type \"mat4\"
+  v2 += m4;
+     ~~
+<stdin>:9:6: error: No binary operator \"+=\" for type \"vec3\" and type \"vec2\"
+  v3 += v2;
+     ~~
+<stdin>:11:6: error: No binary operator \"+=\" for type \"vec3\" and type \"vec4\"
+  v3 += v4;
+     ~~
+<stdin>:12:6: error: No binary operator \"+=\" for type \"vec3\" and type \"mat2\"
+  v3 += m2;
+     ~~
+<stdin>:13:6: error: No binary operator \"+=\" for type \"vec3\" and type \"mat3\"
+  v3 += m3;
+     ~~
+<stdin>:14:6: error: No binary operator \"+=\" for type \"vec3\" and type \"mat4\"
+  v3 += m4;
+     ~~
+<stdin>:16:6: error: No binary operator \"+=\" for type \"vec4\" and type \"vec2\"
+  v4 += v2;
+     ~~
+<stdin>:17:6: error: No binary operator \"+=\" for type \"vec4\" and type \"vec3\"
+  v4 += v3;
+     ~~
+<stdin>:19:6: error: No binary operator \"+=\" for type \"vec4\" and type \"mat2\"
+  v4 += m2;
+     ~~
+<stdin>:20:6: error: No binary operator \"+=\" for type \"vec4\" and type \"mat3\"
+  v4 += m3;
+     ~~
+<stdin>:21:6: error: No binary operator \"+=\" for type \"vec4\" and type \"mat4\"
+  v4 += m4;
+     ~~
+<stdin>:23:6: error: No binary operator \"+=\" for type \"mat2\" and type \"vec2\"
+  m2 += v2;
+     ~~
+<stdin>:24:6: error: No binary operator \"+=\" for type \"mat2\" and type \"vec3\"
+  m2 += v3;
+     ~~
+<stdin>:25:6: error: No binary operator \"+=\" for type \"mat2\" and type \"vec4\"
+  m2 += v4;
+     ~~
+<stdin>:27:6: error: No binary operator \"+=\" for type \"mat2\" and type \"mat3\"
+  m2 += m3;
+     ~~
+<stdin>:28:6: error: No binary operator \"+=\" for type \"mat2\" and type \"mat4\"
+  m2 += m4;
+     ~~
+<stdin>:30:6: error: No binary operator \"+=\" for type \"mat3\" and type \"vec2\"
+  m3 += v2;
+     ~~
+<stdin>:31:6: error: No binary operator \"+=\" for type \"mat3\" and type \"vec3\"
+  m3 += v3;
+     ~~
+<stdin>:32:6: error: No binary operator \"+=\" for type \"mat3\" and type \"vec4\"
+  m3 += v4;
+     ~~
+<stdin>:33:6: error: No binary operator \"+=\" for type \"mat3\" and type \"mat2\"
+  m3 += m2;
+     ~~
+<stdin>:35:6: error: No binary operator \"+=\" for type \"mat3\" and type \"mat4\"
+  m3 += m4;
+     ~~
+<stdin>:37:6: error: No binary operator \"+=\" for type \"mat4\" and type \"vec2\"
+  m4 += v2;
+     ~~
+<stdin>:38:6: error: No binary operator \"+=\" for type \"mat4\" and type \"vec3\"
+  m4 += v3;
+     ~~
+<stdin>:39:6: error: No binary operator \"+=\" for type \"mat4\" and type \"vec4\"
+  m4 += v4;
+     ~~
+<stdin>:40:6: error: No binary operator \"+=\" for type \"mat4\" and type \"mat2\"
+  m4 += m2;
+     ~~
+<stdin>:41:6: error: No binary operator \"+=\" for type \"mat4\" and type \"mat3\"
+  m4 += m3;
+     ~~
+")
+
+# Assignment subtraction
+test("
+void main(vec2 v2, vec3 v3, vec4 v4, mat2 m2, mat3 m3, mat4 m4) {
+  v2 -= v2;
+  v2 -= v3;
+  v2 -= v4;
+  v2 -= m2;
+  v2 -= m3;
+  v2 -= m4;
+
+  v3 -= v2;
+  v3 -= v3;
+  v3 -= v4;
+  v3 -= m2;
+  v3 -= m3;
+  v3 -= m4;
+
+  v4 -= v2;
+  v4 -= v3;
+  v4 -= v4;
+  v4 -= m2;
+  v4 -= m3;
+  v4 -= m4;
+
+  m2 -= v2;
+  m2 -= v3;
+  m2 -= v4;
+  m2 -= m2;
+  m2 -= m3;
+  m2 -= m4;
+
+  m3 -= v2;
+  m3 -= v3;
+  m3 -= v4;
+  m3 -= m2;
+  m3 -= m3;
+  m3 -= m4;
+
+  m4 -= v2;
+  m4 -= v3;
+  m4 -= v4;
+  m4 -= m2;
+  m4 -= m3;
+  m4 -= m4;
+}
+", "
+<stdin>:3:6: error: No binary operator \"-=\" for type \"vec2\" and type \"vec3\"
+  v2 -= v3;
+     ~~
+<stdin>:4:6: error: No binary operator \"-=\" for type \"vec2\" and type \"vec4\"
+  v2 -= v4;
+     ~~
+<stdin>:5:6: error: No binary operator \"-=\" for type \"vec2\" and type \"mat2\"
+  v2 -= m2;
+     ~~
+<stdin>:6:6: error: No binary operator \"-=\" for type \"vec2\" and type \"mat3\"
+  v2 -= m3;
+     ~~
+<stdin>:7:6: error: No binary operator \"-=\" for type \"vec2\" and type \"mat4\"
+  v2 -= m4;
+     ~~
+<stdin>:9:6: error: No binary operator \"-=\" for type \"vec3\" and type \"vec2\"
+  v3 -= v2;
+     ~~
+<stdin>:11:6: error: No binary operator \"-=\" for type \"vec3\" and type \"vec4\"
+  v3 -= v4;
+     ~~
+<stdin>:12:6: error: No binary operator \"-=\" for type \"vec3\" and type \"mat2\"
+  v3 -= m2;
+     ~~
+<stdin>:13:6: error: No binary operator \"-=\" for type \"vec3\" and type \"mat3\"
+  v3 -= m3;
+     ~~
+<stdin>:14:6: error: No binary operator \"-=\" for type \"vec3\" and type \"mat4\"
+  v3 -= m4;
+     ~~
+<stdin>:16:6: error: No binary operator \"-=\" for type \"vec4\" and type \"vec2\"
+  v4 -= v2;
+     ~~
+<stdin>:17:6: error: No binary operator \"-=\" for type \"vec4\" and type \"vec3\"
+  v4 -= v3;
+     ~~
+<stdin>:19:6: error: No binary operator \"-=\" for type \"vec4\" and type \"mat2\"
+  v4 -= m2;
+     ~~
+<stdin>:20:6: error: No binary operator \"-=\" for type \"vec4\" and type \"mat3\"
+  v4 -= m3;
+     ~~
+<stdin>:21:6: error: No binary operator \"-=\" for type \"vec4\" and type \"mat4\"
+  v4 -= m4;
+     ~~
+<stdin>:23:6: error: No binary operator \"-=\" for type \"mat2\" and type \"vec2\"
+  m2 -= v2;
+     ~~
+<stdin>:24:6: error: No binary operator \"-=\" for type \"mat2\" and type \"vec3\"
+  m2 -= v3;
+     ~~
+<stdin>:25:6: error: No binary operator \"-=\" for type \"mat2\" and type \"vec4\"
+  m2 -= v4;
+     ~~
+<stdin>:27:6: error: No binary operator \"-=\" for type \"mat2\" and type \"mat3\"
+  m2 -= m3;
+     ~~
+<stdin>:28:6: error: No binary operator \"-=\" for type \"mat2\" and type \"mat4\"
+  m2 -= m4;
+     ~~
+<stdin>:30:6: error: No binary operator \"-=\" for type \"mat3\" and type \"vec2\"
+  m3 -= v2;
+     ~~
+<stdin>:31:6: error: No binary operator \"-=\" for type \"mat3\" and type \"vec3\"
+  m3 -= v3;
+     ~~
+<stdin>:32:6: error: No binary operator \"-=\" for type \"mat3\" and type \"vec4\"
+  m3 -= v4;
+     ~~
+<stdin>:33:6: error: No binary operator \"-=\" for type \"mat3\" and type \"mat2\"
+  m3 -= m2;
+     ~~
+<stdin>:35:6: error: No binary operator \"-=\" for type \"mat3\" and type \"mat4\"
+  m3 -= m4;
+     ~~
+<stdin>:37:6: error: No binary operator \"-=\" for type \"mat4\" and type \"vec2\"
+  m4 -= v2;
+     ~~
+<stdin>:38:6: error: No binary operator \"-=\" for type \"mat4\" and type \"vec3\"
+  m4 -= v3;
+     ~~
+<stdin>:39:6: error: No binary operator \"-=\" for type \"mat4\" and type \"vec4\"
+  m4 -= v4;
+     ~~
+<stdin>:40:6: error: No binary operator \"-=\" for type \"mat4\" and type \"mat2\"
+  m4 -= m2;
+     ~~
+<stdin>:41:6: error: No binary operator \"-=\" for type \"mat4\" and type \"mat3\"
+  m4 -= m3;
+     ~~
+")
+
+# Assignment multiplication
+test("
+void main(vec2 v2, vec3 v3, vec4 v4, mat2 m2, mat3 m3, mat4 m4) {
+  v2 *= v2;
+  v2 *= v3;
+  v2 *= v4;
+  v2 *= m2;
+  v2 *= m3;
+  v2 *= m4;
+
+  v3 *= v2;
+  v3 *= v3;
+  v3 *= v4;
+  v3 *= m2;
+  v3 *= m3;
+  v3 *= m4;
+
+  v4 *= v2;
+  v4 *= v3;
+  v4 *= v4;
+  v4 *= m2;
+  v4 *= m3;
+  v4 *= m4;
+
+  m2 *= v2;
+  m2 *= v3;
+  m2 *= v4;
+  m2 *= m2;
+  m2 *= m3;
+  m2 *= m4;
+
+  m3 *= v2;
+  m3 *= v3;
+  m3 *= v4;
+  m3 *= m2;
+  m3 *= m3;
+  m3 *= m4;
+
+  m4 *= v2;
+  m4 *= v3;
+  m4 *= v4;
+  m4 *= m2;
+  m4 *= m3;
+  m4 *= m4;
+}
+", "
+<stdin>:3:6: error: No binary operator \"*=\" for type \"vec2\" and type \"vec3\"
+  v2 *= v3;
+     ~~
+<stdin>:4:6: error: No binary operator \"*=\" for type \"vec2\" and type \"vec4\"
+  v2 *= v4;
+     ~~
+<stdin>:6:6: error: No binary operator \"*=\" for type \"vec2\" and type \"mat3\"
+  v2 *= m3;
+     ~~
+<stdin>:7:6: error: No binary operator \"*=\" for type \"vec2\" and type \"mat4\"
+  v2 *= m4;
+     ~~
+<stdin>:9:6: error: No binary operator \"*=\" for type \"vec3\" and type \"vec2\"
+  v3 *= v2;
+     ~~
+<stdin>:11:6: error: No binary operator \"*=\" for type \"vec3\" and type \"vec4\"
+  v3 *= v4;
+     ~~
+<stdin>:12:6: error: No binary operator \"*=\" for type \"vec3\" and type \"mat2\"
+  v3 *= m2;
+     ~~
+<stdin>:14:6: error: No binary operator \"*=\" for type \"vec3\" and type \"mat4\"
+  v3 *= m4;
+     ~~
+<stdin>:16:6: error: No binary operator \"*=\" for type \"vec4\" and type \"vec2\"
+  v4 *= v2;
+     ~~
+<stdin>:17:6: error: No binary operator \"*=\" for type \"vec4\" and type \"vec3\"
+  v4 *= v3;
+     ~~
+<stdin>:19:6: error: No binary operator \"*=\" for type \"vec4\" and type \"mat2\"
+  v4 *= m2;
+     ~~
+<stdin>:20:6: error: No binary operator \"*=\" for type \"vec4\" and type \"mat3\"
+  v4 *= m3;
+     ~~
+<stdin>:23:6: error: No binary operator \"*=\" for type \"mat2\" and type \"vec2\"
+  m2 *= v2;
+     ~~
+<stdin>:24:6: error: No binary operator \"*=\" for type \"mat2\" and type \"vec3\"
+  m2 *= v3;
+     ~~
+<stdin>:25:6: error: No binary operator \"*=\" for type \"mat2\" and type \"vec4\"
+  m2 *= v4;
+     ~~
+<stdin>:27:6: error: No binary operator \"*=\" for type \"mat2\" and type \"mat3\"
+  m2 *= m3;
+     ~~
+<stdin>:28:6: error: No binary operator \"*=\" for type \"mat2\" and type \"mat4\"
+  m2 *= m4;
+     ~~
+<stdin>:30:6: error: No binary operator \"*=\" for type \"mat3\" and type \"vec2\"
+  m3 *= v2;
+     ~~
+<stdin>:31:6: error: No binary operator \"*=\" for type \"mat3\" and type \"vec3\"
+  m3 *= v3;
+     ~~
+<stdin>:32:6: error: No binary operator \"*=\" for type \"mat3\" and type \"vec4\"
+  m3 *= v4;
+     ~~
+<stdin>:33:6: error: No binary operator \"*=\" for type \"mat3\" and type \"mat2\"
+  m3 *= m2;
+     ~~
+<stdin>:35:6: error: No binary operator \"*=\" for type \"mat3\" and type \"mat4\"
+  m3 *= m4;
+     ~~
+<stdin>:37:6: error: No binary operator \"*=\" for type \"mat4\" and type \"vec2\"
+  m4 *= v2;
+     ~~
+<stdin>:38:6: error: No binary operator \"*=\" for type \"mat4\" and type \"vec3\"
+  m4 *= v3;
+     ~~
+<stdin>:39:6: error: No binary operator \"*=\" for type \"mat4\" and type \"vec4\"
+  m4 *= v4;
+     ~~
+<stdin>:40:6: error: No binary operator \"*=\" for type \"mat4\" and type \"mat2\"
+  m4 *= m2;
+     ~~
+<stdin>:41:6: error: No binary operator \"*=\" for type \"mat4\" and type \"mat3\"
+  m4 *= m3;
+     ~~
+")
+
+# Assignment division
+test("
+void main(vec2 v2, vec3 v3, vec4 v4, mat2 m2, mat3 m3, mat4 m4) {
+  v2 /= v2;
+  v2 /= v3;
+  v2 /= v4;
+  v2 /= m2;
+  v2 /= m3;
+  v2 /= m4;
+
+  v3 /= v2;
+  v3 /= v3;
+  v3 /= v4;
+  v3 /= m2;
+  v3 /= m3;
+  v3 /= m4;
+
+  v4 /= v2;
+  v4 /= v3;
+  v4 /= v4;
+  v4 /= m2;
+  v4 /= m3;
+  v4 /= m4;
+
+  m2 /= v2;
+  m2 /= v3;
+  m2 /= v4;
+  m2 /= m2;
+  m2 /= m3;
+  m2 /= m4;
+
+  m3 /= v2;
+  m3 /= v3;
+  m3 /= v4;
+  m3 /= m2;
+  m3 /= m3;
+  m3 /= m4;
+
+  m4 /= v2;
+  m4 /= v3;
+  m4 /= v4;
+  m4 /= m2;
+  m4 /= m3;
+  m4 /= m4;
+}
+", "
+<stdin>:3:6: error: No binary operator \"/=\" for type \"vec2\" and type \"vec3\"
+  v2 /= v3;
+     ~~
+<stdin>:4:6: error: No binary operator \"/=\" for type \"vec2\" and type \"vec4\"
+  v2 /= v4;
+     ~~
+<stdin>:5:6: error: No binary operator \"/=\" for type \"vec2\" and type \"mat2\"
+  v2 /= m2;
+     ~~
+<stdin>:6:6: error: No binary operator \"/=\" for type \"vec2\" and type \"mat3\"
+  v2 /= m3;
+     ~~
+<stdin>:7:6: error: No binary operator \"/=\" for type \"vec2\" and type \"mat4\"
+  v2 /= m4;
+     ~~
+<stdin>:9:6: error: No binary operator \"/=\" for type \"vec3\" and type \"vec2\"
+  v3 /= v2;
+     ~~
+<stdin>:11:6: error: No binary operator \"/=\" for type \"vec3\" and type \"vec4\"
+  v3 /= v4;
+     ~~
+<stdin>:12:6: error: No binary operator \"/=\" for type \"vec3\" and type \"mat2\"
+  v3 /= m2;
+     ~~
+<stdin>:13:6: error: No binary operator \"/=\" for type \"vec3\" and type \"mat3\"
+  v3 /= m3;
+     ~~
+<stdin>:14:6: error: No binary operator \"/=\" for type \"vec3\" and type \"mat4\"
+  v3 /= m4;
+     ~~
+<stdin>:16:6: error: No binary operator \"/=\" for type \"vec4\" and type \"vec2\"
+  v4 /= v2;
+     ~~
+<stdin>:17:6: error: No binary operator \"/=\" for type \"vec4\" and type \"vec3\"
+  v4 /= v3;
+     ~~
+<stdin>:19:6: error: No binary operator \"/=\" for type \"vec4\" and type \"mat2\"
+  v4 /= m2;
+     ~~
+<stdin>:20:6: error: No binary operator \"/=\" for type \"vec4\" and type \"mat3\"
+  v4 /= m3;
+     ~~
+<stdin>:21:6: error: No binary operator \"/=\" for type \"vec4\" and type \"mat4\"
+  v4 /= m4;
+     ~~
+<stdin>:23:6: error: No binary operator \"/=\" for type \"mat2\" and type \"vec2\"
+  m2 /= v2;
+     ~~
+<stdin>:24:6: error: No binary operator \"/=\" for type \"mat2\" and type \"vec3\"
+  m2 /= v3;
+     ~~
+<stdin>:25:6: error: No binary operator \"/=\" for type \"mat2\" and type \"vec4\"
+  m2 /= v4;
+     ~~
+<stdin>:27:6: error: No binary operator \"/=\" for type \"mat2\" and type \"mat3\"
+  m2 /= m3;
+     ~~
+<stdin>:28:6: error: No binary operator \"/=\" for type \"mat2\" and type \"mat4\"
+  m2 /= m4;
+     ~~
+<stdin>:30:6: error: No binary operator \"/=\" for type \"mat3\" and type \"vec2\"
+  m3 /= v2;
+     ~~
+<stdin>:31:6: error: No binary operator \"/=\" for type \"mat3\" and type \"vec3\"
+  m3 /= v3;
+     ~~
+<stdin>:32:6: error: No binary operator \"/=\" for type \"mat3\" and type \"vec4\"
+  m3 /= v4;
+     ~~
+<stdin>:33:6: error: No binary operator \"/=\" for type \"mat3\" and type \"mat2\"
+  m3 /= m2;
+     ~~
+<stdin>:35:6: error: No binary operator \"/=\" for type \"mat3\" and type \"mat4\"
+  m3 /= m4;
+     ~~
+<stdin>:37:6: error: No binary operator \"/=\" for type \"mat4\" and type \"vec2\"
+  m4 /= v2;
+     ~~
+<stdin>:38:6: error: No binary operator \"/=\" for type \"mat4\" and type \"vec3\"
+  m4 /= v3;
+     ~~
+<stdin>:39:6: error: No binary operator \"/=\" for type \"mat4\" and type \"vec4\"
+  m4 /= v4;
+     ~~
+<stdin>:40:6: error: No binary operator \"/=\" for type \"mat4\" and type \"mat2\"
+  m4 /= m2;
+     ~~
+<stdin>:41:6: error: No binary operator \"/=\" for type \"mat4\" and type \"mat3\"
+  m4 /= m3;
+     ~~
+")
+
   }
 }
