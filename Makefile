@@ -10,7 +10,7 @@ release: | node_modules
 	$(BUILD) src/exports/*.sk --output-file=www/glslx.js --release
 
 test: | node_modules
-	$(BUILD) src/test/*.sk --output-file=test.js --release
+	$(BUILD) src/test/*.sk --output-file=test.js
 	node test.js
 	rm -f test.js
 

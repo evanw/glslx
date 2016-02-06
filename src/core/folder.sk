@@ -1,0 +1,359 @@
+namespace GLSLX.Folder {
+  def fold(node Node) Node {
+    switch node.kind {
+      case .INT, .FLOAT, .BOOL {
+        return node.clone
+      }
+
+      case .NAME {
+        var symbol = node.symbol
+        if symbol != null && symbol.isConst {
+          if symbol.constantValue != null {
+            return symbol.constantValue.clone
+          }
+
+          if symbol.asVariable.kind != .ARGUMENT {
+            return Node.createUnknownConstant(node.resolvedType)
+          }
+        }
+      }
+
+      case .SEQUENCE {
+        for child = node.firstChild; child != null; child = child.nextSibling {
+          var folded = fold(child)
+
+          if folded == null || child == node.lastChild {
+            return folded
+          }
+        }
+      }
+
+      case .HOOK {
+        var foldedTest = fold(node.hookTest)
+        var foldedTrue = fold(node.hookTrue)
+        var foldedFalse = fold(node.hookFalse)
+
+        if foldedTest.kind == .BOOL && foldedTrue != null && foldedFalse != null {
+          return foldedTest.asBool ? foldedTrue : foldedFalse
+        }
+      }
+
+      case .DOT {
+        var folded = fold(node.dotTarget)
+
+        # Evaluate a swizzle
+        if folded != null && folded.kind == .CALL && folded.resolvedType.isVector {
+          var name = node.asString
+          var count = name.count
+          var componentCount = folded.resolvedType.componentCount
+
+          # Find the swizzle set
+          for set in Swizzle.strings(componentCount) {
+            if name.get(0) in set {
+              if count == 1 {
+                return folded.childAt(1 + set.indexOf(name))
+              }
+              var swizzleType = Swizzle.type(folded.resolvedType.componentType, count)
+              var result = Node.createCall(Node.createType(swizzleType)).withType(swizzleType)
+              for i in 0..count {
+                result.appendChild(folded.childAt(1 + set.indexOf(name.get(i))).remove)
+              }
+              return result
+            }
+          }
+        }
+      }
+
+      case .INDEX {
+        var foldedLeft = fold(node.binaryLeft)
+        var foldedRight = fold(node.binaryRight)
+
+        # Both children must also be constants
+        if foldedLeft != null && foldedLeft.kind == .CALL && foldedRight != null && foldedRight.kind == .INT {
+          var indexCount = foldedLeft.resolvedType.indexCount
+          var index = foldedRight.asInt
+
+          # The index must be in range
+          if 0 <= index && index < indexCount {
+            return foldedLeft.childAt(index + 1).remove
+          }
+        }
+      }
+
+      case .CALL {
+        var target = node.callTarget
+
+        # Only constructor calls are considered constants
+        if target.kind != .TYPE {
+          return null
+        }
+
+        # Make sure all arguments are constants
+        var arguments List<Node> = []
+        for child = target.nextSibling; child != null; child = child.nextSibling {
+          var folded = fold(child)
+          if folded == null {
+            return null
+          }
+
+          # Expand values inline from constructed native types
+          if folded.kind == .CALL && target.resolvedType.isBoolOrIntOrFloat && folded.callTarget.resolvedType.isBoolOrIntOrFloat {
+            for value = folded.callTarget.nextSibling; value != null; value = value.nextSibling {
+              arguments.append(value.clone)
+            }
+          }
+
+          # Just append the value directly
+          else {
+            arguments.append(folded)
+          }
+        }
+
+        switch target.resolvedType {
+          case .BOOL { return _foldPrimitiveCast(arguments, value => Node.createBool(value as bool)) }
+          case .INT { return _foldPrimitiveCast(arguments, value => Node.createInt(value as int)) }
+          case .FLOAT { return _foldPrimitiveCast(arguments, value => Node.createFloat(value)) }
+
+          case .VEC2, .VEC3, .VEC4,
+              .IVEC2, .IVEC3, .IVEC4,
+              .BVEC2, .BVEC3, .BVEC4,
+              .MAT2, .MAT3, .MAT4 {
+            return _foldVectorOrMatrixConstructor(arguments, target.resolvedType)
+          }
+        }
+      }
+
+      case .NEGATIVE { return _foldUnaryFloatOrInt(node, x => -x, x => -x) }
+      case .NOT { return _foldUnaryBool(node, x => !x) }
+      case .POSITIVE { return _foldUnaryFloatOrInt(node, x => +x, x => +x) }
+
+      case .ADD { return _foldBinaryFloatOrInt(node, (a, b) => a + b, (a, b) => a + b) }
+      case .SUBTRACT { return _foldBinaryFloatOrInt(node, (a, b) => a - b, (a, b) => a - b) }
+      case .MULTIPLY { return _foldBinaryFloatOrInt(node, (a, b) => a * b, (a, b) => a * b) }
+      case .DIVIDE { return _foldBinaryFloatOrInt(node, (a, b) => b != 0 ? a / b : 0, (a, b) => b != 0 ? a / b : 0) }
+
+      case .EQUAL, .NOT_EQUAL { return _foldBinaryEquality(node) }
+
+      case .LOGICAL_AND { return _foldBinaryBool(node, (a, b) => a && b) }
+      case .LOGICAL_OR { return _foldBinaryBool(node, (a, b) => a || b) }
+      case .LOGICAL_XOR { return _foldBinaryBool(node, (a, b) => a != b) }
+
+      case .GREATER_THAN { return _foldBinaryFloatOrIntToBool(node, (a, b) => a > b) }
+      case .GREATER_THAN_OR_EQUAL { return _foldBinaryFloatOrIntToBool(node, (a, b) => a >= b) }
+      case .LESS_THAN { return _foldBinaryFloatOrIntToBool(node, (a, b) => a < b) }
+      case .LESS_THAN_OR_EQUAL { return _foldBinaryFloatOrIntToBool(node, (a, b) => a <= b) }
+    }
+
+    return null
+  }
+
+  def _foldPrimitiveCast(arguments List<Node>, cast fn(double) Node) Node {
+    if arguments.count == 1 {
+      var value = _doubleValue(arguments.first)
+
+      if !value.isNaN {
+        return cast(value)
+      }
+    }
+
+    return null
+  }
+
+  def _foldVectorOrMatrixConstructor(arguments List<Node>, type Type) Node {
+    var componentCount = type.componentCount
+    var componentType = type.componentType
+    var node = Node.createCall(Node.createType(type)).withType(type)
+    assert(componentCount > 0)
+
+    # Passing a single argument always works
+    if arguments.count == 1 {
+      var argument = arguments.first
+      if argument.resolvedType != componentType {
+        return null
+      }
+      for i in 0..componentCount {
+        node.appendChild(argument.clone)
+      }
+      return node
+    }
+
+    # Multiple arguments are more tricky
+    else {
+      # Extra arguments are ignored
+      if arguments.count < componentCount {
+        return null
+      }
+
+      # The constructed value is represented as a constructor call
+      for i in 0..componentCount {
+        if arguments[i].resolvedType != componentType {
+          return null
+        }
+
+        node.appendChild(arguments[i])
+      }
+
+      return node
+    }
+  }
+
+  def _foldBinaryEquality(node Node) Node {
+    var left = fold(node.binaryLeft)
+    var right = fold(node.binaryRight)
+
+    if left != null && right != null {
+      var value = left.looksTheSameAs(right)
+      return Node.createBool(node.kind == .EQUAL ? value : !value)
+    }
+
+    return null
+  }
+
+  def _doubleValue(node Node) double {
+    switch node.kind {
+      case .BOOL { return node.asBool as double }
+      case .INT { return node.asInt }
+      case .FLOAT { return node.asFloat }
+      default { return Math.NAN }
+    }
+  }
+
+  ################################################################################
+
+  def _foldBool(node Node, op fn(bool) bool) Node {
+    if node.kind == .BOOL {
+      return Node.createBool(op(node.asBool))
+    }
+
+    # TODO: CALL is a constructor, do op element-wise
+
+    return null
+  }
+
+  def _foldFloat(node Node, op fn(double) double) Node {
+    if node.kind == .FLOAT {
+      return Node.createFloat(op(node.asFloat))
+    }
+
+    # TODO: CALL is a constructor, do op element-wise
+
+    return null
+  }
+
+  def _foldInt(node Node, op fn(int) int) Node {
+    if node.kind == .INT {
+      return Node.createInt(op(node.asInt))
+    }
+
+    # TODO: CALL is a constructor, do op element-wise
+
+    return null
+  }
+
+  ################################################################################
+
+  def _foldBool(left Node, right Node, op fn(bool, bool) bool) Node {
+    if left.kind == .BOOL && right.kind == .BOOL {
+      return Node.createBool(op(left.asBool, right.asBool))
+    }
+
+    # TODO: CALL is a constructor, do op element-wise
+
+    return null
+  }
+
+  def _foldFloat(left Node, right Node, op fn(double, double) double) Node {
+    if left.kind == .FLOAT && right.kind == .FLOAT {
+      return Node.createFloat(op(left.asFloat, right.asFloat))
+    }
+
+    # TODO: CALL is a constructor, do op element-wise
+
+    return null
+  }
+
+  def _foldInt(left Node, right Node, op fn(int, int) int) Node {
+    if left.kind == .INT && right.kind == .INT {
+      return Node.createInt(op(left.asInt, right.asInt))
+    }
+
+    # TODO: CALL is a constructor, do op element-wise
+
+    return null
+  }
+
+  def _foldFloatOrIntToBool(left Node, right Node, op fn(double, double) bool) Node {
+    if left.kind == .FLOAT && right.kind == .FLOAT {
+      return Node.createBool(op(left.asFloat, right.asFloat))
+    }
+
+    if left.kind == .INT && right.kind == .INT {
+      return Node.createBool(op(left.asInt, right.asInt))
+    }
+
+    # TODO: CALL is a constructor, do op element-wise
+
+    return null
+  }
+
+  ################################################################################
+
+  def _foldUnaryBool(node Node, op fn(bool) bool) Node {
+    var value = fold(node.unaryValue)
+
+    if value != null {
+      return _foldBool(value, op)
+    }
+
+    return null
+  }
+
+  def _foldUnaryFloatOrInt(node Node, floatOp fn(double) double, intOp fn(int) int) Node {
+    var value = fold(node.unaryValue)
+
+    if value != null {
+      return
+        _foldFloat(value, floatOp) ??
+        _foldInt(value, intOp)
+    }
+
+    return null
+  }
+
+  ################################################################################
+
+  def _foldBinaryBool(node Node, op fn(bool, bool) bool) Node {
+    var left = fold(node.binaryLeft)
+    var right = fold(node.binaryRight)
+
+    if left != null && right != null {
+      return _foldBool(left, right, op)
+    }
+
+    return null
+  }
+
+  def _foldBinaryFloatOrInt(node Node, floatOp fn(double, double) double, intOp fn(int, int) int) Node {
+    var left = fold(node.binaryLeft)
+    var right = fold(node.binaryRight)
+
+    if left != null && right != null {
+      return
+        _foldFloat(left, right, floatOp) ??
+        _foldInt(left, right, intOp)
+    }
+
+    return null
+  }
+
+  def _foldBinaryFloatOrIntToBool(node Node, op fn(double, double) bool) Node {
+    var left = fold(node.binaryLeft)
+    var right = fold(node.binaryRight)
+
+    if left != null && right != null {
+      return _foldFloatOrIntToBool(left, right, op)
+    }
+
+    return null
+  }
+}

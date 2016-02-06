@@ -21,13 +21,34 @@ void main(in int i, out int o, inout int io, const int ci) {
 # Test array type pass-through
 test("
 void main() {
-  int x[2], y[3];
+  const int N = 1 + 2;
+  int x[2], y[N];
   x[0] = y[1];
 }
 ", "
 void main() {
-  int x[2], y[3];
+  const int N = 1 + 2;
+  int x[2], y[N];
   x[0] = y[1];
+}
+")
+
+# Test unary assignment operator pass-through
+test("
+void main() {
+  int x = 0;
+  x++;
+  x--;
+  ++x;
+  --x;
+}
+", "
+void main() {
+  int x = 0;
+  x++;
+  x--;
+  ++x;
+  --x;
 }
 ")
 

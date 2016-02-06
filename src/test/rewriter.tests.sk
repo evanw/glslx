@@ -295,25 +295,6 @@ void main() {
 }
 ").compactSyntaxTree
 
-# Don't combine multiple adjacent variable declarations across an initialized variable
-test("
-int foo();
-
-void main() {
-  int a = foo();
-  const int b = a;
-  int c;
-}
-", "
-int foo();
-
-void main() {
-  int a = foo();
-  const int b = a;
-  int c;
-}
-").compactSyntaxTree
-
 # Only combine multiple adjacent variable declarations across an initialized constant
 test("
 int foo();

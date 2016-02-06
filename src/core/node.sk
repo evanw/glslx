@@ -30,6 +30,7 @@ namespace GLSLX {
     NAME
     SEQUENCE
     TYPE
+    UNKNOWN_CONSTANT
 
     # Literals
     BOOL
@@ -37,7 +38,6 @@ namespace GLSLX {
     INT
 
     # Unary prefix
-    COMPLEMENT
     NEGATIVE
     NOT
     POSITIVE
@@ -52,9 +52,6 @@ namespace GLSLX {
 
     # Binary
     ADD
-    BITWISE_AND
-    BITWISE_OR
-    BITWISE_XOR
     DIVIDE
     EQUAL
     GREATER_THAN
@@ -67,22 +64,13 @@ namespace GLSLX {
     LOGICAL_XOR
     MULTIPLY
     NOT_EQUAL
-    REMAINDER
-    SHIFT_LEFT
-    SHIFT_RIGHT
     SUBTRACT
 
     # Binary assignment
     ASSIGN
     ASSIGN_ADD
-    ASSIGN_BITWISE_AND
-    ASSIGN_BITWISE_OR
-    ASSIGN_BITWISE_XOR
     ASSIGN_DIVIDE
     ASSIGN_MULTIPLY
-    ASSIGN_REMAINDER
-    ASSIGN_SHIFT_LEFT
-    ASSIGN_SHIFT_RIGHT
     ASSIGN_SUBTRACT
 
     def isStatement bool {
@@ -98,11 +86,11 @@ namespace GLSLX {
     }
 
     def isUnary bool {
-      return self as int >= COMPLEMENT && self as int <= POSTFIX_INCREMENT
+      return self as int >= NEGATIVE && self as int <= POSTFIX_INCREMENT
     }
 
     def isUnaryPrefix bool {
-      return self as int >= COMPLEMENT && self as int <= PREFIX_INCREMENT
+      return self as int >= NEGATIVE && self as int <= PREFIX_INCREMENT
     }
 
     def isUnaryPostfix bool {
@@ -228,6 +216,16 @@ namespace GLSLX {
         count++
       }
       return count
+    }
+
+    def childAt(index int) Node {
+      assert(0 <= index && index < childCount)
+      var child = _firstChild
+      while index != 0 {
+        child = child._nextSibling
+        index--
+      }
+      return child
     }
 
     def withType(value Type) Node {
@@ -499,8 +497,21 @@ namespace GLSLX {
           case .FLOAT { return asFloat == node.asFloat }
           case .INT { return asInt == node.asInt }
           case .NAME { return symbol == node.symbol }
+          case .TYPE { return resolvedType == node.resolvedType }
           case .DOT { return dotTarget.looksTheSameAs(node.dotTarget) && symbol == node.symbol && asString == node.asString }
           case .HOOK { return hookTest.looksTheSameAs(node.hookTest) && hookTrue.looksTheSameAs(node.hookTrue) && hookFalse.looksTheSameAs(node.hookFalse) }
+          case .CALL {
+            var left = firstChild
+            var right = node.firstChild
+            while left != null && right != null {
+              if !left.looksTheSameAs(right) {
+                return false
+              }
+              left = left.nextSibling
+              right = right.nextSibling
+            }
+            return left == null && right == null
+          }
           default {
             if kind.isUnary { return unaryValue.looksTheSameAs(node.unaryValue) }
             if kind.isBinary { return binaryLeft.looksTheSameAs(node.binaryLeft) && binaryRight.looksTheSameAs(node.binaryRight) }
@@ -636,6 +647,10 @@ namespace GLSLX {
 
     def createType(type Type) Node {
       return new(.TYPE).withType(type)
+    }
+
+    def createUnknownConstant(type Type) Node {
+      return new(.UNKNOWN_CONSTANT).withType(type)
     }
 
     def createBool(value bool) Node {
@@ -840,7 +855,7 @@ namespace GLSLX {
     }
 
     def asString string {
-      assert(kind == .DOT || kind == .NAME)
+      assert(kind == .DOT)
       assert(_text != null)
       return _text
     }
@@ -889,5 +904,32 @@ namespace GLSLX {
     }
 
     var _nextID = 0
+  }
+
+  class Node {
+    # This is just for debugging
+    def toString string {
+      var text = "(" + kind.toString.toLowerCase.replaceAll("_", "-")
+
+      switch kind {
+        case .BOOL { text += " \(asBool)" }
+        case .INT { text += " \(asInt)" }
+        case .FLOAT { text += " \(asFloat)" }
+        case .TYPE { text += " \(resolvedType)" }
+        case .NAME { text += " \(symbol.name)" }
+
+        default {
+          for child = firstChild; child != null; child = child.nextSibling {
+            text += "\n  " + child.toString.replaceAll("\n", "\n  ")
+          }
+
+          if kind == .DOT {
+             text += "\n  \(_text)"
+          }
+        }
+      }
+
+      return text + ")"
+    }
   }
 }

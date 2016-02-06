@@ -1,0 +1,50 @@
+namespace GLSLX.Swizzle {
+  const _STRINGS_2 = ["xy", "st", "rg"]
+  const _STRINGS_3 = ["xyz", "stp", "rgb"]
+  const _STRINGS_4 = ["xyzw", "stpq", "rgba"]
+
+  def strings(componentCount int) List<string> {
+    switch componentCount {
+      case 2 { return _STRINGS_2 }
+      case 3 { return _STRINGS_3 }
+      case 4 { return _STRINGS_4 }
+    }
+
+    assert(false)
+    return null
+  }
+
+  def type(comonentType Type, componentCount int) Type {
+    switch comonentType {
+      case .BOOL {
+        switch componentCount {
+          case 1 { return .BOOL }
+          case 2 { return .BVEC2 }
+          case 3 { return .BVEC3 }
+          case 4 { return .BVEC4 }
+        }
+      }
+
+      case .FLOAT {
+        switch componentCount {
+          case 1 { return .FLOAT }
+          case 2 { return .VEC2 }
+          case 3 { return .VEC3 }
+          case 4 { return .VEC4 }
+        }
+      }
+
+      case .INT {
+        switch componentCount {
+          case 1 { return .INT }
+          case 2 { return .IVEC2 }
+          case 3 { return .IVEC3 }
+          case 4 { return .IVEC4 }
+        }
+      }
+    }
+
+    assert(false)
+    return null
+  }
+}

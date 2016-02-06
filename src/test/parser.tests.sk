@@ -1,6 +1,66 @@
 namespace GLSLX.Tests {
   def testParser {
 
+# Test invalid operators
+test("
+void main() {
+  int a = ~1;
+  int b = 1 << 2;
+  int c = 1 >> 2;
+  int d = 1 | 2;
+  int e = 1 & 2;
+  int f = 1 ^ 2;
+  int g = 1 % 2;
+
+  b <<= 3;
+  c >>= 3;
+  d |= 3;
+  e &= 3;
+  f ^= 3;
+  g %= 3;
+}
+", "
+<stdin>:2:11: error: The operator \"~\" is reserved and cannot be used
+  int a = ~1;
+          ^
+<stdin>:3:13: error: The operator \"<<\" is reserved and cannot be used
+  int b = 1 << 2;
+            ~~
+<stdin>:4:13: error: The operator \">>\" is reserved and cannot be used
+  int c = 1 >> 2;
+            ~~
+<stdin>:5:13: error: The operator \"|\" is reserved and cannot be used
+  int d = 1 | 2;
+            ^
+<stdin>:6:13: error: The operator \"&\" is reserved and cannot be used
+  int e = 1 & 2;
+            ^
+<stdin>:7:13: error: The operator \"^\" is reserved and cannot be used
+  int f = 1 ^ 2;
+            ^
+<stdin>:8:13: error: The operator \"%\" is reserved and cannot be used
+  int g = 1 % 2;
+            ^
+<stdin>:10:5: error: The operator \"<<=\" is reserved and cannot be used
+  b <<= 3;
+    ~~~
+<stdin>:11:5: error: The operator \">>=\" is reserved and cannot be used
+  c >>= 3;
+    ~~~
+<stdin>:12:5: error: The operator \"|=\" is reserved and cannot be used
+  d |= 3;
+    ~~
+<stdin>:13:5: error: The operator \"&=\" is reserved and cannot be used
+  e &= 3;
+    ~~
+<stdin>:14:5: error: The operator \"^=\" is reserved and cannot be used
+  f ^= 3;
+    ~~
+<stdin>:15:5: error: The operator \"%=\" is reserved and cannot be used
+  g %= 3;
+    ~~
+")
+
 # Test comment parsing
 test("
 // this is a comment
@@ -132,7 +192,7 @@ struct Foo {
 test("
 void main() {
   attribute float a;
-  const float c;
+  const float c = 0.0;
   highp float h;
   in float i;
   inout float io;
@@ -316,6 +376,17 @@ void main() {
 <stdin>:3:7: error: Unexpected type \"int\"
   x = int[2](1, 2);
       ~~~
+")
+
+# Test invalid array syntax
+test("
+void main() {
+  int x[2][2];
+}
+", "
+<stdin>:2:11: error: Expected SEMICOLON but found LEFT_BRACKET
+  int x[2][2];
+          ^
 ")
 
   }

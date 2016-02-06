@@ -1,11 +1,3 @@
-namespace GLSLX.Resolver {
-  def resolve(log Log, global Node, data CompilerData) {
-    var resolver = Resolver.new(log, data)
-    resolver._resolve(global)
-    resolver._finalize(global)
-  }
-}
-
 class GLSLX.Resolver {
   const _log Log
   const _data CompilerData
@@ -13,20 +5,27 @@ class GLSLX.Resolver {
   var _generatedExtensions StringMap<Node> = {}
   var _returnType Type = null
 
-  def _finalize(global Node) {
+  def resolveGlobal(global Node) {
+    resolveNode(global)
+
+    # Remove all version statements
     for version in _versions {
       version.remove
     }
+
+    # Re-insert the first version statement
     var first = global.firstChild
     if !_versions.isEmpty {
       global.insertChildBefore(first, _versions.first)
     }
+
+    # Insert all automatically generated extensions
     for extension in _generatedExtensions.values {
       global.insertChildBefore(first, extension)
     }
   }
 
-  def _resolve(node Node) {
+  def resolveNode(node Node) {
     if node.resolvedType != null {
       return
     }
@@ -41,7 +40,7 @@ class GLSLX.Resolver {
 
       case .VARIABLE {
         var symbol = node.symbol.asVariable
-        _resolve(symbol.type)
+        resolveNode(symbol.type)
 
         # Variables must have a type
         var type = symbol.type.resolvedType
@@ -51,20 +50,31 @@ class GLSLX.Resolver {
         }
 
         # Array size
-        if symbol.arraySize != null {
-          _resolveAsExpression(symbol.arraySize)
-          _checkConversion(symbol.arraySize, .INT)
+        if symbol.arrayCount != null {
+          _resolveAsExpression(symbol.arrayCount)
+          checkConversion(symbol.arrayCount, .INT)
         }
 
         # Initial value
         if symbol.value != null {
           _resolveAsExpression(symbol.value)
-          _checkConversion(symbol.value, type)
+          checkConversion(symbol.value, type)
         }
 
         # Constants must be initialized
-        else if symbol.kind == .LOCAL && symbol.isConst {
-          _log.semanticErrorUninitializedConstant(symbol.range)
+        if symbol.kind == .LOCAL && symbol.isConst {
+          if symbol.value != null {
+            var folded = Folder.fold(symbol.value)
+            if folded == null {
+              _log.syntaxErrorConstantRequired(symbol.value.range)
+            } else {
+              assert(folded.parent == null)
+              assert(folded.resolvedType != null)
+              symbol.constantValue = folded
+            }
+          } else {
+            _log.semanticErrorUninitializedConstant(symbol.range)
+          }
         }
       }
 
@@ -76,13 +86,13 @@ class GLSLX.Resolver {
       }
 
       case .DO_WHILE {
-        _resolve(node.doWhileBody)
-        _resolve(node.doWhileTest)
-        _checkConversion(node.doWhileTest, .BOOL)
+        resolveNode(node.doWhileBody)
+        resolveNode(node.doWhileTest)
+        checkConversion(node.doWhileTest, .BOOL)
       }
 
       case .EXPRESSION {
-        _resolve(node.expressionValue)
+        resolveNode(node.expressionValue)
       }
 
       case .EXTENSION {
@@ -94,33 +104,33 @@ class GLSLX.Resolver {
         }
         if node.forTest != null {
           _resolveAsExpression(node.forTest)
-          _checkConversion(node.forTest, .BOOL)
+          checkConversion(node.forTest, .BOOL)
         }
         if node.forUpdate != null {
           _resolveAsExpression(node.forUpdate)
         }
-        _resolve(node.forBody)
+        resolveNode(node.forBody)
       }
 
       case .FUNCTION {
         var symbol = node.symbol.asFunction
         for argument in symbol.arguments {
-          _resolve(argument.type)
+          resolveNode(argument.type)
         }
-        _resolve(symbol.returnType)
+        resolveNode(symbol.returnType)
         if symbol.block != null {
           _returnType = symbol.returnType.resolvedType
-          _resolve(symbol.block)
+          resolveNode(symbol.block)
           _returnType = null
         }
       }
 
       case .IF {
-        _resolve(node.ifTest)
-        _checkConversion(node.ifTest, .BOOL)
-        _resolve(node.ifTrue)
+        resolveNode(node.ifTest)
+        checkConversion(node.ifTest, .BOOL)
+        resolveNode(node.ifTrue)
         if node.ifFalse != null {
-          _resolve(node.ifFalse)
+          resolveNode(node.ifFalse)
         }
       }
 
@@ -129,11 +139,11 @@ class GLSLX.Resolver {
 
       case .RETURN {
         if node.returnValue != null {
-          _resolve(node.returnValue)
-          _checkConversion(node.returnValue, _returnType)
+          resolveNode(node.returnValue)
+          checkConversion(node.returnValue, _returnType)
         } else {
           node.resolvedType = .VOID
-          _checkConversion(node, _returnType)
+          checkConversion(node, _returnType)
         }
       }
 
@@ -150,9 +160,9 @@ class GLSLX.Resolver {
       }
 
       case .WHILE {
-        _resolve(node.whileTest)
-        _checkConversion(node.whileTest, .BOOL)
-        _resolve(node.whileBody)
+        resolveNode(node.whileTest)
+        checkConversion(node.whileTest, .BOOL)
+        resolveNode(node.whileBody)
       }
 
       case .CALL {
@@ -169,7 +179,7 @@ class GLSLX.Resolver {
         var yes = node.hookTrue
 
         _resolveAsExpression(test)
-        _checkConversion(test, .BOOL)
+        checkConversion(test, .BOOL)
         _resolveAsExpression(yes)
         _resolveAsExpression(no)
 
@@ -184,7 +194,7 @@ class GLSLX.Resolver {
         var symbol = node.symbol
 
         if symbol.isVariable {
-          _resolve(symbol.asVariable.type)
+          resolveNode(symbol.asVariable.type)
           node.resolvedType = symbol.asVariable.type.resolvedType
         }
 
@@ -216,6 +226,8 @@ class GLSLX.Resolver {
         else { assert(false) }
       }
     }
+
+    assert(node.resolvedType != null)
   }
 
   def _resolveUnary(node Node) {
@@ -232,7 +244,7 @@ class GLSLX.Resolver {
     switch node.kind {
       case .NEGATIVE, .POSITIVE, .PREFIX_DECREMENT, .PREFIX_INCREMENT, .POSTFIX_DECREMENT, .POSTFIX_INCREMENT {
         node.resolvedType =
-          valueType in INT_AND_FLOAT_TYPES ? valueType :
+          valueType.isIntOrFloat ? valueType :
           .ERROR
       }
 
@@ -266,13 +278,13 @@ class GLSLX.Resolver {
     switch node.kind {
       case .ADD, .SUBTRACT, .MULTIPLY, .DIVIDE {
         node.resolvedType =
-          isSame && leftType in BOOL_AND_INT_AND_FLOAT_TYPES ? leftType :
+          isSame && leftType.isBoolOrIntOrFloat ? leftType :
 
-          leftType in FLOAT_TYPES && rightType == .FLOAT ? leftType :
-          leftType in INT_TYPES && rightType == .INT ? leftType :
+          leftType.isFloat && rightType == .FLOAT ? leftType :
+          leftType.isInt && rightType == .INT ? leftType :
 
-          leftType == .FLOAT && rightType in FLOAT_TYPES ? rightType :
-          leftType == .INT && rightType in INT_TYPES ? rightType :
+          leftType == .FLOAT && rightType.isFloat ? rightType :
+          leftType == .INT && rightType.isInt ? rightType :
 
           node.kind == .MULTIPLY && (leftType == .VEC2 && rightType == .MAT2 || leftType == .MAT2 && rightType == .VEC2) ? .VEC2 :
           node.kind == .MULTIPLY && (leftType == .VEC3 && rightType == .MAT3 || leftType == .MAT3 && rightType == .VEC3) ? .VEC3 :
@@ -301,16 +313,16 @@ class GLSLX.Resolver {
 
       case .ASSIGN {
         node.resolvedType = leftType
-        _checkConversion(right, leftType)
+        checkConversion(right, leftType)
         return
       }
 
       case .ASSIGN_ADD, .ASSIGN_SUBTRACT, .ASSIGN_MULTIPLY, .ASSIGN_DIVIDE {
         node.resolvedType =
-          isSame && leftType in BOOL_AND_INT_AND_FLOAT_TYPES ? leftType :
+          isSame && leftType.isBoolOrIntOrFloat ? leftType :
 
-          leftType in FLOAT_TYPES && rightType == .FLOAT ? leftType :
-          leftType in INT_TYPES && rightType == .INT ? leftType :
+          leftType.isFloat && rightType == .FLOAT ? leftType :
+          leftType.isInt && rightType == .INT ? leftType :
 
           node.kind == .ASSIGN_MULTIPLY && (
             leftType == .VEC2 && rightType == .MAT2 ||
@@ -322,25 +334,27 @@ class GLSLX.Resolver {
 
       case .INDEX {
         if rightType == .INT {
-          switch leftType {
-            case .BVEC2, .BVEC3, .BVEC4 { node.resolvedType = .BOOL }
-            case .IVEC2, .IVEC3, .IVEC4 { node.resolvedType = .INT }
-            case .VEC2, .VEC3, .VEC4 { node.resolvedType = .FLOAT }
+          var indexType = leftType.indexType
+          if indexType != null {
+            node.resolvedType = indexType
+          }
 
-            case .MAT2 { node.resolvedType = .VEC2 }
-            case .MAT3 { node.resolvedType = .VEC3 }
-            case .MAT4 { node.resolvedType = .VEC4 }
+          # Run bounds checking on the constant-folded value
+          var folded = Folder.fold(right)
+          if folded != null && folded.kind == .INT {
+            var value = folded.asInt
+            var count = leftType.indexCount
 
-            default {
-              if leftType.isArrayOf != null {
-                node.resolvedType = leftType.isArrayOf
-              }
+            # Negative indices are always invalid even if the array size is unknown
+            if value < 0 || count != 0 && value >= count {
+              _log.semanticErrorOutOfBoundsIndex(right.range, value, leftType)
             }
           }
         }
       }
     }
 
+    # If we get here, show an error about an invalid operator
     if node.resolvedType == .ERROR && leftType != .ERROR && rightType != .ERROR {
       if node.kind == .INDEX {
         _log.semanticErrorBadIndex(node.internalRange, leftType, rightType)
@@ -352,7 +366,7 @@ class GLSLX.Resolver {
 
   def _resolveCall(node Node) {
     var callTarget = node.callTarget
-    _resolve(callTarget)
+    resolveNode(callTarget)
 
     var type = callTarget.resolvedType
     var symbol = type.symbol
@@ -388,27 +402,6 @@ class GLSLX.Resolver {
     }
   }
 
-  def _componentCount(type Type) int {
-    switch type {
-      case .BOOL, .FLOAT, .INT { return 1 }
-      case .BVEC2, .VEC2, .IVEC2 { return 2 }
-      case .BVEC3, .VEC3, .IVEC3 { return 3 }
-      case .BVEC4, .VEC4, .IVEC4, .MAT2 { return 4 }
-      case .MAT3 { return 9 }
-      case .MAT4 { return 16 }
-      default { return 0 }
-    }
-  }
-
-  def _componentBaseType(type Type) Type {
-    switch type {
-      case .BOOL, .BVEC2, .BVEC3, .BVEC4 { return .BOOL }
-      case .FLOAT, .VEC2, .VEC3, .VEC4, .MAT2, .MAT3, .MAT4 { return .FLOAT }
-      case .INT, .IVEC2, .IVEC3, .IVEC4 { return .INT }
-      default { return null }
-    }
-  }
-
   def _resolveDot(node Node) {
     var dotTarget = node.dotTarget
     var name = node.asString
@@ -418,24 +411,16 @@ class GLSLX.Resolver {
     var type = dotTarget.resolvedType
     var isAssignTarget = node.isAssignTarget
     switch type {
-      case .BVEC2 { node.resolvedType = _validateSwizzle(range, type, name, SWIZZLE_STRINGS_2, SWIZZLE_TYPES_B, isAssignTarget) }
-      case .IVEC2 { node.resolvedType = _validateSwizzle(range, type, name, SWIZZLE_STRINGS_2, SWIZZLE_TYPES_I, isAssignTarget) }
-      case .VEC2 { node.resolvedType = _validateSwizzle(range, type, name, SWIZZLE_STRINGS_2, SWIZZLE_TYPES_F, isAssignTarget) }
-
-      case .BVEC3 { node.resolvedType = _validateSwizzle(range, type, name, SWIZZLE_STRINGS_3, SWIZZLE_TYPES_B, isAssignTarget) }
-      case .IVEC3 { node.resolvedType = _validateSwizzle(range, type, name, SWIZZLE_STRINGS_3, SWIZZLE_TYPES_I, isAssignTarget) }
-      case .VEC3 { node.resolvedType = _validateSwizzle(range, type, name, SWIZZLE_STRINGS_3, SWIZZLE_TYPES_F, isAssignTarget) }
-
-      case .BVEC4 { node.resolvedType = _validateSwizzle(range, type, name, SWIZZLE_STRINGS_4, SWIZZLE_TYPES_B, isAssignTarget) }
-      case .IVEC4 { node.resolvedType = _validateSwizzle(range, type, name, SWIZZLE_STRINGS_4, SWIZZLE_TYPES_I, isAssignTarget) }
-      case .VEC4 { node.resolvedType = _validateSwizzle(range, type, name, SWIZZLE_STRINGS_4, SWIZZLE_TYPES_F, isAssignTarget) }
+      case .BVEC2, .IVEC2, .VEC2, .BVEC3, .IVEC3, .VEC3, .BVEC4, .IVEC4, .VEC4 {
+        node.resolvedType = _validateSwizzle(range, type, name, isAssignTarget)
+      }
 
       default {
         if type.symbol != null && type.symbol.isStruct {
           for variable in type.symbol.asStruct.variables {
             if variable.name == name {
               node.symbol = variable
-              _resolve(variable.type)
+              resolveNode(variable.type)
               node.resolvedType = variable.type.resolvedType
               break
             }
@@ -480,8 +465,8 @@ class GLSLX.Resolver {
             for i in 0..arguments.count {
               var from = overload.arguments[i].type.resolvedType
               var to = arguments[i].resolvedType
-              var fromSize = _sizeOfType(from)
-              var toSize = _sizeOfType(to)
+              var fromSize = from.componentCount
+              var toSize = to.componentCount
               if from != to && (fromSize == 0 || toSize == 0 || fromSize != toSize) {
                 return true
               }
@@ -505,7 +490,7 @@ class GLSLX.Resolver {
         arguments.count, overload.name, overload.range)
     } else {
       for i in 0..arguments.count {
-        _checkConversion(arguments[i], overload.arguments[i].type.resolvedType)
+        checkConversion(arguments[i], overload.arguments[i].type.resolvedType)
       }
     }
     node.callTarget.symbol = overload
@@ -519,20 +504,20 @@ class GLSLX.Resolver {
       return
     }
 
-    if type in BOOL_AND_INT_AND_FLOAT_TYPES {
-      var count = _componentCount(type)
+    if type.isBoolOrIntOrFloat {
+      var count = type.componentCount
 
       # Visit each argument and make sure it's useful toward construction
       var providedCount = 0
       for argument in arguments {
         var argumentType = argument.resolvedType
-        if !(argumentType in BOOL_AND_INT_AND_FLOAT_TYPES) {
+        if !(argumentType.isBoolOrIntOrFloat) {
           if argumentType != .ERROR {
             _log.semanticErrorBadConstructorValue(argument.range, argumentType, type)
           }
           return
         }
-        providedCount += _componentCount(argumentType)
+        providedCount += argumentType.componentCount
       }
 
       # Passing extra values to a constructor is allowed
@@ -540,7 +525,7 @@ class GLSLX.Resolver {
         _log.semanticWarningExtraConstructorValues(node.internalRange, type, providedCount, count)
       }
 
-      # Validate the count
+      # Validate the count (matrices also have special diagonal constructors)
       else if providedCount != count && providedCount != 1 &&
           (providedCount != 2 || type != .MAT2) &&
           (providedCount != 3 || type != .MAT3) &&
@@ -564,58 +549,19 @@ class GLSLX.Resolver {
 
     # Validate argument types
     for i in 0..variableCount {
-      _checkConversion(arguments[i], variables[i].type.resolvedType)
+      checkConversion(arguments[i], variables[i].type.resolvedType)
     }
   }
 
-  const SWIZZLE_STRINGS_2 = ["xy", "st", "rg"]
-  const SWIZZLE_STRINGS_3 = ["xyz", "stp", "rgb"]
-  const SWIZZLE_STRINGS_4 = ["xyzw", "stpq", "rgba"]
-
-  const SWIZZLE_TYPES_B List<Type> = [.BOOL, .BVEC2, .BVEC3, .BVEC4]
-  const SWIZZLE_TYPES_F List<Type> = [.FLOAT, .VEC2, .VEC3, .VEC4]
-  const SWIZZLE_TYPES_I List<Type> = [.INT, .IVEC2, .IVEC3, .IVEC4]
-
-  const INT_TYPES List<Type> = [
-    .INT, .IVEC2, .IVEC3, .IVEC4,
-  ]
-
-  const FLOAT_TYPES List<Type> = [
-    .FLOAT, .VEC2, .VEC3, .VEC4,
-    .MAT2, .MAT3, .MAT4,
-  ]
-
-  const INT_AND_FLOAT_TYPES List<Type> = [
-    .FLOAT, .VEC2, .VEC3, .VEC4,
-    .INT, .IVEC2, .IVEC3, .IVEC4,
-    .MAT2, .MAT3, .MAT4,
-  ]
-
-  const BOOL_AND_INT_AND_FLOAT_TYPES List<Type> = [
-    .BOOL, .BVEC2, .BVEC3, .BVEC4,
-    .FLOAT, .VEC2, .VEC3, .VEC4,
-    .INT, .IVEC2, .IVEC3, .IVEC4,
-    .MAT2, .MAT3, .MAT4,
-  ]
-
-  def _sizeOfType(type Type) int {
-    switch type {
-      case .BOOL, .FLOAT, .INT { return 1 }
-      case .BVEC2, .IVEC2, .VEC2 { return 2 }
-      case .BVEC3, .IVEC3, .VEC3 { return 3 }
-      case .BVEC4, .IVEC4, .VEC4 { return 4 }
-      default { return 0 }
-    }
-  }
-
-  def _validateSwizzle(range Range, type Type, name string, swizzleStrings List<string>, swizzleTypes List<Type>, isAssignTarget bool) Type {
+  def _validateSwizzle(range Range, type Type, name string, isAssignTarget bool) Type {
     var count = name.count
     if count > 4 {
       _log.semanticErrorBadSwizzle(range, type, name)
       return .ERROR
     }
 
-    for set in swizzleStrings {
+    var componentCount = type.componentCount
+    for set in Swizzle.strings(componentCount) {
       if name.get(0) in set {
         for i in 1..count {
           if !(name.get(i) in set) {
@@ -627,7 +573,7 @@ class GLSLX.Resolver {
             return .ERROR
           }
         }
-        return swizzleTypes[count - 1]
+        return Swizzle.type(type.componentType, count)
       }
     }
 
@@ -636,7 +582,7 @@ class GLSLX.Resolver {
   }
 
   def _resolveAsExpression(node Node) {
-    _resolve(node)
+    resolveNode(node)
     if node.kind == .TYPE && node.resolvedType != .ERROR {
       _log.semanticErrorUnexpectedType(node.range, node.resolvedType)
       node.resolvedType = .ERROR
@@ -645,7 +591,7 @@ class GLSLX.Resolver {
 
   def _resolveChildren(node Node) {
     for child = node.firstChild; child != null; child = child.nextSibling {
-      _resolve(child)
+      resolveNode(child)
     }
   }
 
@@ -678,7 +624,7 @@ class GLSLX.Resolver {
     }
   }
 
-  def _checkConversion(node Node, type Type) {
+  def checkConversion(node Node, type Type) {
     if node.resolvedType != type && node.resolvedType != .ERROR && type != .ERROR {
       _log.semanticErrorBadConversion(node.range, node.resolvedType, type)
       node.resolvedType = .ERROR

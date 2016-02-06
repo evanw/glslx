@@ -138,6 +138,18 @@ namespace GLSLX {
     def syntaxErrorBadQualifier(range Range) {
       error(range, "Cannot use this qualifier here")
     }
+
+    def syntaxErrorConstantRequired(range Range) {
+      error(range, "This value must be a compile-time constant")
+    }
+
+    def syntaxErrorInvalidArraySize(range Range, count int) {
+      error(range, "Cannot declare an array with a size of \"\(count)\"")
+    }
+
+    def syntaxErrorInvalidOperator(range Range) {
+      error(range, "The operator \"\(range)\" is reserved and cannot be used")
+    }
   }
 
   class Log {
@@ -218,6 +230,10 @@ namespace GLSLX {
 
     def semanticErrorBadIndex(range Range, left Type, right Type) {
       error(range, "No index operator for type \"\(left)\" and type \"\(right)\"")
+    }
+
+    def semanticErrorOutOfBoundsIndex(range Range, value int, type Type) {
+      error(range, "Index \"\(value)\" is out of bounds for type \"\(type)\"")
     }
 
     def semanticErrorBadStorage(range Range) {

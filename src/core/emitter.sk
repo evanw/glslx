@@ -307,9 +307,9 @@ class GLSLX.Emitter {
 
   def _emit(variable VariableSymbol) {
     _emit(variable.name)
-    if variable.arraySize != null {
+    if variable.arrayCount != null {
       _emit("[")
-      _emit(variable.arraySize, .LOWEST)
+      _emit(variable.arrayCount, .LOWEST)
       _emit("]")
     }
     if variable.value != null {
@@ -422,7 +422,6 @@ class GLSLX.Emitter {
         _emit("]")
       }
 
-      case .COMPLEMENT { _emitUnaryPrefix("~", node, precedence) }
       case .NEGATIVE { _emitUnaryPrefix("-", node, precedence) }
       case .NOT { _emitUnaryPrefix("!", node, precedence) }
       case .POSITIVE { _emitUnaryPrefix("+", node, precedence) }
@@ -434,9 +433,6 @@ class GLSLX.Emitter {
       case .POSTFIX_INCREMENT { _emitUnaryPostfix("++", node, precedence) }
 
       case .ADD { _emitBinary("+", node, precedence, .ADD) }
-      case .BITWISE_AND { _emitBinary("&", node, precedence, .BITWISE_AND) }
-      case .BITWISE_OR { _emitBinary("|", node, precedence, .BITWISE_OR) }
-      case .BITWISE_XOR { _emitBinary("^", node, precedence, .BITWISE_XOR) }
       case .DIVIDE { _emitBinary("/", node, precedence, .MULTIPLY) }
       case .EQUAL { _emitBinary("==", node, precedence, .COMPARE) }
       case .GREATER_THAN { _emitBinary(">", node, precedence, .COMPARE) }
@@ -448,21 +444,12 @@ class GLSLX.Emitter {
       case .LOGICAL_XOR { _emitBinary("^^", node, precedence, .LOGICAL_XOR) }
       case .MULTIPLY { _emitBinary("*", node, precedence, .MULTIPLY) }
       case .NOT_EQUAL { _emitBinary("!=", node, precedence, .COMPARE) }
-      case .REMAINDER { _emitBinary("%", node, precedence, .MULTIPLY) }
-      case .SHIFT_LEFT { _emitBinary("<<", node, precedence, .SHIFT) }
-      case .SHIFT_RIGHT { _emitBinary(">>", node, precedence, .SHIFT) }
       case .SUBTRACT { _emitBinary("-", node, precedence, .ADD) }
 
       case .ASSIGN { _emitBinary("=", node, precedence, .ASSIGN) }
       case .ASSIGN_ADD { _emitBinary("+=", node, precedence, .ASSIGN) }
-      case .ASSIGN_BITWISE_AND { _emitBinary("&=", node, precedence, .ASSIGN) }
-      case .ASSIGN_BITWISE_OR { _emitBinary("|=", node, precedence, .ASSIGN) }
-      case .ASSIGN_BITWISE_XOR { _emitBinary("^=", node, precedence, .ASSIGN) }
       case .ASSIGN_DIVIDE { _emitBinary("/=", node, precedence, .ASSIGN) }
       case .ASSIGN_MULTIPLY { _emitBinary("*=", node, precedence, .ASSIGN) }
-      case .ASSIGN_REMAINDER { _emitBinary("%=", node, precedence, .ASSIGN) }
-      case .ASSIGN_SHIFT_LEFT { _emitBinary("<<=", node, precedence, .ASSIGN) }
-      case .ASSIGN_SHIFT_RIGHT { _emitBinary(">>=", node, precedence, .ASSIGN) }
       case .ASSIGN_SUBTRACT { _emitBinary("-=", node, precedence, .ASSIGN) }
 
       default {

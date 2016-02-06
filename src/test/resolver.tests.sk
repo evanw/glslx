@@ -155,6 +155,118 @@ void main() {
 }
 ")
 
+# Test matrix constructors, includes special diagonal constructor
+test("
+void main() {
+  mat2(0.0);
+  mat2(0.0, 0.0);
+  mat2(0.0, 0.0, 0.0);
+  mat2(0.0, 0.0, 0.0, 0.0);
+
+  mat3(0.0);
+  mat3(0.0, 0.0);
+  mat3(0.0, 0.0, 0.0);
+  mat3(0.0, 0.0, 0.0, 0.0);
+  mat3(
+    0.0, 0.0, 0.0,
+    0.0, 0.0, 0.0,
+    0.0, 0.0, 0.0);
+
+  mat4(0.0);
+  mat4(0.0, 0.0);
+  mat4(0.0, 0.0, 0.0);
+  mat4(0.0, 0.0, 0.0, 0.0);
+  mat4(
+    0.0, 0.0, 0.0, 0.0,
+    0.0, 0.0, 0.0, 0.0,
+    0.0, 0.0, 0.0, 0.0,
+    0.0, 0.0, 0.0, 0.0);
+}
+", "
+<stdin>:4:7: error: Cannot construct type \"mat2\" with 3 values
+  mat2(0.0, 0.0, 0.0);
+      ~~~~~~~~~~~~~~~
+<stdin>:8:7: error: Cannot construct type \"mat3\" with 2 values
+  mat3(0.0, 0.0);
+      ~~~~~~~~~~
+<stdin>:10:7: error: Cannot construct type \"mat3\" with 4 values
+  mat3(0.0, 0.0, 0.0, 0.0);
+      ~~~~~~~~~~~~~~~~~~~~
+<stdin>:17:7: error: Cannot construct type \"mat4\" with 2 values
+  mat4(0.0, 0.0);
+      ~~~~~~~~~~
+<stdin>:18:7: error: Cannot construct type \"mat4\" with 3 values
+  mat4(0.0, 0.0, 0.0);
+      ~~~~~~~~~~~~~~~
+")
+
+# Empty constructors are not allowed
+test("
+void main() {
+  bool();
+  int();
+  float();
+  ivec2();
+  ivec3();
+  ivec4();
+  bvec2();
+  bvec3();
+  bvec4();
+  vec2();
+  vec3();
+  vec4();
+  mat2();
+  mat3();
+  mat4();
+}
+", "
+<stdin>:2:7: error: Cannot construct type \"bool\" with 0 values
+  bool();
+      ~~
+<stdin>:3:6: error: Cannot construct type \"int\" with 0 values
+  int();
+     ~~
+<stdin>:4:8: error: Cannot construct type \"float\" with 0 values
+  float();
+       ~~
+<stdin>:5:8: error: Cannot construct type \"ivec2\" with 0 values
+  ivec2();
+       ~~
+<stdin>:6:8: error: Cannot construct type \"ivec3\" with 0 values
+  ivec3();
+       ~~
+<stdin>:7:8: error: Cannot construct type \"ivec4\" with 0 values
+  ivec4();
+       ~~
+<stdin>:8:8: error: Cannot construct type \"bvec2\" with 0 values
+  bvec2();
+       ~~
+<stdin>:9:8: error: Cannot construct type \"bvec3\" with 0 values
+  bvec3();
+       ~~
+<stdin>:10:8: error: Cannot construct type \"bvec4\" with 0 values
+  bvec4();
+       ~~
+<stdin>:11:7: error: Cannot construct type \"vec2\" with 0 values
+  vec2();
+      ~~
+<stdin>:12:7: error: Cannot construct type \"vec3\" with 0 values
+  vec3();
+      ~~
+<stdin>:13:7: error: Cannot construct type \"vec4\" with 0 values
+  vec4();
+      ~~
+<stdin>:14:7: error: Cannot construct type \"mat2\" with 0 values
+  mat2();
+      ~~
+<stdin>:15:7: error: Cannot construct type \"mat3\" with 0 values
+  mat3();
+      ~~
+<stdin>:16:7: error: Cannot construct type \"mat4\" with 0 values
+  mat4();
+      ~~
+")
+
 # Test matrix-matrix multiplications
 test("
 void main() {
@@ -1568,7 +1680,7 @@ void main(vec2 v2, vec3 v3, vec4 v4, mat2 m2, mat3 m3, mat4 m4) {
      ~~
 ")
 
-# Indexing type checking
+# Index type checking
 test("
 void main() {
   0[0];
@@ -1581,6 +1693,95 @@ void main() {
 <stdin>:3:12: error: No index operator for type \"vec2\" and type \"bool\"
   vec2(0.0)[false];
            ~~~~~~~
+")
+
+# Index type range checking
+test("
+void main() {
+  int x[-1];
+  int y[0];
+  int z[1];
+}
+", "
+<stdin>:2:9: error: Cannot declare an array with a size of \"-1\"
+  int x[-1];
+        ~~
+<stdin>:3:9: error: Cannot declare an array with a size of \"0\"
+  int y[0];
+        ^
+")
+
+# Index range checking
+test("
+void main() {
+  const int N = 2;
+  int x[2];
+  int y[N];
+  vec2 v;
+  mat2 m;
+  x[0] = x[1];
+  y[0] = y[1];
+  v[0] = v[1];
+  m[0] = m[1];
+  m[0][1] = m[1][0];
+  x[-1] = x[2];
+  y[-1] = y[2];
+  v[-1] = v[2];
+  m[-1] = m[2];
+  m[-1][2] = m[2][-1];
+}
+", "
+<stdin>:12:5: error: Index \"-1\" is out of bounds for type \"int[2]\"
+  x[-1] = x[2];
+    ~~
+<stdin>:12:13: error: Index \"2\" is out of bounds for type \"int[2]\"
+  x[-1] = x[2];
+            ^
+<stdin>:13:5: error: Index \"-1\" is out of bounds for type \"int[2]\"
+  y[-1] = y[2];
+    ~~
+<stdin>:13:13: error: Index \"2\" is out of bounds for type \"int[2]\"
+  y[-1] = y[2];
+            ^
+<stdin>:14:5: error: Index \"-1\" is out of bounds for type \"vec2\"
+  v[-1] = v[2];
+    ~~
+<stdin>:14:13: error: Index \"2\" is out of bounds for type \"vec2\"
+  v[-1] = v[2];
+            ^
+<stdin>:15:5: error: Index \"-1\" is out of bounds for type \"mat2\"
+  m[-1] = m[2];
+    ~~
+<stdin>:15:13: error: Index \"2\" is out of bounds for type \"mat2\"
+  m[-1] = m[2];
+            ^
+<stdin>:16:5: error: Index \"-1\" is out of bounds for type \"mat2\"
+  m[-1][2] = m[2][-1];
+    ~~
+<stdin>:16:9: error: Index \"2\" is out of bounds for type \"vec2\"
+  m[-1][2] = m[2][-1];
+        ^
+<stdin>:16:16: error: Index \"2\" is out of bounds for type \"mat2\"
+  m[-1][2] = m[2][-1];
+               ^
+<stdin>:16:19: error: Index \"-1\" is out of bounds for type \"vec2\"
+  m[-1][2] = m[2][-1];
+                  ~~
+")
+
+# Avoid emitting index range checks for unknown sizes
+test("
+const int unknownCount;
+float unknownArray[unknownCount];
+
+void main() {
+  unknownArray[0] = unknownArray[1];
+  unknownArray[-1] = unknownArray[2];
+}
+", "
+<stdin>:6:16: error: Index \"-1\" is out of bounds for type \"float[]\"
+  unknownArray[-1] = unknownArray[2];
+               ~~
 ")
 
 # Check types of indexed values
@@ -1652,6 +1853,212 @@ void main() {
 <stdin>:20:13: error: Cannot convert from type \"bool\" to type \"int\"
   int b40 = bvec4(false)[0];
             ~~~~~~~~~~~~~~~
+")
+
+# Check single swizzles
+test("
+void main(vec2 v2, vec3 v3, vec4 v4) {
+  int v20 = v2.x + v2.r + v2.s;
+  int v21 = v2.y + v2.g + v2.t;
+  int v22 = v2.z + v2.b + v2.p;
+  int v23 = v2.w + v2.a + v2.q;
+
+  int v30 = v3.x + v3.r + v3.s;
+  int v31 = v3.y + v3.g + v3.t;
+  int v32 = v3.z + v3.b + v3.p;
+  int v33 = v3.w + v3.a + v3.q;
+
+  int v40 = v4.x + v4.r + v4.s;
+  int v41 = v4.y + v4.g + v4.t;
+  int v42 = v4.z + v4.b + v4.p;
+  int v43 = v4.w + v4.a + v4.q;
+}
+", "
+<stdin>:2:13: error: Cannot convert from type \"float\" to type \"int\"
+  int v20 = v2.x + v2.r + v2.s;
+            ~~~~~~~~~~~~~~~~~~
+<stdin>:3:13: error: Cannot convert from type \"float\" to type \"int\"
+  int v21 = v2.y + v2.g + v2.t;
+            ~~~~~~~~~~~~~~~~~~
+<stdin>:4:16: error: Invalid swizzle \"z\" on type \"vec2\"
+  int v22 = v2.z + v2.b + v2.p;
+               ^
+<stdin>:4:23: error: Invalid swizzle \"b\" on type \"vec2\"
+  int v22 = v2.z + v2.b + v2.p;
+                      ^
+<stdin>:4:30: error: Invalid swizzle \"p\" on type \"vec2\"
+  int v22 = v2.z + v2.b + v2.p;
+                             ^
+<stdin>:5:16: error: Invalid swizzle \"w\" on type \"vec2\"
+  int v23 = v2.w + v2.a + v2.q;
+               ^
+<stdin>:5:23: error: Invalid swizzle \"a\" on type \"vec2\"
+  int v23 = v2.w + v2.a + v2.q;
+                      ^
+<stdin>:5:30: error: Invalid swizzle \"q\" on type \"vec2\"
+  int v23 = v2.w + v2.a + v2.q;
+                             ^
+<stdin>:7:13: error: Cannot convert from type \"float\" to type \"int\"
+  int v30 = v3.x + v3.r + v3.s;
+            ~~~~~~~~~~~~~~~~~~
+<stdin>:8:13: error: Cannot convert from type \"float\" to type \"int\"
+  int v31 = v3.y + v3.g + v3.t;
+            ~~~~~~~~~~~~~~~~~~
+<stdin>:9:13: error: Cannot convert from type \"float\" to type \"int\"
+  int v32 = v3.z + v3.b + v3.p;
+            ~~~~~~~~~~~~~~~~~~
+<stdin>:10:16: error: Invalid swizzle \"w\" on type \"vec3\"
+  int v33 = v3.w + v3.a + v3.q;
+               ^
+<stdin>:10:23: error: Invalid swizzle \"a\" on type \"vec3\"
+  int v33 = v3.w + v3.a + v3.q;
+                      ^
+<stdin>:10:30: error: Invalid swizzle \"q\" on type \"vec3\"
+  int v33 = v3.w + v3.a + v3.q;
+                             ^
+<stdin>:12:13: error: Cannot convert from type \"float\" to type \"int\"
+  int v40 = v4.x + v4.r + v4.s;
+            ~~~~~~~~~~~~~~~~~~
+<stdin>:13:13: error: Cannot convert from type \"float\" to type \"int\"
+  int v41 = v4.y + v4.g + v4.t;
+            ~~~~~~~~~~~~~~~~~~
+<stdin>:14:13: error: Cannot convert from type \"float\" to type \"int\"
+  int v42 = v4.z + v4.b + v4.p;
+            ~~~~~~~~~~~~~~~~~~
+<stdin>:15:13: error: Cannot convert from type \"float\" to type \"int\"
+  int v43 = v4.w + v4.a + v4.q;
+            ~~~~~~~~~~~~~~~~~~
+")
+
+# Check compound swizzles
+test("
+void main(vec2 v2, vec3 v3, vec4 v4) {
+  int v2xy = v2.xy + v2.yx;
+  int v3xyz = v3.xyz + v3.xzy + v3.yxz + v3.yzx + v3.zxy + v3.zyx;
+  int v4xyzw = v4.xyzw + v4.wxyz + v4.zwxy + v4.yzwx;
+
+  int v234rr = v2.rr + v2.rr + v4.rr;
+  int v234ssst = v2.ssst + v2.ssst + v4.ssst;
+
+  int v2xyz = v2.xyz + v2.zyx;
+  int v3xyzw = v3.xyzw + v3.wzyx;
+
+  v2.rr = v3.rr;
+  v3.sts = v4.sts;
+  v4.xx = v2.xx;
+}
+", "
+<stdin>:2:14: error: Cannot convert from type \"vec2\" to type \"int\"
+  int v2xy = v2.xy + v2.yx;
+             ~~~~~~~~~~~~~
+<stdin>:3:15: error: Cannot convert from type \"vec3\" to type \"int\"
+  int v3xyz = v3.xyz + v3.xzy + v3.yxz + v3.yzx + v3.zxy + v3.zyx;
+              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+<stdin>:4:16: error: Cannot convert from type \"vec4\" to type \"int\"
+  int v4xyzw = v4.xyzw + v4.wxyz + v4.zwxy + v4.yzwx;
+               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+<stdin>:6:16: error: Cannot convert from type \"vec2\" to type \"int\"
+  int v234rr = v2.rr + v2.rr + v4.rr;
+               ~~~~~~~~~~~~~~~~~~~~~
+<stdin>:7:18: error: Cannot convert from type \"vec4\" to type \"int\"
+  int v234ssst = v2.ssst + v2.ssst + v4.ssst;
+                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+<stdin>:9:18: error: Invalid swizzle \"xyz\" on type \"vec2\"
+  int v2xyz = v2.xyz + v2.zyx;
+                 ~~~
+<stdin>:9:27: error: Invalid swizzle \"zyx\" on type \"vec2\"
+  int v2xyz = v2.xyz + v2.zyx;
+                          ~~~
+<stdin>:10:19: error: Invalid swizzle \"xyzw\" on type \"vec3\"
+  int v3xyzw = v3.xyzw + v3.wzyx;
+                  ~~~~
+<stdin>:10:29: error: Invalid swizzle \"wzyx\" on type \"vec3\"
+  int v3xyzw = v3.xyzw + v3.wzyx;
+                            ~~~~
+<stdin>:12:7: error: The field \"r\" cannot be specified multiple times when used as a storage location
+  v2.rr = v3.rr;
+      ^
+<stdin>:13:8: error: The field \"s\" cannot be specified multiple times when used as a storage location
+  v3.sts = v4.sts;
+       ^
+<stdin>:14:7: error: The field \"x\" cannot be specified multiple times when used as a storage location
+  v4.xx = v2.xx;
+      ^
+")
+
+# Swizzles larger than four values are not allowed
+test("
+void main(vec2 v2, vec3 v3, vec4 v4) {
+  v2.xyxyx;
+  v3.xyzxy;
+  v4.xyzwx;
+}
+", "
+<stdin>:2:6: error: Invalid swizzle \"xyxyx\" on type \"vec2\"
+  v2.xyxyx;
+     ~~~~~
+<stdin>:3:6: error: Invalid swizzle \"xyzxy\" on type \"vec3\"
+  v3.xyzxy;
+     ~~~~~
+<stdin>:4:6: error: Invalid swizzle \"xyzwx\" on type \"vec4\"
+  v4.xyzwx;
+     ~~~~~
+")
+
+# Scalar swizzles are not allowed
+test("
+void main(bool b, int i, float f) {
+  b.x;
+  i.r;
+  f.s;
+}
+", "
+<stdin>:2:5: error: Cannot find \"x\" on type \"bool\"
+  b.x;
+    ^
+<stdin>:3:5: error: Cannot find \"r\" on type \"int\"
+  i.r;
+    ^
+<stdin>:4:5: error: Cannot find \"s\" on type \"float\"
+  f.s;
+    ^
+")
+
+# Scalar swizzles with values from different sets are not allowed
+test("
+void main(vec2 v2, vec3 v3, vec4 v4) {
+  v2.xs;
+  v3.xs;
+  v4.xs;
+}
+", "
+<stdin>:2:6: error: Invalid swizzle \"xs\" on type \"vec2\"
+  v2.xs;
+     ~~
+<stdin>:3:6: error: Invalid swizzle \"xs\" on type \"vec3\"
+  v3.xs;
+     ~~
+<stdin>:4:6: error: Invalid swizzle \"xs\" on type \"vec4\"
+  v4.xs;
+     ~~
+")
+
+# Test overloading error messages
+test("
+void foo(vec2 x);
+void foo(ivec3 x);
+
+void main() {
+  foo(1, 2);
+  foo(ivec2(1, 2));
+}
+", "
+<stdin>:5:3: error: No matching overload for function \"foo\"
+  foo(1, 2);
+  ~~~
+<stdin>:6:7: error: Cannot convert from type \"ivec2\" to type \"vec2\"
+  foo(ivec2(1, 2));
+      ~~~~~~~~~~~
 ")
 
   }

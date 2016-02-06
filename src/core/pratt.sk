@@ -21,9 +21,10 @@ namespace GLSLX {
   }
 
   class ParserContext {
-    var log Log
-    var _tokens List<Token>
-    var compilationData CompilerData
+    const log Log
+    const _tokens List<Token>
+    const compilationData CompilerData
+    const resolver Resolver
     var flags SymbolFlags = 0
     var _index = 0
     var _scope Scope = null

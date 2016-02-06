@@ -23,6 +23,16 @@ namespace GLSLX.Parser {
   def createExpressionParser Pratt {
     var pratt = Pratt.new
 
+    var invalidUnaryOperator = (context ParserContext, token Token, value Node) Node => {
+      context.log.syntaxErrorInvalidOperator(token.range)
+      return Node.createUnknownConstant(.ERROR).withRange(Range.span(token.range, value.range))
+    }
+
+    var invalidBinaryOperator = (context ParserContext, left Node, token Token, right Node) Node => {
+      context.log.syntaxErrorInvalidOperator(token.range)
+      return Node.createUnknownConstant(.ERROR).withRange(Range.span(left.range, right.range))
+    }
+
     pratt.literal(.TRUE, (context, token) => Node.createBool(true).withRange(token.range))
     pratt.literal(.FALSE, (context, token) => Node.createBool(false).withRange(token.range))
     pratt.literal(.INT_LITERAL, (context, token) => Node.createInt((token.range.toString as dynamic) | 0).withRange(token.range))
@@ -45,7 +55,7 @@ namespace GLSLX.Parser {
     pratt.literal(.VEC4, typeParselet(.VEC4))
     pratt.literal(.VOID, typeParselet(.VOID))
 
-    pratt.prefix(.COMPLEMENT, .UNARY_PREFIX, unaryPrefix(.COMPLEMENT))
+    pratt.prefix(.COMPLEMENT, .UNARY_PREFIX, invalidUnaryOperator)
     pratt.prefix(.DECREMENT, .UNARY_PREFIX, unaryPrefix(.PREFIX_DECREMENT))
     pratt.prefix(.INCREMENT, .UNARY_PREFIX, unaryPrefix(.PREFIX_INCREMENT))
     pratt.prefix(.MINUS, .UNARY_PREFIX, unaryPrefix(.NEGATIVE))
@@ -65,26 +75,26 @@ namespace GLSLX.Parser {
     pratt.infix(.MULTIPLY, .MULTIPLY, binaryParselet(.MULTIPLY))
     pratt.infix(.NOT_EQUAL, .COMPARE, binaryParselet(.NOT_EQUAL))
     pratt.infix(.PLUS, .ADD, binaryParselet(.ADD))
-    pratt.infix(.REMAINDER, .MULTIPLY, binaryParselet(.REMAINDER))
-    pratt.infix(.SHIFT_LEFT, .SHIFT, binaryParselet(.SHIFT_LEFT))
-    pratt.infix(.SHIFT_RIGHT, .SHIFT, binaryParselet(.SHIFT_RIGHT))
+    pratt.infix(.REMAINDER, .MULTIPLY, invalidBinaryOperator)
+    pratt.infix(.SHIFT_LEFT, .SHIFT, invalidBinaryOperator)
+    pratt.infix(.SHIFT_RIGHT, .SHIFT, invalidBinaryOperator)
     pratt.infix(.LOGICAL_OR, .LOGICAL_OR, binaryParselet(.LOGICAL_OR))
     pratt.infix(.LOGICAL_XOR, .LOGICAL_XOR, binaryParselet(.LOGICAL_XOR))
     pratt.infix(.LOGICAL_AND, .LOGICAL_AND, binaryParselet(.LOGICAL_AND))
-    pratt.infix(.BITWISE_AND, .BITWISE_AND, binaryParselet(.BITWISE_AND))
-    pratt.infix(.BITWISE_OR, .BITWISE_OR, binaryParselet(.BITWISE_OR))
-    pratt.infix(.BITWISE_XOR, .BITWISE_XOR, binaryParselet(.BITWISE_XOR))
+    pratt.infix(.BITWISE_AND, .BITWISE_AND, invalidBinaryOperator)
+    pratt.infix(.BITWISE_OR, .BITWISE_OR, invalidBinaryOperator)
+    pratt.infix(.BITWISE_XOR, .BITWISE_XOR, invalidBinaryOperator)
 
     pratt.infixRight(.ASSIGN, .ASSIGN, binaryParselet(.ASSIGN))
     pratt.infixRight(.ASSIGN_ADD, .ASSIGN, binaryParselet(.ASSIGN_ADD))
-    pratt.infixRight(.ASSIGN_BITWISE_AND, .ASSIGN, binaryParselet(.ASSIGN_BITWISE_AND))
-    pratt.infixRight(.ASSIGN_BITWISE_OR, .ASSIGN, binaryParselet(.ASSIGN_BITWISE_OR))
-    pratt.infixRight(.ASSIGN_BITWISE_XOR, .ASSIGN, binaryParselet(.ASSIGN_BITWISE_XOR))
+    pratt.infixRight(.ASSIGN_BITWISE_AND, .ASSIGN, invalidBinaryOperator)
+    pratt.infixRight(.ASSIGN_BITWISE_OR, .ASSIGN, invalidBinaryOperator)
+    pratt.infixRight(.ASSIGN_BITWISE_XOR, .ASSIGN, invalidBinaryOperator)
     pratt.infixRight(.ASSIGN_DIVIDE, .ASSIGN, binaryParselet(.ASSIGN_DIVIDE))
     pratt.infixRight(.ASSIGN_MULTIPLY, .ASSIGN, binaryParselet(.ASSIGN_MULTIPLY))
-    pratt.infixRight(.ASSIGN_REMAINDER, .ASSIGN, binaryParselet(.ASSIGN_REMAINDER))
-    pratt.infixRight(.ASSIGN_SHIFT_LEFT, .ASSIGN, binaryParselet(.ASSIGN_SHIFT_LEFT))
-    pratt.infixRight(.ASSIGN_SHIFT_RIGHT, .ASSIGN, binaryParselet(.ASSIGN_SHIFT_RIGHT))
+    pratt.infixRight(.ASSIGN_REMAINDER, .ASSIGN, invalidBinaryOperator)
+    pratt.infixRight(.ASSIGN_SHIFT_LEFT, .ASSIGN, invalidBinaryOperator)
+    pratt.infixRight(.ASSIGN_SHIFT_RIGHT, .ASSIGN, invalidBinaryOperator)
     pratt.infixRight(.ASSIGN_SUBTRACT, .ASSIGN, binaryParselet(.ASSIGN_SUBTRACT))
 
     # Name
@@ -833,11 +843,30 @@ namespace GLSLX.Parser {
 
   def parseArraySize(context ParserContext, variable VariableSymbol) bool {
     if context.eat(.LEFT_BRACKET) {
-      variable.arraySize = pratt.parse(context, .LOWEST)
-      if variable.arraySize == null || !context.expect(.RIGHT_BRACKET) {
+      variable.arrayCount = pratt.parse(context, .LOWEST)
+      if variable.arrayCount == null || !context.expect(.RIGHT_BRACKET) {
         return false
       }
-      variable.type = Node.createType(variable.type.resolvedType.arrayType).withRange(variable.type.range)
+
+      # The array size must be resolved immediately
+      var count = 0
+      context.resolver.resolveNode(variable.arrayCount)
+      context.resolver.checkConversion(variable.arrayCount, .INT)
+      if variable.arrayCount.resolvedType != .ERROR {
+        var folded = Folder.fold(variable.arrayCount)
+        if folded == null {
+          context.log.syntaxErrorConstantRequired(variable.arrayCount.range)
+        } else if folded.kind == .INT {
+          var value = folded.asInt
+          if value < 1 {
+            context.log.syntaxErrorInvalidArraySize(variable.arrayCount.range, value)
+          } else {
+            count = value
+          }
+        }
+      }
+
+      variable.type = Node.createType(variable.type.resolvedType.arrayType(count)).withRange(variable.type.range)
     }
     return true
   }
@@ -845,28 +874,33 @@ namespace GLSLX.Parser {
   def parseVariables(flags int, type Node, name Range, context ParserContext) Node {
     var variables = Node.createVariables(context.flags | flags, type)
     while true {
-      var variable = VariableSymbol.new(context.compilationData.nextSymbolID, name, name.toString, context.scope,
+      var symbol = VariableSymbol.new(context.compilationData.nextSymbolID, name, name.toString, context.scope,
         context.scope.kind == .GLOBAL ? .GLOBAL :
         context.scope.kind == .STRUCT ? .STRUCT :
         .LOCAL)
-      variable.flags |= context.flags | flags
-      variable.type = type
-      tryToDefineUniquelyInScope(context, variable)
+      symbol.flags |= context.flags | flags
+      symbol.type = type
+      tryToDefineUniquelyInScope(context, symbol)
 
       # Initial value
       if context.eat(.ASSIGN) {
-        variable.value = pratt.parse(context, .COMMA)
-        if variable.value == null {
+        symbol.value = pratt.parse(context, .COMMA)
+        if symbol.value == null {
           return null
         }
       }
 
       # Array size
-      if !parseArraySize(context, variable) {
+      if !parseArraySize(context, symbol) {
         return null
       }
 
-      variables.appendChild(Node.createVariable(variable).withRange(context.spanSince(variable.range)))
+      # Constants must be resolved immediately
+      var variable = Node.createVariable(symbol).withRange(context.spanSince(symbol.range))
+      if symbol.kind == .LOCAL && symbol.isConst {
+        context.resolver.resolveNode(variable)
+      }
+      variables.appendChild(variable)
 
       if !context.eat(.COMMA) {
         if !context.expect(.SEMICOLON) {
@@ -915,12 +949,12 @@ namespace GLSLX.Parser {
     return true
   }
 
-  def parse(log Log, tokens List<Token>, global Node, data CompilerData, scope Scope) {
+  def parse(log Log, tokens List<Token>, global Node, data CompilerData, scope Scope, resolver Resolver) {
     if pratt == null {
       pratt = createExpressionParser
     }
 
-    var context = ParserContext.new(log, tokens, data)
+    var context = ParserContext.new(log, tokens, data, resolver)
     context.pushScope(scope)
     if parseStatements(context, global, .GLOBAL) {
       context.expect(.END_OF_FILE)

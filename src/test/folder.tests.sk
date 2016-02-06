@@ -1,0 +1,236 @@
+namespace GLSLX.Tests {
+  def testFolder {
+
+# Constants must be present at compile-time
+test("
+const int global;
+
+void main(int a, const int b) {
+  const int x = a;
+  const int y = b;
+  const int z = global;
+}
+", "
+<stdin>:4:17: error: This value must be a compile-time constant
+  const int x = a;
+                ^
+<stdin>:5:17: error: This value must be a compile-time constant
+  const int y = b;
+                ^
+")
+
+# Test constant expressions for primitives
+test("
+void main() {
+  int cast1[int(-1)];
+  int cast2[int(-1.0)];
+  int cast3[int(false)];
+
+  int hook1[true ? 1 : 0];
+  int hook2[false ? 1 : 0];
+
+  int negative[-1];
+  int positive[+1];
+  int not1[int(!true)];
+  int not2[int(!false)];
+
+  int add[1 + -2];
+  int subtract[1 - 2];
+  int multiply[2 * -3];
+  int divide[7 / -3];
+
+  int equal1[int(1 == 1)];
+  int equal2[int(1 == 2)];
+  int equal3[int(1 != 1)];
+  int equal4[int(1 != 2)];
+}
+", "
+<stdin>:2:13: error: Cannot declare an array with a size of \"-1\"
+  int cast1[int(-1)];
+            ~~~~~~~
+<stdin>:3:13: error: Cannot declare an array with a size of \"-1\"
+  int cast2[int(-1.0)];
+            ~~~~~~~~~
+<stdin>:4:13: error: Cannot declare an array with a size of \"0\"
+  int cast3[int(false)];
+            ~~~~~~~~~~
+<stdin>:7:13: error: Cannot declare an array with a size of \"0\"
+  int hook2[false ? 1 : 0];
+            ~~~~~~~~~~~~~
+<stdin>:9:16: error: Cannot declare an array with a size of \"-1\"
+  int negative[-1];
+               ~~
+<stdin>:11:12: error: Cannot declare an array with a size of \"0\"
+  int not1[int(!true)];
+           ~~~~~~~~~~
+<stdin>:14:11: error: Cannot declare an array with a size of \"-1\"
+  int add[1 + -2];
+          ~~~~~~
+<stdin>:15:16: error: Cannot declare an array with a size of \"-1\"
+  int subtract[1 - 2];
+               ~~~~~
+<stdin>:16:16: error: Cannot declare an array with a size of \"-6\"
+  int multiply[2 * -3];
+               ~~~~~~
+<stdin>:17:14: error: Cannot declare an array with a size of \"-2\"
+  int divide[7 / -3];
+             ~~~~~~
+<stdin>:20:14: error: Cannot declare an array with a size of \"0\"
+  int equal2[int(1 == 2)];
+             ~~~~~~~~~~~
+<stdin>:21:14: error: Cannot declare an array with a size of \"0\"
+  int equal3[int(1 != 1)];
+             ~~~~~~~~~~~
+")
+
+# Test constant expressions for logical operators
+test("
+void main() {
+  int and1[int(false && false)];
+  int and2[int(true && false)];
+  int and3[int(false && true)];
+  int and4[int(true && true)];
+
+  int or1[int(false || false)];
+  int or2[int(true || false)];
+  int or3[int(false || true)];
+  int or4[int(true || true)];
+
+  int xor1[int(false ^^ false)];
+  int xor2[int(true ^^ false)];
+  int xor3[int(false ^^ true)];
+  int xor4[int(true ^^ true)];
+}
+", "
+<stdin>:2:12: error: Cannot declare an array with a size of \"0\"
+  int and1[int(false && false)];
+           ~~~~~~~~~~~~~~~~~~~
+<stdin>:3:12: error: Cannot declare an array with a size of \"0\"
+  int and2[int(true && false)];
+           ~~~~~~~~~~~~~~~~~~
+<stdin>:4:12: error: Cannot declare an array with a size of \"0\"
+  int and3[int(false && true)];
+           ~~~~~~~~~~~~~~~~~~
+<stdin>:7:11: error: Cannot declare an array with a size of \"0\"
+  int or1[int(false || false)];
+          ~~~~~~~~~~~~~~~~~~~
+<stdin>:12:12: error: Cannot declare an array with a size of \"0\"
+  int xor1[int(false ^^ false)];
+           ~~~~~~~~~~~~~~~~~~~
+<stdin>:15:12: error: Cannot declare an array with a size of \"0\"
+  int xor4[int(true ^^ true)];
+           ~~~~~~~~~~~~~~~~~
+")
+
+# Test constant expressions for comparison operators
+test("
+void main() {
+  int int1[int(1 < 2)];
+  int int2[int(1 > 2)];
+  int int3[int(1 <= 2)];
+  int int4[int(1 >= 2)];
+
+  int double1[int(1.0 < 1.1)];
+  int double2[int(1.0 > 1.1)];
+  int double3[int(1.0 <= 1.1)];
+  int double4[int(1.0 >= 1.1)];
+}
+", "
+<stdin>:3:12: error: Cannot declare an array with a size of \"0\"
+  int int2[int(1 > 2)];
+           ~~~~~~~~~~
+<stdin>:5:12: error: Cannot declare an array with a size of \"0\"
+  int int4[int(1 >= 2)];
+           ~~~~~~~~~~~
+<stdin>:8:15: error: Cannot declare an array with a size of \"0\"
+  int double2[int(1.0 > 1.1)];
+              ~~~~~~~~~~~~~~
+<stdin>:10:15: error: Cannot declare an array with a size of \"0\"
+  int double4[int(1.0 >= 1.1)];
+              ~~~~~~~~~~~~~~~
+")
+
+# Test constant expressions for vectors
+test("
+void main() {
+  int equal1[int(ivec2(1, 2) == ivec2(1, 2))];
+  int equal2[int(ivec2(1, 2) == ivec2(2, 1))];
+  int equal3[int(ivec2(1, 2) != ivec2(1, 2))];
+  int equal4[int(ivec2(1, 2) != ivec2(2, 1))];
+
+  int index1[ivec2(1, -1)[1]];
+  int index2[ivec2(1, -1)[-1]];
+
+  int swizzle1[ivec2(1, -1).y];
+  int swizzle2[ivec2(1, -1).z];
+  int swizzle3[int(ivec2(1, -1).yx == ivec2(-1, 1))];
+  int swizzle4[int(ivec2(1, -1).yx != ivec2(-1, 1))];
+}
+", "
+<stdin>:3:14: error: Cannot declare an array with a size of \"0\"
+  int equal2[int(ivec2(1, 2) == ivec2(2, 1))];
+             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+<stdin>:4:14: error: Cannot declare an array with a size of \"0\"
+  int equal3[int(ivec2(1, 2) != ivec2(1, 2))];
+             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+<stdin>:7:14: error: Cannot declare an array with a size of \"-1\"
+  int index1[ivec2(1, -1)[1]];
+             ~~~~~~~~~~~~~~~
+<stdin>:8:27: error: Index \"-1\" is out of bounds for type \"ivec2\"
+  int index2[ivec2(1, -1)[-1]];
+                          ~~
+<stdin>:8:14: error: This value must be a compile-time constant
+  int index2[ivec2(1, -1)[-1]];
+             ~~~~~~~~~~~~~~~~
+<stdin>:10:16: error: Cannot declare an array with a size of \"-1\"
+  int swizzle1[ivec2(1, -1).y];
+               ~~~~~~~~~~~~~~
+<stdin>:11:29: error: Invalid swizzle \"z\" on type \"ivec2\"
+  int swizzle2[ivec2(1, -1).z];
+                            ^
+<stdin>:13:16: error: Cannot declare an array with a size of \"0\"
+  int swizzle4[int(ivec2(1, -1).yx != ivec2(-1, 1))];
+               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+")
+
+# Compound constant vector expression tests
+test("
+void main() {
+  int equal1[int(ivec4(ivec2(1, 2), ivec2(3, 4)) == ivec4(1, 2, 3, 4))];
+  int equal2[int(ivec4(ivec3(1, 2, 3), 4) == ivec4(1, 2, 3, 4))];
+  int equal3[int(ivec4(1, ivec3(2, 3, 4)) == ivec4(1, 2, 3, 4))];
+  int equal4[int(ivec4(ivec4(ivec4(1, 2, 3, 4))) == ivec4(1, 2, 3, 4))];
+
+  int notEquals1[int(ivec4(ivec2(1, 2), ivec2(3, 4)) != ivec4(1, 2, 3, 4))];
+  int notEquals2[int(ivec4(ivec3(1, 2, 3), 4) != ivec4(1, 2, 3, 4))];
+  int notEquals3[int(ivec4(1, ivec3(2, 3, 4)) != ivec4(1, 2, 3, 4))];
+  int notEquals4[int(ivec4(ivec4(ivec4(1, 2, 3, 4))) != ivec4(1, 2, 3, 4))];
+
+  int extra1[int(ivec2(ivec3(1, 2, 3)) == ivec2(1, 2))];
+  int extra2[int(ivec2(ivec3(1, 2, 3)) != ivec2(1, 2))];
+}
+", "
+<stdin>:7:18: error: Cannot declare an array with a size of \"0\"
+  int notEquals1[int(ivec4(ivec2(1, 2), ivec2(3, 4)) != ivec4(1, 2, 3, 4))];
+                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+<stdin>:8:18: error: Cannot declare an array with a size of \"0\"
+  int notEquals2[int(ivec4(ivec3(1, 2, 3), 4) != ivec4(1, 2, 3, 4))];
+                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+<stdin>:9:18: error: Cannot declare an array with a size of \"0\"
+  int notEquals3[int(ivec4(1, ivec3(2, 3, 4)) != ivec4(1, 2, 3, 4))];
+                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+<stdin>:10:18: error: Cannot declare an array with a size of \"0\"
+  int notEquals4[int(ivec4(ivec4(ivec4(1, 2, 3, 4))) != ivec4(1, 2, 3, 4))];
+                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+<stdin>:12:23: warning: Expected 2 arguments but found 3 arguments when constructing type \"ivec2\", ignoring extra argument
+  int extra1[int(ivec2(ivec3(1, 2, 3)) == ivec2(1, 2))];
+                      ~~~~~~~~~~~~~~~~
+<stdin>:13:23: warning: Expected 2 arguments but found 3 arguments when constructing type \"ivec2\", ignoring extra argument
+  int extra2[int(ivec2(ivec3(1, 2, 3)) != ivec2(1, 2))];
+                      ~~~~~~~~~~~~~~~~
+<stdin>:13:14: error: Cannot declare an array with a size of \"0\"
+  int extra2[int(ivec2(ivec3(1, 2, 3)) != ivec2(1, 2))];
+             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+")
+  }
+}

@@ -2,7 +2,8 @@ namespace GLSLX {
   class Type {
     const symbol Symbol
     const isArrayOf Type
-    var _arrayType Type = null
+    const arrayCount int
+    var _arrayTypes IntMap<Type> = null
 
     def rootType Type {
       if isArrayOf != null {
@@ -11,18 +12,106 @@ namespace GLSLX {
       return self
     }
 
-    def arrayType Type {
-      if _arrayType == null {
-        _arrayType = Type.new(null, self)
+    # A count of "0" means an array with an unknown size
+    def arrayType(count int) Type {
+      assert(count >= 0)
+      _arrayTypes ?= {}
+      var arrayType = _arrayTypes.get(count, null)
+      if arrayType == null {
+        _arrayTypes[count] = arrayType = Type.new(null, self, count)
       }
-      return _arrayType
+      return arrayType
     }
 
     def toString string {
       if isArrayOf != null {
-        return isArrayOf.toString + "[]"
+        return arrayCount != 0 ? "\(isArrayOf)[\(arrayCount)]" : "\(isArrayOf)[]"
       }
       return symbol.name
+    }
+
+    # For index expressions where "0 <= index < indexCount" (so indexCount == 0 means this type is un-indexable)
+    def indexCount int {
+      switch self {
+        case BVEC2, VEC2, IVEC2, MAT2 { return 2 }
+        case BVEC3, VEC3, IVEC3, MAT3 { return 3 }
+        case BVEC4, VEC4, IVEC4, MAT4 { return 4 }
+        default { return arrayCount }
+      }
+    }
+
+    # For index expressions
+    def indexType Type {
+      switch self {
+        case BVEC2, BVEC3, BVEC4 { return BOOL }
+        case VEC2, VEC3, VEC4 { return FLOAT }
+        case IVEC2, IVEC3, IVEC4 { return INT }
+        case MAT2 { return VEC2 }
+        case MAT3 { return VEC3 }
+        case MAT4 { return VEC4 }
+        default { return isArrayOf }
+      }
+    }
+
+    # For constructor expressions, returns the number of required elements
+    def componentCount int {
+      switch self {
+        case BOOL, FLOAT, INT { return 1 }
+        case BVEC2, VEC2, IVEC2 { return 2 }
+        case BVEC3, VEC3, IVEC3 { return 3 }
+        case BVEC4, VEC4, IVEC4, MAT2 { return 4 }
+        case MAT3 { return 9 }
+        case MAT4 { return 16 }
+        default { return 0 }
+      }
+    }
+
+    # For constructor expressions, returns the base element type corresponding to componentCount
+    def componentType Type {
+      switch self {
+        case BOOL, BVEC2, BVEC3, BVEC4 { return BOOL }
+        case FLOAT, VEC2, VEC3, VEC4, MAT2, MAT3, MAT4 { return FLOAT }
+        case INT, IVEC2, IVEC3, IVEC4 { return INT }
+        default { return null }
+      }
+    }
+
+    # Vector types are the only ones with swizzles
+    def isVector bool {
+      switch self {
+        case BVEC2, BVEC3, BVEC4, IVEC2, IVEC3, IVEC4, VEC2, VEC3, VEC4 { return true }
+        default { return false }
+      }
+    }
+
+    def isBool bool {
+      switch self {
+        case BOOL, BVEC2, BVEC3, BVEC4 { return true }
+        default { return false }
+      }
+    }
+
+    def isInt bool {
+      switch self {
+        case INT, IVEC2, IVEC3, IVEC4 { return true }
+        default { return false }
+      }
+    }
+
+    def isFloat bool {
+      switch self {
+        case FLOAT, VEC2, VEC3, VEC4 { return true }
+        case MAT2, MAT3, MAT4 { return true }
+        default { return false }
+      }
+    }
+
+    def isIntOrFloat bool {
+      return isInt || isFloat
+    }
+
+    def isBoolOrIntOrFloat bool {
+      return isBool || isInt || isFloat
     }
   }
 

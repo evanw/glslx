@@ -115,17 +115,18 @@ namespace GLSLX.Compiler {
     var global = Node.createGlobal
     var scope = Scope.new(.GLOBAL, null)
     var data = CompilerData.new
+    var resolver = Resolver.new(log, data)
 
     # Parse everything next
     for source in sources {
-      Parser.parse(log, source.tokens, global, data, scope)
+      Parser.parse(log, source.tokens, global, data, scope, resolver)
     }
     if log.hasErrors {
       return null
     }
 
     # Then run type checking
-    Resolver.resolve(log, global, data)
+    resolver.resolveGlobal(global)
     if log.hasErrors {
       return null
     }
@@ -141,14 +142,15 @@ namespace GLSLX.Compiler {
       var shaderScope = Scope.new(.GLOBAL, null)
       var shaderData = CompilerData.new
       var shaderLog = Log.new
+      var shaderResolver = Resolver.new(shaderLog, shaderData)
 
       # Parse everything again
       for source in sources {
-        Parser.parse(shaderLog, source.tokens, shaderGlobal, shaderData, shaderScope)
+        Parser.parse(shaderLog, source.tokens, shaderGlobal, shaderData, shaderScope, shaderResolver)
       }
 
       # Flow types through the tree
-      Resolver.resolve(shaderLog, shaderGlobal, shaderData)
+      shaderResolver.resolveGlobal(shaderGlobal)
 
       # Optimize it and trim it down
       _unexportAllFunctionsExcept(shaderScope, root)
