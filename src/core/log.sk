@@ -216,6 +216,10 @@ namespace GLSLX {
       error(range, "No binary operator \"\(operator)\" for type \"\(left)\" and type \"\(right)\"")
     }
 
+    def semanticErrorBadIndex(range Range, left Type, right Type) {
+      error(range, "No index operator for type \"\(left)\" and type \"\(right)\"")
+    }
+
     def semanticErrorBadStorage(range Range) {
       error(range, "Cannot store to this location")
     }

@@ -342,7 +342,11 @@ class GLSLX.Resolver {
     }
 
     if node.resolvedType == .ERROR && leftType != .ERROR && rightType != .ERROR {
-      _log.semanticErrorBadBinary(node.internalRange, node.internalRange.toString, leftType, rightType)
+      if node.kind == .INDEX {
+        _log.semanticErrorBadIndex(node.internalRange, leftType, rightType)
+      } else {
+        _log.semanticErrorBadBinary(node.internalRange, node.internalRange.toString, leftType, rightType)
+      }
     }
   }
 
@@ -642,8 +646,31 @@ class GLSLX.Resolver {
   }
 
   def _checkStorage(node Node) {
-    if !node.isValidStorageLocation {
-      _log.semanticErrorBadStorage(node.range)
+    var n = node
+    assert(node.kind.isExpression)
+
+    while true {
+      switch n.kind {
+        case .NAME {
+          if n.symbol.isConst {
+            _log.semanticErrorBadStorage(node.range)
+          }
+          break
+        }
+
+        case .DOT {
+          n = n.dotTarget
+        }
+
+        case .INDEX {
+          n = n.binaryLeft
+        }
+
+        default {
+          _log.semanticErrorBadStorage(node.range)
+          break
+        }
+      }
     }
   }
 

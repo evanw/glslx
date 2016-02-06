@@ -18,5 +18,18 @@ void main(in int i, out int o, inout int io, const int ci) {
 }
 ")
 
+# Test array type pass-through
+test("
+void main() {
+  int x[2], y[3];
+  x[0] = y[1];
+}
+", "
+void main() {
+  int x[2], y[3];
+  x[0] = y[1];
+}
+")
+
   }
 }
