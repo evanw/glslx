@@ -154,5 +154,103 @@ void main() {
   ~~~
 ")
 
+# Test duplicate arguments
+test("
+void main(int x, int x) {
+}
+", "
+<stdin>:1:22: error: There is already a symbol called \"x\" in the current scope
+void main(int x, int x) {
+                     ^
+<stdin>:1:15: note: The previous definition of \"x\" is here
+void main(int x, int x) {
+              ^
+")
+
+# Test duplicate variables
+test("
+void main() {
+  int x;
+  int x;
+}
+", "
+<stdin>:3:7: error: There is already a symbol called \"x\" in the current scope
+  int x;
+      ^
+<stdin>:2:7: note: The previous definition of \"x\" is here
+  int x;
+      ^
+")
+
+# Test duplicate functions
+test("
+void main() {}
+void main() {}
+", "
+<stdin>:2:6: error: There is already a symbol called \"main\" in the current scope
+void main() {}
+     ~~~~
+<stdin>:1:6: note: The previous definition of \"main\" is here
+void main() {}
+     ~~~~
+")
+
+# Test duplicate structs
+test("
+struct Foo {};
+struct Foo {};
+", "
+<stdin>:2:8: error: There is already a symbol called \"Foo\" in the current scope
+struct Foo {};
+       ~~~
+<stdin>:1:8: note: The previous definition of \"Foo\" is here
+struct Foo {};
+       ~~~
+")
+
+# Test duplicate fields
+test("
+struct Foo {
+  int x;
+  int x;
+};
+", "
+<stdin>:3:7: error: There is already a symbol called \"x\" in the current scope
+  int x;
+      ^
+<stdin>:2:7: note: The previous definition of \"x\" is here
+  int x;
+      ^
+")
+
+# These should not be duplicates
+test("
+int x;
+
+void main(int x) {
+}
+
+void main() {
+  int x = 0;
+  {
+    int x = 0;
+    main(x);
+  }
+}
+", "
+int x;
+
+void main(int x) {
+}
+
+void main() {
+  int x = 0;
+  {
+    int x = 0;
+    main(x);
+  }
+}
+")
+
   }
 }
