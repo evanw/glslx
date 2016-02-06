@@ -177,6 +177,11 @@ namespace GLSLX {
       error(range, "Cannot use value of type \"\(type)\" when constructing type \"\(constructor)\"")
     }
 
+    def semanticWarningExtraConstructorValues(range Range, type Type, found int, expected int) {
+      warning(range, "Expected \(expected) argument\(plural(expected)) but found \(found) argument\(plural(found)) " +
+        "when constructing type \"\(type)\", ignoring extra argument\(plural(found - expected))")
+    }
+
     def semanticErrorBadConstructorCount(range Range, type Type, count int) {
       error(range, "Cannot construct type \"\(type)\" with \(count) value\(plural(count))")
     }

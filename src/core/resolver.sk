@@ -525,13 +525,17 @@ class GLSLX.Resolver {
         providedCount += _componentCount(argumentType)
       }
 
+      # Passing extra values to a constructor is allowed
+      if providedCount > count {
+        _log.semanticWarningExtraConstructorValues(node.internalRange, type, providedCount, count)
+      }
+
       # Validate the count
-      if providedCount != count && providedCount != 1 &&
+      else if providedCount != count && providedCount != 1 &&
           (providedCount != 2 || type != .MAT2) &&
           (providedCount != 3 || type != .MAT3) &&
           (providedCount != 4 || type != .MAT4) {
         _log.semanticErrorBadConstructorCount(node.internalRange, type, providedCount)
-        return
       }
 
       return

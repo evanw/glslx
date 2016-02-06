@@ -106,16 +106,16 @@ void main() {
   vec4 v4_22 = vec4(v2, v2);
 }
 ", "
-<stdin>:9:19: error: Cannot construct type \"vec2\" with 3 values
+<stdin>:9:19: warning: Expected 2 arguments but found 3 arguments when constructing type \"vec2\", ignoring extra argument
   vec2 v2_3 = vec2(v3);
                   ~~~~
-<stdin>:10:19: error: Cannot construct type \"vec2\" with 4 values
+<stdin>:10:19: warning: Expected 2 arguments but found 4 arguments when constructing type \"vec2\", ignoring extra arguments
   vec2 v2_4 = vec2(v4);
                   ~~~~
 <stdin>:13:19: error: Cannot construct type \"vec3\" with 2 values
   vec3 v3_2 = vec3(v2);
                   ~~~~
-<stdin>:15:19: error: Cannot construct type \"vec3\" with 4 values
+<stdin>:15:19: warning: Expected 3 arguments but found 4 arguments when constructing type \"vec3\", ignoring extra argument
   vec3 v3_4 = vec3(v4);
                   ~~~~
 <stdin>:20:19: error: Cannot construct type \"vec4\" with 2 values
