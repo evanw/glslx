@@ -77,7 +77,7 @@ void main() {
 }
 ")
 
-# Test constructors
+# Test vector constructors
 test("
 void main() {
   float v1 = 0.0;
@@ -124,6 +124,80 @@ void main() {
 <stdin>:21:19: error: Cannot construct type \"vec4\" with 3 values
   vec4 v4_3 = vec4(v3);
                   ~~~~
+")
+
+# Test vector constructors with matrices
+test("
+void main() {
+  vec2 v22 = vec2(mat2(0.0));
+  vec2 v23 = vec2(mat3(0.0));
+  vec2 v24 = vec2(mat4(0.0));
+
+  vec3 v32 = vec3(mat2(0.0));
+  vec3 v33 = vec3(mat3(0.0));
+  vec3 v34 = vec3(mat4(0.0));
+
+  vec4 v42 = vec4(mat2(0.0));
+  vec4 v43 = vec4(mat3(0.0));
+  vec4 v44 = vec4(mat4(0.0));
+}
+", "
+void main() {
+  vec2 v22 = vec2(mat2(0.0));
+  vec2 v23 = vec2(mat3(0.0));
+  vec2 v24 = vec2(mat4(0.0));
+  vec3 v32 = vec3(mat2(0.0));
+  vec3 v33 = vec3(mat3(0.0));
+  vec3 v34 = vec3(mat4(0.0));
+  vec4 v42 = vec4(mat2(0.0));
+  vec4 v43 = vec4(mat3(0.0));
+  vec4 v44 = vec4(mat4(0.0));
+}
+")
+
+# Test matrix-matrix multiplications
+test("
+void main() {
+  int m22 = mat2(0.0) * mat2(0.0);
+  int m23 = mat2(0.0) * mat3(0.0);
+  int m24 = mat2(0.0) * mat4(0.0);
+
+  int m32 = mat3(0.0) * mat2(0.0);
+  int m33 = mat3(0.0) * mat3(0.0);
+  int m34 = mat3(0.0) * mat4(0.0);
+
+  int m42 = mat4(0.0) * mat2(0.0);
+  int m43 = mat4(0.0) * mat3(0.0);
+  int m44 = mat4(0.0) * mat4(0.0);
+}
+", "
+<stdin>:2:13: error: Cannot convert from type \"mat2\" to type \"int\"
+  int m22 = mat2(0.0) * mat2(0.0);
+            ~~~~~~~~~~~~~~~~~~~~~
+<stdin>:3:23: error: No binary operator \"*\" for type \"mat2\" and type \"mat3\"
+  int m23 = mat2(0.0) * mat3(0.0);
+                      ^
+<stdin>:4:23: error: No binary operator \"*\" for type \"mat2\" and type \"mat4\"
+  int m24 = mat2(0.0) * mat4(0.0);
+                      ^
+<stdin>:6:23: error: No binary operator \"*\" for type \"mat3\" and type \"mat2\"
+  int m32 = mat3(0.0) * mat2(0.0);
+                      ^
+<stdin>:7:13: error: Cannot convert from type \"mat3\" to type \"int\"
+  int m33 = mat3(0.0) * mat3(0.0);
+            ~~~~~~~~~~~~~~~~~~~~~
+<stdin>:8:23: error: No binary operator \"*\" for type \"mat3\" and type \"mat4\"
+  int m34 = mat3(0.0) * mat4(0.0);
+                      ^
+<stdin>:10:23: error: No binary operator \"*\" for type \"mat4\" and type \"mat2\"
+  int m42 = mat4(0.0) * mat2(0.0);
+                      ^
+<stdin>:11:23: error: No binary operator \"*\" for type \"mat4\" and type \"mat3\"
+  int m43 = mat4(0.0) * mat3(0.0);
+                      ^
+<stdin>:12:13: error: Cannot convert from type \"mat4\" to type \"int\"
+  int m44 = mat4(0.0) * mat4(0.0);
+            ~~~~~~~~~~~~~~~~~~~~~
 ")
 
 # Test vector-matrix and matrix-vector multiplications
