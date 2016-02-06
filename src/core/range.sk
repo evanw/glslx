@@ -15,7 +15,7 @@ namespace GLSLX {
 
     def locationString string {
       var location = source.indexToLineColumn(start)
-      return source.name + ":" + (location.line + 1).toString + ":" + (location.column + 1).toString
+      return "\(source.name):\(location.line + 1):\(location.column + 1)"
     }
 
     def format(maxLength int) FormattedRange {

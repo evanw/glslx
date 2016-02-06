@@ -37,7 +37,7 @@ namespace Terminal {
   if TARGET == .JAVASCRIPT {
     def setColor(color Color) {
       if dynamic.process.stdout.isTTY {
-        write("\x1B[0;" + color.toEscapeCode.toString + "m")
+        write("\x1B[0;\(color.toEscapeCode)m")
       }
     }
 

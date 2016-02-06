@@ -129,12 +129,12 @@ namespace Unit {
       # Print the summary
       var totalTime = Math.floor((Timestamp.seconds - _startTime) * 10) as int
       Terminal.setColor(.GREEN)
-      Terminal.write("  " + (_count - _failed.count).toString + " passing")
+      Terminal.write("  \(_count - _failed.count) passing")
       Terminal.setColor(.GRAY)
-      Terminal.print("  (" + (totalTime / 10).toString + "." + (totalTime % 10).toString + "s)")
+      Terminal.print("  (\(totalTime / 10).\(totalTime % 10)s)")
       if _failed.count != 0 {
         Terminal.setColor(.RED)
-        Terminal.print("  " + _failed.count.toString + " failing")
+        Terminal.print("  \(_failed.count) failing")
       }
       Terminal.setColor(.DEFAULT)
       Terminal.print("")
@@ -143,7 +143,7 @@ namespace Unit {
       var indent = " ".repeat(_failed.count.toString.count + 5)
       for i in 0.._failed.count {
         var test = _failed[i]
-        var text = "  " + (i + 1).toString + ")"
+        var text = "  \(i + 1))"
         var failure = test.failure
         Terminal.setColor(.BOLD)
         Terminal.print(text + " ".repeat(indent.count - text.count) + test.name + "\n")

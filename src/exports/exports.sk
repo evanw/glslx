@@ -103,13 +103,13 @@ Advanced:
     var hasWarnings = log.hasWarnings
     var summary = ""
     if hasWarnings {
-      summary += log.warningCount.toString + " warning" + Log.plural(log.warningCount)
+      summary += "\(log.warningCount) warning\(Log.plural(log.warningCount))"
       if hasErrors {
         summary += " and "
       }
     }
     if hasErrors {
-      summary += log.errorCount.toString + " error" + Log.plural(log.errorCount)
+      summary += "\(log.errorCount) error\(Log.plural(log.errorCount))"
     }
     if hasWarnings || hasErrors {
       Terminal.print(summary + " generated")
@@ -183,7 +183,7 @@ Advanced:
             else if arg.startsWith("--format=") {
               var text = arg.slice("--format=".count)
               if !(text in outputFormats) {
-                console.log("invalid output format \"" + text + "\"")
+                console.log("invalid output format \"\(text)\"")
                 process.exit(1)
               }
               outputFormat = outputFormats[text]
@@ -192,14 +192,14 @@ Advanced:
             else if arg.startsWith("--renaming=") {
               var text = arg.slice("--renaming=".count)
               if !(text in renameSymbols) {
-                console.log("invalid symbol renaming mode \"" + text + "\"")
+                console.log("invalid symbol renaming mode \"\(text)\"")
                 process.exit(1)
               }
               options.renameSymbols = renameSymbols[text]
             }
 
             else {
-              console.log("invalid flag \"" + arg + "\"")
+              console.log("invalid flag \"\(arg)\"")
               process.exit(1)
             }
           }

@@ -60,12 +60,12 @@ namespace GLSLX {
           if shaders != null {
           var code = ""
             for shader in shaders {
-              code += "static const char GLSLX_SOURCE_" + _transformName(shader.name) + "[] = " + dynamic.JSON.stringify(shader.contents) + ";\n"
+              code += "static const char GLSLX_SOURCE_\(_transformName(shader.name))[] = \(dynamic.JSON.stringify(shader.contents));\n"
             }
             if renaming != null {
               code += "\n"
               for name in renaming.keys {
-                code += "static const char GLSLX_NAME_" + _transformName(name) + "[] = " + dynamic.JSON.stringify(renaming[name]) + ";\n"
+                code += "static const char GLSLX_NAME_\(_transformName(name))[] = \(dynamic.JSON.stringify(renaming[name]));\n"
               }
             }
             return code
@@ -76,12 +76,12 @@ namespace GLSLX {
           if shaders != null {
           var code = ""
             for shader in shaders {
-              code += "const GLSLX_SOURCE_" + _transformName(shader.name) + " = " + dynamic.JSON.stringify(shader.contents) + "\n"
+              code += "const GLSLX_SOURCE_\(_transformName(shader.name)) = \(dynamic.JSON.stringify(shader.contents))\n"
             }
             if renaming != null {
               code += "\n"
               for name in renaming.keys {
-                code += "const GLSLX_NAME_" + _transformName(name) + " = " + dynamic.JSON.stringify(renaming[name]) + "\n"
+                code += "const GLSLX_NAME_\(_transformName(name)) = \(dynamic.JSON.stringify(renaming[name]))\n"
               }
             }
             return code

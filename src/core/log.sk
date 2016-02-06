@@ -15,10 +15,10 @@ namespace GLSLX {
   namespace Diagnostic {
     def format(kind string, range Range, text string) string {
       if range == null {
-        return kind + ": " + text + "\n"
+        return "\(kind): \(text)\n"
       }
       var formatted = range.format(0)
-      return range.locationString + ": " + kind + ": " + text + "\n" + formatted.line + "\n" + formatted.range + "\n"
+      return "\(range.locationString): \(kind): \(text)\n\(formatted.line)\n\(formatted.range)\n"
     }
   }
 
@@ -74,40 +74,40 @@ namespace GLSLX {
 
   class Log {
     def syntaxWarningUnknownExtension(range Range, name string) {
-      warning(range, "The extension \"" + name + "\" is not in the known list of valid WebGL extensions")
+      warning(range, "The extension \"\(name)\" is not in the known list of valid WebGL extensions")
     }
 
     def syntaxErrorDisabledExtension(range Range, name string, extension string) {
-      error(range, "Cannot use \"" + name + "\" from disabled extension \"" + extension + "\"")
+      error(range, "Cannot use \"\(name)\" from disabled extension \"\(extension)\"")
     }
 
     def syntaxErrorExtraData(range Range, text string) {
-      error(range, "Syntax error \"" + text + "\"")
+      error(range, "Syntax error \"\(text)\"")
     }
 
     def syntaxErrorReservedWord(range Range) {
-      error(range, "\"" + range.toString + "\" is a reserved word")
+      error(range, "\"\(range)\" is a reserved word")
     }
 
     def syntaxErrorUnexpectedToken(token Token) {
-      error(token.range, "Unexpected " + token.kind.toString)
+      error(token.range, "Unexpected \(token.kind)")
     }
 
     def syntaxErrorExpectedToken(range Range, expected TokenKind) {
-      error(range, "Expected " + expected.toString)
+      error(range, "Expected \(expected)")
     }
 
     def syntaxErrorExpectedToken(range Range, found TokenKind, expected TokenKind) {
-      error(range, "Expected " + expected.toString + " but found " + found.toString)
+      error(range, "Expected \(expected) but found \(found)")
     }
 
     def syntaxErrorBadSymbolReference(range Range) {
-      error(range, "There is no symbol called \"" + range.toString + "\" in the current scope")
+      error(range, "There is no symbol called \"\(range)\" in the current scope")
     }
 
     def syntaxErrorDuplicateSymbolDefinition(range Range, previous Range) {
-      error(range, "There is already a symbol called \"" + range.toString + "\" in the current scope")
-      note(previous, "The previous definition of \"" + previous.toString + "\" is here")
+      error(range, "There is already a symbol called \"\(range)\" in the current scope")
+      note(previous, "The previous definition of \"\(previous)\" is here")
     }
 
     def syntaxErrorOutsideLoop(range Range) {
@@ -131,8 +131,8 @@ namespace GLSLX {
     }
 
     def syntaxErrorDifferentReturnType(range Range, name string, type Type, expected Type, previous Range) {
-      error(range, "Cannot change the return type of \"" + name + "\" to type \"" + type.toString + "\"")
-      note(previous, "The forward declaration of \"" + name + "\" has a return type of \"" + expected.toString + "\"")
+      error(range, "Cannot change the return type of \"\(name)\" to type \"\(type)\"")
+      note(previous, "The forward declaration of \"\(name)\" has a return type of \"\(expected)\"")
     }
 
     def syntaxErrorBadQualifier(range Range) {
@@ -142,75 +142,73 @@ namespace GLSLX {
 
   class Log {
     def semanticErrorBadConversion(range Range, from Type, to Type) {
-      error(range, "Cannot convert from type \"" + from.toString + "\" to type \"" + to.toString + "\"")
+      error(range, "Cannot convert from type \"\(from)\" to type \"\(to)\"")
     }
 
     def semanticErrorUnexpectedType(range Range, type Type) {
-      error(range, "Unexpected type \"" + type.toString + "\"")
+      error(range, "Unexpected type \"\(type)\"")
     }
 
     def semanticErrorBadVariableType(range Range, type Type) {
-      error(range, "Cannot create a variable of type \"" + type.toString + "\"")
+      error(range, "Cannot create a variable of type \"\(type)\"")
     }
 
     def semanticErrorBadMember(range Range, type Type, name string) {
-      error(range, "Cannot find \"" + name + "\" on type \"" + type.toString + "\"")
+      error(range, "Cannot find \"\(name)\" on type \"\(type)\"")
     }
 
     def semanticErrorBadSwizzle(range Range, type Type, name string) {
-      error(range, "Invalid swizzle \"" + name + "\" on type \"" + type.toString + "\"")
+      error(range, "Invalid swizzle \"\(name)\" on type \"\(type)\"")
     }
 
     def semanticErrorBadSwizzleAssignment(range Range, field string) {
-      error(range, "The field \"" + field + "\" cannot be specified multiple times when used as a storage location")
+      error(range, "The field \"\(field)\" cannot be specified multiple times when used as a storage location")
     }
 
     def semanticErrorMustCallFunction(range Range, name string) {
-      error(range, "The function \"" + name + "\" must be called")
+      error(range, "The function \"\(name)\" must be called")
     }
 
     def semanticErrorBadCall(range Range, type Type) {
-      error(range, "Cannot call type \"" + type.toString + "\"")
+      error(range, "Cannot call type \"\(type)\"")
     }
 
     def semanticErrorBadConstructorValue(range Range, type Type, constructor Type) {
-      error(range, "Cannot use value of type \"" + type.toString + "\" when constructing type \"" + constructor.toString + "\"")
+      error(range, "Cannot use value of type \"\(type)\" when constructing type \"\(constructor)\"")
     }
 
     def semanticErrorBadConstructorCount(range Range, type Type, count int) {
-      error(range, "Cannot construct type \"" + type.toString + "\" with " + count.toString + " value" + plural(count))
+      error(range, "Cannot construct type \"\(type)\" with \(count) value\(plural(count))")
     }
 
     def semanticErrorArgumentCountFunction(range Range, expected int, found int, name string, function Range) {
-      error(range, "Expected " + expected.toString + " argument" + plural(expected) + " but found " +
-        found.toString + " argument" + plural(found) + " when calling function \"" + name + "\"")
+      error(range, "Expected \(expected) argument\(plural(expected)) but found \(found) argument\(plural(found)) when calling function \"\(name)\"")
       if function != null {
-        note(function, "The definition of function \"" + name + "\" is here")
+        note(function, "The definition of function \"\(name)\" is here")
       }
     }
 
     def semanticErrorArgumentCountConstructor(range Range, expected int, found int, name string, struct Range) {
-      error(range, "Expected " + expected.toString + " argument" + plural(expected) + " but found " +
-        found.toString + " argument" + plural(found) + " when constructing type \"" + name + "\"")
+      error(range, "Expected \(expected) argument\(plural(expected)) but found \(found) argument\(plural(found)) when constructing type \"\(name)\"")
       if struct != null {
-        note(struct, "The definition of struct \"" + name + "\" is here")
+        note(struct, "The definition of struct \"\(name)\" is here")
       }
     }
 
     def semanticErrorBadOverloadMatch(range Range, name string) {
-      error(range, "No matching overload for function \"" + name + "\"")
+      error(range, "No matching overload for function \"\(name)\"")
     }
 
     def semanticErrorBadHookTypes(range Range, left Type, right Type) {
-      error(range, "Cannot merge type \"" + left.toString + "\" and type \"" + right.toString + "\"")
+      error(range, "Cannot merge type \"\(left)\" and type \"\(right)\"")
     }
 
     def semanticErrorBadUnary(range Range, operator string, type Type) {
-      error(range, "No unary operator \"" + operator + "\" for type \"" + type.toString + "\"")
+      error(range, "No unary operator \"\(operator)\" for type \"\(type)\"")
     }
 
     def semanticErrorBadBinary(range Range, operator string, left Type, right Type) {
-      error(range, "No binary operator \"" + operator + "\" for type \"" + left.toString + "\" and type \"" + right.toString + "\"")
+      error(range, "No binary operator \"\(operator)\" for type \"\(left)\" and type \"\(right)\"")
     }
 
     def semanticErrorBadStorage(range Range) {
