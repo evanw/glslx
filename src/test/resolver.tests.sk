@@ -296,5 +296,51 @@ void main(const int a) {
             ^
 ")
 
+# Bool conversions for control flow
+test("
+void main() {
+  if (0) {} else if (0) {}
+  while (0) {}
+  do {} while (0);
+  for (; 0;) {}
+  0 ? 0 : 0;
+}
+", "
+<stdin>:2:7: error: Cannot convert from type \"int\" to type \"bool\"
+  if (0) {} else if (0) {}
+      ^
+<stdin>:2:22: error: Cannot convert from type \"int\" to type \"bool\"
+  if (0) {} else if (0) {}
+                     ^
+<stdin>:3:10: error: Cannot convert from type \"int\" to type \"bool\"
+  while (0) {}
+         ^
+<stdin>:4:16: error: Cannot convert from type \"int\" to type \"bool\"
+  do {} while (0);
+               ^
+<stdin>:5:10: error: Cannot convert from type \"int\" to type \"bool\"
+  for (; 0;) {}
+         ^
+<stdin>:6:3: error: Cannot convert from type \"int\" to type \"bool\"
+  0 ? 0 : 0;
+  ^
+")
+
+# Conditional expression type merging
+test("
+void main(bool b) {
+  b ? 0 : 0;
+  b ? 0 : 0.0;
+  b ? 0 : false;
+}
+", "
+<stdin>:3:7: error: Cannot merge type \"int\" and type \"float\"
+  b ? 0 : 0.0;
+      ~~~~~~~
+<stdin>:4:7: error: Cannot merge type \"int\" and type \"bool\"
+  b ? 0 : false;
+      ~~~~~~~~~
+")
+
   }
 }
