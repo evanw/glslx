@@ -61,6 +61,11 @@ class GLSLX.Resolver {
           _resolveAsExpression(symbol.value)
           _checkConversion(symbol.value, type)
         }
+
+        # Constants must be initialized
+        else if symbol.kind == .LOCAL && symbol.isConst {
+          _log.semanticErrorUninitializedConstant(symbol.range)
+        }
       }
 
       case .BLOCK {

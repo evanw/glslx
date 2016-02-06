@@ -305,7 +305,7 @@ namespace GLSLX.Parser {
     var setup Node = null
     if !context.eat(.SEMICOLON) {
       # Check for a type
-      var flags = parseFlags(context)
+      var flags = parseFlags(context, .NORMAL)
       var type Node = null
       if flags != 0 {
         type = parseType(context, .REPORT_ERRORS)
@@ -573,7 +573,7 @@ namespace GLSLX.Parser {
     }
 
     # Try to parse a variable or function
-    var flags = parseFlags(context)
+    var flags = parseFlags(context, .NORMAL)
     var type Node = null
     if context.eat(.STRUCT) {
       var struct = parseStruct(context, flags)
@@ -636,21 +636,34 @@ namespace GLSLX.Parser {
     return block.withRange(context.spanSince(token.range))
   }
 
-  def parseFlags(context ParserContext) SymbolFlags {
+  enum FlagsMode {
+    NORMAL
+    ARGUMENT
+  }
+
+  def parseFlags(context ParserContext, mode FlagsMode) SymbolFlags {
     var flags SymbolFlags = 0
     while true {
-      switch context.current.kind {
-        case .ATTRIBUTE { flags |= .ATTRIBUTE }
-        case .CONST     { flags |= .CONST }
-        case .HIGHP     { flags |= .HIGHP }
-        case .IN        { flags |= .IN }
-        case .INOUT     { flags |= .INOUT }
-        case .LOWP      { flags |= .LOWP }
-        case .MEDIUMP   { flags |= .MEDIUMP }
-        case .OUT       { flags |= .OUT }
-        case .UNIFORM   { flags |= .UNIFORM }
-        case .VARYING   { flags |= .VARYING }
-        default { return flags }
+      var kind = context.current.kind
+
+      if mode == .ARGUMENT && (kind == .ATTRIBUTE || kind == .UNIFORM || kind == .VARYING) {
+        context.log.syntaxErrorBadQualifier(context.current.range)
+      }
+
+      else {
+        switch kind {
+          case .ATTRIBUTE { flags |= .ATTRIBUTE }
+          case .CONST     { flags |= .CONST }
+          case .HIGHP     { flags |= .HIGHP }
+          case .IN        { flags |= .IN }
+          case .INOUT     { flags |= .INOUT }
+          case .LOWP      { flags |= .LOWP }
+          case .MEDIUMP   { flags |= .MEDIUMP }
+          case .OUT       { flags |= .OUT }
+          case .UNIFORM   { flags |= .UNIFORM }
+          case .VARYING   { flags |= .VARYING }
+          default { return flags }
+        }
       }
       context.next
     }
@@ -726,7 +739,7 @@ namespace GLSLX.Parser {
     else if !context.eat(.RIGHT_PARENTHESIS) {
       while true {
         # Parse leading flags
-        var argumentFlags = parseFlags(context)
+        var argumentFlags = parseFlags(context, .ARGUMENT)
 
         # Parse the type
         var argumentType = parseType(context, .REPORT_ERRORS)

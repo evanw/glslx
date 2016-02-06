@@ -281,7 +281,7 @@ varying vec2 t;
 void main() {
   int a;
   int b;
-  const int c;
+  const int c = 0;
   int d;
   int e;
 }
@@ -290,7 +290,7 @@ uniform vec2 x, y;
 varying vec2 s, t;
 
 void main() {
-  const int c;
+  const int c = 0;
   int a, b, d, e;
 }
 ").compactSyntaxTree

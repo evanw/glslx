@@ -134,6 +134,10 @@ namespace GLSLX {
       error(range, "Cannot change the return type of \"" + name + "\" to type \"" + type.toString + "\"")
       note(previous, "The forward declaration of \"" + name + "\" has a return type of \"" + expected.toString + "\"")
     }
+
+    def syntaxErrorBadQualifier(range Range) {
+      error(range, "Cannot use this qualifier here")
+    }
   }
 
   class Log {
@@ -211,6 +215,10 @@ namespace GLSLX {
 
     def semanticErrorBadStorage(range Range) {
       error(range, "Cannot store to this location")
+    }
+
+    def semanticErrorUninitializedConstant(range Range) {
+      error(range, "Constants must be initialized")
     }
   }
 

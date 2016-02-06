@@ -199,5 +199,21 @@ void main() {
              ~~~~~~~~~~~~~~~~~~~~~
 ")
 
+# Constants must be initialized
+test("
+void main(const int a) {
+  const int b;
+  const int c = 0;
+}
+
+struct Foo {
+  const int d;
+};
+", "
+<stdin>:2:13: error: Constants must be initialized
+  const int b;
+            ^
+")
+
   }
 }

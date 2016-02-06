@@ -7,14 +7,14 @@ void main(in int i, out int o, inout int io, const int ci) {
   lowp float l;
   mediump float m;
   highp float h;
-  const float cf;
+  const float cf = 0.0;
 }
 ", "
 void main(in int i, out int o, inout int io, const int ci) {
   lowp float l;
   mediump float m;
   highp float h;
-  const float cf;
+  const float cf = 0.0;
 }
 ")
 

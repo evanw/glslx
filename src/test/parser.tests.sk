@@ -39,5 +39,32 @@ void main() {
 }
 ")
 
+# Test qualifier parsing for arguments
+test("
+void main(
+  attribute float a,
+  const float c,
+  highp float h,
+  in float i,
+  inout float io,
+  lowp float l,
+  mediump float m,
+  out float o,
+  uniform float u,
+  varying float v
+) {
+}
+", "
+<stdin>:2:3: error: Cannot use this qualifier here
+  attribute float a,
+  ~~~~~~~~~
+<stdin>:10:3: error: Cannot use this qualifier here
+  uniform float u,
+  ~~~~~~~
+<stdin>:11:3: error: Cannot use this qualifier here
+  varying float v
+  ~~~~~~~
+")
+
   }
 }
