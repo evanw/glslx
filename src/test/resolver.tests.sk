@@ -342,5 +342,455 @@ void main(bool b) {
       ~~~~~~~~~
 ")
 
+# Vector-matrix and matrix-vector addition
+test("
+void main() {
+  vec2(0.0) + vec2(0.0); vec2(0.0) + vec2(0.0);
+  vec2(0.0) + vec3(0.0); vec3(0.0) + vec2(0.0);
+  vec2(0.0) + vec4(0.0); vec4(0.0) + vec2(0.0);
+  vec2(0.0) + mat2(0.0); mat2(0.0) + vec2(0.0);
+  vec2(0.0) + mat3(0.0); mat3(0.0) + vec2(0.0);
+  vec2(0.0) + mat4(0.0); mat4(0.0) + vec2(0.0);
+
+  vec3(0.0) + vec2(0.0); vec2(0.0) + vec3(0.0);
+  vec3(0.0) + vec3(0.0); vec3(0.0) + vec3(0.0);
+  vec3(0.0) + vec4(0.0); vec4(0.0) + vec3(0.0);
+  vec3(0.0) + mat2(0.0); mat2(0.0) + vec3(0.0);
+  vec3(0.0) + mat3(0.0); mat3(0.0) + vec3(0.0);
+  vec3(0.0) + mat4(0.0); mat4(0.0) + vec3(0.0);
+
+  vec4(0.0) + vec2(0.0); vec2(0.0) + vec4(0.0);
+  vec4(0.0) + vec3(0.0); vec3(0.0) + vec4(0.0);
+  vec4(0.0) + vec4(0.0); vec4(0.0) + vec4(0.0);
+  vec4(0.0) + mat2(0.0); mat2(0.0) + vec4(0.0);
+  vec4(0.0) + mat3(0.0); mat3(0.0) + vec4(0.0);
+  vec4(0.0) + mat4(0.0); mat4(0.0) + vec4(0.0);
+}
+", "
+<stdin>:3:13: error: No binary operator \"+\" for type \"vec2\" and type \"vec3\"
+  vec2(0.0) + vec3(0.0); vec3(0.0) + vec2(0.0);
+            ^
+<stdin>:3:36: error: No binary operator \"+\" for type \"vec3\" and type \"vec2\"
+  vec2(0.0) + vec3(0.0); vec3(0.0) + vec2(0.0);
+                                   ^
+<stdin>:4:13: error: No binary operator \"+\" for type \"vec2\" and type \"vec4\"
+  vec2(0.0) + vec4(0.0); vec4(0.0) + vec2(0.0);
+            ^
+<stdin>:4:36: error: No binary operator \"+\" for type \"vec4\" and type \"vec2\"
+  vec2(0.0) + vec4(0.0); vec4(0.0) + vec2(0.0);
+                                   ^
+<stdin>:5:13: error: No binary operator \"+\" for type \"vec2\" and type \"mat2\"
+  vec2(0.0) + mat2(0.0); mat2(0.0) + vec2(0.0);
+            ^
+<stdin>:5:36: error: No binary operator \"+\" for type \"mat2\" and type \"vec2\"
+  vec2(0.0) + mat2(0.0); mat2(0.0) + vec2(0.0);
+                                   ^
+<stdin>:6:13: error: No binary operator \"+\" for type \"vec2\" and type \"mat3\"
+  vec2(0.0) + mat3(0.0); mat3(0.0) + vec2(0.0);
+            ^
+<stdin>:6:36: error: No binary operator \"+\" for type \"mat3\" and type \"vec2\"
+  vec2(0.0) + mat3(0.0); mat3(0.0) + vec2(0.0);
+                                   ^
+<stdin>:7:13: error: No binary operator \"+\" for type \"vec2\" and type \"mat4\"
+  vec2(0.0) + mat4(0.0); mat4(0.0) + vec2(0.0);
+            ^
+<stdin>:7:36: error: No binary operator \"+\" for type \"mat4\" and type \"vec2\"
+  vec2(0.0) + mat4(0.0); mat4(0.0) + vec2(0.0);
+                                   ^
+<stdin>:9:13: error: No binary operator \"+\" for type \"vec3\" and type \"vec2\"
+  vec3(0.0) + vec2(0.0); vec2(0.0) + vec3(0.0);
+            ^
+<stdin>:9:36: error: No binary operator \"+\" for type \"vec2\" and type \"vec3\"
+  vec3(0.0) + vec2(0.0); vec2(0.0) + vec3(0.0);
+                                   ^
+<stdin>:11:13: error: No binary operator \"+\" for type \"vec3\" and type \"vec4\"
+  vec3(0.0) + vec4(0.0); vec4(0.0) + vec3(0.0);
+            ^
+<stdin>:11:36: error: No binary operator \"+\" for type \"vec4\" and type \"vec3\"
+  vec3(0.0) + vec4(0.0); vec4(0.0) + vec3(0.0);
+                                   ^
+<stdin>:12:13: error: No binary operator \"+\" for type \"vec3\" and type \"mat2\"
+  vec3(0.0) + mat2(0.0); mat2(0.0) + vec3(0.0);
+            ^
+<stdin>:12:36: error: No binary operator \"+\" for type \"mat2\" and type \"vec3\"
+  vec3(0.0) + mat2(0.0); mat2(0.0) + vec3(0.0);
+                                   ^
+<stdin>:13:13: error: No binary operator \"+\" for type \"vec3\" and type \"mat3\"
+  vec3(0.0) + mat3(0.0); mat3(0.0) + vec3(0.0);
+            ^
+<stdin>:13:36: error: No binary operator \"+\" for type \"mat3\" and type \"vec3\"
+  vec3(0.0) + mat3(0.0); mat3(0.0) + vec3(0.0);
+                                   ^
+<stdin>:14:13: error: No binary operator \"+\" for type \"vec3\" and type \"mat4\"
+  vec3(0.0) + mat4(0.0); mat4(0.0) + vec3(0.0);
+            ^
+<stdin>:14:36: error: No binary operator \"+\" for type \"mat4\" and type \"vec3\"
+  vec3(0.0) + mat4(0.0); mat4(0.0) + vec3(0.0);
+                                   ^
+<stdin>:16:13: error: No binary operator \"+\" for type \"vec4\" and type \"vec2\"
+  vec4(0.0) + vec2(0.0); vec2(0.0) + vec4(0.0);
+            ^
+<stdin>:16:36: error: No binary operator \"+\" for type \"vec2\" and type \"vec4\"
+  vec4(0.0) + vec2(0.0); vec2(0.0) + vec4(0.0);
+                                   ^
+<stdin>:17:13: error: No binary operator \"+\" for type \"vec4\" and type \"vec3\"
+  vec4(0.0) + vec3(0.0); vec3(0.0) + vec4(0.0);
+            ^
+<stdin>:17:36: error: No binary operator \"+\" for type \"vec3\" and type \"vec4\"
+  vec4(0.0) + vec3(0.0); vec3(0.0) + vec4(0.0);
+                                   ^
+<stdin>:19:13: error: No binary operator \"+\" for type \"vec4\" and type \"mat2\"
+  vec4(0.0) + mat2(0.0); mat2(0.0) + vec4(0.0);
+            ^
+<stdin>:19:36: error: No binary operator \"+\" for type \"mat2\" and type \"vec4\"
+  vec4(0.0) + mat2(0.0); mat2(0.0) + vec4(0.0);
+                                   ^
+<stdin>:20:13: error: No binary operator \"+\" for type \"vec4\" and type \"mat3\"
+  vec4(0.0) + mat3(0.0); mat3(0.0) + vec4(0.0);
+            ^
+<stdin>:20:36: error: No binary operator \"+\" for type \"mat3\" and type \"vec4\"
+  vec4(0.0) + mat3(0.0); mat3(0.0) + vec4(0.0);
+                                   ^
+<stdin>:21:13: error: No binary operator \"+\" for type \"vec4\" and type \"mat4\"
+  vec4(0.0) + mat4(0.0); mat4(0.0) + vec4(0.0);
+            ^
+<stdin>:21:36: error: No binary operator \"+\" for type \"mat4\" and type \"vec4\"
+  vec4(0.0) + mat4(0.0); mat4(0.0) + vec4(0.0);
+                                   ^
+")
+
+# Vector-matrix and matrix-vector subtraction
+test("
+void main() {
+  vec2(0.0) - vec2(0.0); vec2(0.0) - vec2(0.0);
+  vec2(0.0) - vec3(0.0); vec3(0.0) - vec2(0.0);
+  vec2(0.0) - vec4(0.0); vec4(0.0) - vec2(0.0);
+  vec2(0.0) - mat2(0.0); mat2(0.0) - vec2(0.0);
+  vec2(0.0) - mat3(0.0); mat3(0.0) - vec2(0.0);
+  vec2(0.0) - mat4(0.0); mat4(0.0) - vec2(0.0);
+
+  vec3(0.0) - vec2(0.0); vec2(0.0) - vec3(0.0);
+  vec3(0.0) - vec3(0.0); vec3(0.0) - vec3(0.0);
+  vec3(0.0) - vec4(0.0); vec4(0.0) - vec3(0.0);
+  vec3(0.0) - mat2(0.0); mat2(0.0) - vec3(0.0);
+  vec3(0.0) - mat3(0.0); mat3(0.0) - vec3(0.0);
+  vec3(0.0) - mat4(0.0); mat4(0.0) - vec3(0.0);
+
+  vec4(0.0) - vec2(0.0); vec2(0.0) - vec4(0.0);
+  vec4(0.0) - vec3(0.0); vec3(0.0) - vec4(0.0);
+  vec4(0.0) - vec4(0.0); vec4(0.0) - vec4(0.0);
+  vec4(0.0) - mat2(0.0); mat2(0.0) - vec4(0.0);
+  vec4(0.0) - mat3(0.0); mat3(0.0) - vec4(0.0);
+  vec4(0.0) - mat4(0.0); mat4(0.0) - vec4(0.0);
+}
+", "
+<stdin>:3:13: error: No binary operator \"-\" for type \"vec2\" and type \"vec3\"
+  vec2(0.0) - vec3(0.0); vec3(0.0) - vec2(0.0);
+            ^
+<stdin>:3:36: error: No binary operator \"-\" for type \"vec3\" and type \"vec2\"
+  vec2(0.0) - vec3(0.0); vec3(0.0) - vec2(0.0);
+                                   ^
+<stdin>:4:13: error: No binary operator \"-\" for type \"vec2\" and type \"vec4\"
+  vec2(0.0) - vec4(0.0); vec4(0.0) - vec2(0.0);
+            ^
+<stdin>:4:36: error: No binary operator \"-\" for type \"vec4\" and type \"vec2\"
+  vec2(0.0) - vec4(0.0); vec4(0.0) - vec2(0.0);
+                                   ^
+<stdin>:5:13: error: No binary operator \"-\" for type \"vec2\" and type \"mat2\"
+  vec2(0.0) - mat2(0.0); mat2(0.0) - vec2(0.0);
+            ^
+<stdin>:5:36: error: No binary operator \"-\" for type \"mat2\" and type \"vec2\"
+  vec2(0.0) - mat2(0.0); mat2(0.0) - vec2(0.0);
+                                   ^
+<stdin>:6:13: error: No binary operator \"-\" for type \"vec2\" and type \"mat3\"
+  vec2(0.0) - mat3(0.0); mat3(0.0) - vec2(0.0);
+            ^
+<stdin>:6:36: error: No binary operator \"-\" for type \"mat3\" and type \"vec2\"
+  vec2(0.0) - mat3(0.0); mat3(0.0) - vec2(0.0);
+                                   ^
+<stdin>:7:13: error: No binary operator \"-\" for type \"vec2\" and type \"mat4\"
+  vec2(0.0) - mat4(0.0); mat4(0.0) - vec2(0.0);
+            ^
+<stdin>:7:36: error: No binary operator \"-\" for type \"mat4\" and type \"vec2\"
+  vec2(0.0) - mat4(0.0); mat4(0.0) - vec2(0.0);
+                                   ^
+<stdin>:9:13: error: No binary operator \"-\" for type \"vec3\" and type \"vec2\"
+  vec3(0.0) - vec2(0.0); vec2(0.0) - vec3(0.0);
+            ^
+<stdin>:9:36: error: No binary operator \"-\" for type \"vec2\" and type \"vec3\"
+  vec3(0.0) - vec2(0.0); vec2(0.0) - vec3(0.0);
+                                   ^
+<stdin>:11:13: error: No binary operator \"-\" for type \"vec3\" and type \"vec4\"
+  vec3(0.0) - vec4(0.0); vec4(0.0) - vec3(0.0);
+            ^
+<stdin>:11:36: error: No binary operator \"-\" for type \"vec4\" and type \"vec3\"
+  vec3(0.0) - vec4(0.0); vec4(0.0) - vec3(0.0);
+                                   ^
+<stdin>:12:13: error: No binary operator \"-\" for type \"vec3\" and type \"mat2\"
+  vec3(0.0) - mat2(0.0); mat2(0.0) - vec3(0.0);
+            ^
+<stdin>:12:36: error: No binary operator \"-\" for type \"mat2\" and type \"vec3\"
+  vec3(0.0) - mat2(0.0); mat2(0.0) - vec3(0.0);
+                                   ^
+<stdin>:13:13: error: No binary operator \"-\" for type \"vec3\" and type \"mat3\"
+  vec3(0.0) - mat3(0.0); mat3(0.0) - vec3(0.0);
+            ^
+<stdin>:13:36: error: No binary operator \"-\" for type \"mat3\" and type \"vec3\"
+  vec3(0.0) - mat3(0.0); mat3(0.0) - vec3(0.0);
+                                   ^
+<stdin>:14:13: error: No binary operator \"-\" for type \"vec3\" and type \"mat4\"
+  vec3(0.0) - mat4(0.0); mat4(0.0) - vec3(0.0);
+            ^
+<stdin>:14:36: error: No binary operator \"-\" for type \"mat4\" and type \"vec3\"
+  vec3(0.0) - mat4(0.0); mat4(0.0) - vec3(0.0);
+                                   ^
+<stdin>:16:13: error: No binary operator \"-\" for type \"vec4\" and type \"vec2\"
+  vec4(0.0) - vec2(0.0); vec2(0.0) - vec4(0.0);
+            ^
+<stdin>:16:36: error: No binary operator \"-\" for type \"vec2\" and type \"vec4\"
+  vec4(0.0) - vec2(0.0); vec2(0.0) - vec4(0.0);
+                                   ^
+<stdin>:17:13: error: No binary operator \"-\" for type \"vec4\" and type \"vec3\"
+  vec4(0.0) - vec3(0.0); vec3(0.0) - vec4(0.0);
+            ^
+<stdin>:17:36: error: No binary operator \"-\" for type \"vec3\" and type \"vec4\"
+  vec4(0.0) - vec3(0.0); vec3(0.0) - vec4(0.0);
+                                   ^
+<stdin>:19:13: error: No binary operator \"-\" for type \"vec4\" and type \"mat2\"
+  vec4(0.0) - mat2(0.0); mat2(0.0) - vec4(0.0);
+            ^
+<stdin>:19:36: error: No binary operator \"-\" for type \"mat2\" and type \"vec4\"
+  vec4(0.0) - mat2(0.0); mat2(0.0) - vec4(0.0);
+                                   ^
+<stdin>:20:13: error: No binary operator \"-\" for type \"vec4\" and type \"mat3\"
+  vec4(0.0) - mat3(0.0); mat3(0.0) - vec4(0.0);
+            ^
+<stdin>:20:36: error: No binary operator \"-\" for type \"mat3\" and type \"vec4\"
+  vec4(0.0) - mat3(0.0); mat3(0.0) - vec4(0.0);
+                                   ^
+<stdin>:21:13: error: No binary operator \"-\" for type \"vec4\" and type \"mat4\"
+  vec4(0.0) - mat4(0.0); mat4(0.0) - vec4(0.0);
+            ^
+<stdin>:21:36: error: No binary operator \"-\" for type \"mat4\" and type \"vec4\"
+  vec4(0.0) - mat4(0.0); mat4(0.0) - vec4(0.0);
+                                   ^
+")
+
+# Vector-matrix and matrix-vector multiplication
+test("
+void main() {
+  vec2(0.0) * vec2(0.0); vec2(0.0) * vec2(0.0);
+  vec2(0.0) * vec3(0.0); vec3(0.0) * vec2(0.0);
+  vec2(0.0) * vec4(0.0); vec4(0.0) * vec2(0.0);
+  vec2(0.0) * mat2(0.0); mat2(0.0) * vec2(0.0);
+  vec2(0.0) * mat3(0.0); mat3(0.0) * vec2(0.0);
+  vec2(0.0) * mat4(0.0); mat4(0.0) * vec2(0.0);
+
+  vec3(0.0) * vec2(0.0); vec2(0.0) * vec3(0.0);
+  vec3(0.0) * vec3(0.0); vec3(0.0) * vec3(0.0);
+  vec3(0.0) * vec4(0.0); vec4(0.0) * vec3(0.0);
+  vec3(0.0) * mat2(0.0); mat2(0.0) * vec3(0.0);
+  vec3(0.0) * mat3(0.0); mat3(0.0) * vec3(0.0);
+  vec3(0.0) * mat4(0.0); mat4(0.0) * vec3(0.0);
+
+  vec4(0.0) * vec2(0.0); vec2(0.0) * vec4(0.0);
+  vec4(0.0) * vec3(0.0); vec3(0.0) * vec4(0.0);
+  vec4(0.0) * vec4(0.0); vec4(0.0) * vec4(0.0);
+  vec4(0.0) * mat2(0.0); mat2(0.0) * vec4(0.0);
+  vec4(0.0) * mat3(0.0); mat3(0.0) * vec4(0.0);
+  vec4(0.0) * mat4(0.0); mat4(0.0) * vec4(0.0);
+}
+", "
+<stdin>:3:13: error: No binary operator \"*\" for type \"vec2\" and type \"vec3\"
+  vec2(0.0) * vec3(0.0); vec3(0.0) * vec2(0.0);
+            ^
+<stdin>:3:36: error: No binary operator \"*\" for type \"vec3\" and type \"vec2\"
+  vec2(0.0) * vec3(0.0); vec3(0.0) * vec2(0.0);
+                                   ^
+<stdin>:4:13: error: No binary operator \"*\" for type \"vec2\" and type \"vec4\"
+  vec2(0.0) * vec4(0.0); vec4(0.0) * vec2(0.0);
+            ^
+<stdin>:4:36: error: No binary operator \"*\" for type \"vec4\" and type \"vec2\"
+  vec2(0.0) * vec4(0.0); vec4(0.0) * vec2(0.0);
+                                   ^
+<stdin>:6:13: error: No binary operator \"*\" for type \"vec2\" and type \"mat3\"
+  vec2(0.0) * mat3(0.0); mat3(0.0) * vec2(0.0);
+            ^
+<stdin>:6:36: error: No binary operator \"*\" for type \"mat3\" and type \"vec2\"
+  vec2(0.0) * mat3(0.0); mat3(0.0) * vec2(0.0);
+                                   ^
+<stdin>:7:13: error: No binary operator \"*\" for type \"vec2\" and type \"mat4\"
+  vec2(0.0) * mat4(0.0); mat4(0.0) * vec2(0.0);
+            ^
+<stdin>:7:36: error: No binary operator \"*\" for type \"mat4\" and type \"vec2\"
+  vec2(0.0) * mat4(0.0); mat4(0.0) * vec2(0.0);
+                                   ^
+<stdin>:9:13: error: No binary operator \"*\" for type \"vec3\" and type \"vec2\"
+  vec3(0.0) * vec2(0.0); vec2(0.0) * vec3(0.0);
+            ^
+<stdin>:9:36: error: No binary operator \"*\" for type \"vec2\" and type \"vec3\"
+  vec3(0.0) * vec2(0.0); vec2(0.0) * vec3(0.0);
+                                   ^
+<stdin>:11:13: error: No binary operator \"*\" for type \"vec3\" and type \"vec4\"
+  vec3(0.0) * vec4(0.0); vec4(0.0) * vec3(0.0);
+            ^
+<stdin>:11:36: error: No binary operator \"*\" for type \"vec4\" and type \"vec3\"
+  vec3(0.0) * vec4(0.0); vec4(0.0) * vec3(0.0);
+                                   ^
+<stdin>:12:13: error: No binary operator \"*\" for type \"vec3\" and type \"mat2\"
+  vec3(0.0) * mat2(0.0); mat2(0.0) * vec3(0.0);
+            ^
+<stdin>:12:36: error: No binary operator \"*\" for type \"mat2\" and type \"vec3\"
+  vec3(0.0) * mat2(0.0); mat2(0.0) * vec3(0.0);
+                                   ^
+<stdin>:14:13: error: No binary operator \"*\" for type \"vec3\" and type \"mat4\"
+  vec3(0.0) * mat4(0.0); mat4(0.0) * vec3(0.0);
+            ^
+<stdin>:14:36: error: No binary operator \"*\" for type \"mat4\" and type \"vec3\"
+  vec3(0.0) * mat4(0.0); mat4(0.0) * vec3(0.0);
+                                   ^
+<stdin>:16:13: error: No binary operator \"*\" for type \"vec4\" and type \"vec2\"
+  vec4(0.0) * vec2(0.0); vec2(0.0) * vec4(0.0);
+            ^
+<stdin>:16:36: error: No binary operator \"*\" for type \"vec2\" and type \"vec4\"
+  vec4(0.0) * vec2(0.0); vec2(0.0) * vec4(0.0);
+                                   ^
+<stdin>:17:13: error: No binary operator \"*\" for type \"vec4\" and type \"vec3\"
+  vec4(0.0) * vec3(0.0); vec3(0.0) * vec4(0.0);
+            ^
+<stdin>:17:36: error: No binary operator \"*\" for type \"vec3\" and type \"vec4\"
+  vec4(0.0) * vec3(0.0); vec3(0.0) * vec4(0.0);
+                                   ^
+<stdin>:19:13: error: No binary operator \"*\" for type \"vec4\" and type \"mat2\"
+  vec4(0.0) * mat2(0.0); mat2(0.0) * vec4(0.0);
+            ^
+<stdin>:19:36: error: No binary operator \"*\" for type \"mat2\" and type \"vec4\"
+  vec4(0.0) * mat2(0.0); mat2(0.0) * vec4(0.0);
+                                   ^
+<stdin>:20:13: error: No binary operator \"*\" for type \"vec4\" and type \"mat3\"
+  vec4(0.0) * mat3(0.0); mat3(0.0) * vec4(0.0);
+            ^
+<stdin>:20:36: error: No binary operator \"*\" for type \"mat3\" and type \"vec4\"
+  vec4(0.0) * mat3(0.0); mat3(0.0) * vec4(0.0);
+                                   ^
+")
+
+# Vector-matrix and matrix-vector division
+test("
+void main() {
+  vec2(0.0) / vec2(0.0); vec2(0.0) / vec2(0.0);
+  vec2(0.0) / vec3(0.0); vec3(0.0) / vec2(0.0);
+  vec2(0.0) / vec4(0.0); vec4(0.0) / vec2(0.0);
+  vec2(0.0) / mat2(0.0); mat2(0.0) / vec2(0.0);
+  vec2(0.0) / mat3(0.0); mat3(0.0) / vec2(0.0);
+  vec2(0.0) / mat4(0.0); mat4(0.0) / vec2(0.0);
+
+  vec3(0.0) / vec2(0.0); vec2(0.0) / vec3(0.0);
+  vec3(0.0) / vec3(0.0); vec3(0.0) / vec3(0.0);
+  vec3(0.0) / vec4(0.0); vec4(0.0) / vec3(0.0);
+  vec3(0.0) / mat2(0.0); mat2(0.0) / vec3(0.0);
+  vec3(0.0) / mat3(0.0); mat3(0.0) / vec3(0.0);
+  vec3(0.0) / mat4(0.0); mat4(0.0) / vec3(0.0);
+
+  vec4(0.0) / vec2(0.0); vec2(0.0) / vec4(0.0);
+  vec4(0.0) / vec3(0.0); vec3(0.0) / vec4(0.0);
+  vec4(0.0) / vec4(0.0); vec4(0.0) / vec4(0.0);
+  vec4(0.0) / mat2(0.0); mat2(0.0) / vec4(0.0);
+  vec4(0.0) / mat3(0.0); mat3(0.0) / vec4(0.0);
+  vec4(0.0) / mat4(0.0); mat4(0.0) / vec4(0.0);
+}
+", "
+<stdin>:3:13: error: No binary operator \"/\" for type \"vec2\" and type \"vec3\"
+  vec2(0.0) / vec3(0.0); vec3(0.0) / vec2(0.0);
+            ^
+<stdin>:3:36: error: No binary operator \"/\" for type \"vec3\" and type \"vec2\"
+  vec2(0.0) / vec3(0.0); vec3(0.0) / vec2(0.0);
+                                   ^
+<stdin>:4:13: error: No binary operator \"/\" for type \"vec2\" and type \"vec4\"
+  vec2(0.0) / vec4(0.0); vec4(0.0) / vec2(0.0);
+            ^
+<stdin>:4:36: error: No binary operator \"/\" for type \"vec4\" and type \"vec2\"
+  vec2(0.0) / vec4(0.0); vec4(0.0) / vec2(0.0);
+                                   ^
+<stdin>:5:13: error: No binary operator \"/\" for type \"vec2\" and type \"mat2\"
+  vec2(0.0) / mat2(0.0); mat2(0.0) / vec2(0.0);
+            ^
+<stdin>:5:36: error: No binary operator \"/\" for type \"mat2\" and type \"vec2\"
+  vec2(0.0) / mat2(0.0); mat2(0.0) / vec2(0.0);
+                                   ^
+<stdin>:6:13: error: No binary operator \"/\" for type \"vec2\" and type \"mat3\"
+  vec2(0.0) / mat3(0.0); mat3(0.0) / vec2(0.0);
+            ^
+<stdin>:6:36: error: No binary operator \"/\" for type \"mat3\" and type \"vec2\"
+  vec2(0.0) / mat3(0.0); mat3(0.0) / vec2(0.0);
+                                   ^
+<stdin>:7:13: error: No binary operator \"/\" for type \"vec2\" and type \"mat4\"
+  vec2(0.0) / mat4(0.0); mat4(0.0) / vec2(0.0);
+            ^
+<stdin>:7:36: error: No binary operator \"/\" for type \"mat4\" and type \"vec2\"
+  vec2(0.0) / mat4(0.0); mat4(0.0) / vec2(0.0);
+                                   ^
+<stdin>:9:13: error: No binary operator \"/\" for type \"vec3\" and type \"vec2\"
+  vec3(0.0) / vec2(0.0); vec2(0.0) / vec3(0.0);
+            ^
+<stdin>:9:36: error: No binary operator \"/\" for type \"vec2\" and type \"vec3\"
+  vec3(0.0) / vec2(0.0); vec2(0.0) / vec3(0.0);
+                                   ^
+<stdin>:11:13: error: No binary operator \"/\" for type \"vec3\" and type \"vec4\"
+  vec3(0.0) / vec4(0.0); vec4(0.0) / vec3(0.0);
+            ^
+<stdin>:11:36: error: No binary operator \"/\" for type \"vec4\" and type \"vec3\"
+  vec3(0.0) / vec4(0.0); vec4(0.0) / vec3(0.0);
+                                   ^
+<stdin>:12:13: error: No binary operator \"/\" for type \"vec3\" and type \"mat2\"
+  vec3(0.0) / mat2(0.0); mat2(0.0) / vec3(0.0);
+            ^
+<stdin>:12:36: error: No binary operator \"/\" for type \"mat2\" and type \"vec3\"
+  vec3(0.0) / mat2(0.0); mat2(0.0) / vec3(0.0);
+                                   ^
+<stdin>:13:13: error: No binary operator \"/\" for type \"vec3\" and type \"mat3\"
+  vec3(0.0) / mat3(0.0); mat3(0.0) / vec3(0.0);
+            ^
+<stdin>:13:36: error: No binary operator \"/\" for type \"mat3\" and type \"vec3\"
+  vec3(0.0) / mat3(0.0); mat3(0.0) / vec3(0.0);
+                                   ^
+<stdin>:14:13: error: No binary operator \"/\" for type \"vec3\" and type \"mat4\"
+  vec3(0.0) / mat4(0.0); mat4(0.0) / vec3(0.0);
+            ^
+<stdin>:14:36: error: No binary operator \"/\" for type \"mat4\" and type \"vec3\"
+  vec3(0.0) / mat4(0.0); mat4(0.0) / vec3(0.0);
+                                   ^
+<stdin>:16:13: error: No binary operator \"/\" for type \"vec4\" and type \"vec2\"
+  vec4(0.0) / vec2(0.0); vec2(0.0) / vec4(0.0);
+            ^
+<stdin>:16:36: error: No binary operator \"/\" for type \"vec2\" and type \"vec4\"
+  vec4(0.0) / vec2(0.0); vec2(0.0) / vec4(0.0);
+                                   ^
+<stdin>:17:13: error: No binary operator \"/\" for type \"vec4\" and type \"vec3\"
+  vec4(0.0) / vec3(0.0); vec3(0.0) / vec4(0.0);
+            ^
+<stdin>:17:36: error: No binary operator \"/\" for type \"vec3\" and type \"vec4\"
+  vec4(0.0) / vec3(0.0); vec3(0.0) / vec4(0.0);
+                                   ^
+<stdin>:19:13: error: No binary operator \"/\" for type \"vec4\" and type \"mat2\"
+  vec4(0.0) / mat2(0.0); mat2(0.0) / vec4(0.0);
+            ^
+<stdin>:19:36: error: No binary operator \"/\" for type \"mat2\" and type \"vec4\"
+  vec4(0.0) / mat2(0.0); mat2(0.0) / vec4(0.0);
+                                   ^
+<stdin>:20:13: error: No binary operator \"/\" for type \"vec4\" and type \"mat3\"
+  vec4(0.0) / mat3(0.0); mat3(0.0) / vec4(0.0);
+            ^
+<stdin>:20:36: error: No binary operator \"/\" for type \"mat3\" and type \"vec4\"
+  vec4(0.0) / mat3(0.0); mat3(0.0) / vec4(0.0);
+                                   ^
+<stdin>:21:13: error: No binary operator \"/\" for type \"vec4\" and type \"mat4\"
+  vec4(0.0) / mat4(0.0); mat4(0.0) / vec4(0.0);
+            ^
+<stdin>:21:36: error: No binary operator \"/\" for type \"mat4\" and type \"vec4\"
+  vec4(0.0) / mat4(0.0); mat4(0.0) / vec4(0.0);
+                                   ^
+")
+
   }
 }
