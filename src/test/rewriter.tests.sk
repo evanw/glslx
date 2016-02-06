@@ -631,5 +631,23 @@ void main() {
 }
 ").renameAll.trimSymbols
 
+# Don't merge variables with different flags
+test("
+void main() {
+  lowp float x;
+  lowp float y;
+  lowp float z;
+  lowp float l;
+  mediump float m;
+  highp float h;
+}
+", "
+void main() {
+  lowp float x, y, z, l;
+  mediump float m;
+  highp float h;
+}
+").compactSyntaxTree
+
   }
 }

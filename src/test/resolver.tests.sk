@@ -1,0 +1,203 @@
+namespace GLSLX.Tests {
+  def testResolver {
+
+# Test implicit primitive conversions
+test("
+void main() {
+  int i_i = 0;
+  int i_f = 0.0;
+  int i_b = false;
+
+  float f_i = 0;
+  float f_f = 0.0;
+  float f_b = false;
+
+  bool b_i = 0;
+  bool b_f = 0.0;
+  bool b_b = false;
+}
+", "
+<stdin>:3:13: error: Cannot convert from type \"float\" to type \"int\"
+  int i_f = 0.0;
+            ~~~
+<stdin>:4:13: error: Cannot convert from type \"bool\" to type \"int\"
+  int i_b = false;
+            ~~~~~
+<stdin>:6:15: error: Cannot convert from type \"int\" to type \"float\"
+  float f_i = 0;
+              ^
+<stdin>:8:15: error: Cannot convert from type \"bool\" to type \"float\"
+  float f_b = false;
+              ~~~~~
+<stdin>:10:14: error: Cannot convert from type \"int\" to type \"bool\"
+  bool b_i = 0;
+             ^
+<stdin>:11:14: error: Cannot convert from type \"float\" to type \"bool\"
+  bool b_f = 0.0;
+             ~~~
+")
+
+# Test explicit primitive conversions
+test("
+void main() {
+  int i_i = int(0);
+  int i_f = int(0.0);
+  int i_b = int(false);
+
+  float f_i = float(0);
+  float f_f = float(0.0);
+  float f_b = float(false);
+
+  bool b_i = bool(0);
+  bool b_f = bool(0.0);
+  bool b_b = bool(false);
+}
+", "
+void main() {
+  int i_i = int(0);
+  int i_f = int(0.0);
+  int i_b = int(false);
+  float f_i = float(0);
+  float f_f = float(0.0);
+  float f_b = float(false);
+  bool b_i = bool(0);
+  bool b_f = bool(0.0);
+  bool b_b = bool(false);
+}
+")
+
+# Test constructors
+test("
+void main() {
+  float v1 = 0.0;
+  vec2 v2 = vec2(1.0, 2.0);
+  vec3 v3 = vec3(1.0, 2.0, 3.0);
+  vec4 v4 = vec4(1.0, 2.0, 3.0, 4.0);
+
+  vec2 v2_1 = vec2(v1);
+  vec2 v2_2 = vec2(v2);
+  vec2 v2_3 = vec2(v3);
+  vec2 v2_4 = vec2(v4);
+
+  vec3 v3_1 = vec3(v1);
+  vec3 v3_2 = vec3(v2);
+  vec3 v3_3 = vec3(v3);
+  vec3 v3_4 = vec3(v4);
+  vec3 v3_12 = vec3(v1, v2);
+  vec3 v3_21 = vec3(v2, v1);
+
+  vec4 v4_1 = vec4(v1);
+  vec4 v4_2 = vec4(v2);
+  vec4 v4_3 = vec4(v3);
+  vec4 v4_4 = vec4(v4);
+  vec4 v4_13 = vec4(v1, v3);
+  vec4 v4_31 = vec4(v3, v1);
+  vec4 v4_22 = vec4(v2, v2);
+}
+", "
+<stdin>:9:19: error: Cannot construct type \"vec2\" with 3 values
+  vec2 v2_3 = vec2(v3);
+                  ~~~~
+<stdin>:10:19: error: Cannot construct type \"vec2\" with 4 values
+  vec2 v2_4 = vec2(v4);
+                  ~~~~
+<stdin>:13:19: error: Cannot construct type \"vec3\" with 2 values
+  vec3 v3_2 = vec3(v2);
+                  ~~~~
+<stdin>:15:19: error: Cannot construct type \"vec3\" with 4 values
+  vec3 v3_4 = vec3(v4);
+                  ~~~~
+<stdin>:20:19: error: Cannot construct type \"vec4\" with 2 values
+  vec4 v4_2 = vec4(v2);
+                  ~~~~
+<stdin>:21:19: error: Cannot construct type \"vec4\" with 3 values
+  vec4 v4_3 = vec4(v3);
+                  ~~~~
+")
+
+# Test vector-matrix and matrix-vector multiplications
+test("
+void main() {
+  int vm22 = vec2(0.0) * mat2(0.0);
+  int vm23 = vec2(0.0) * mat3(0.0);
+  int vm24 = vec2(0.0) * mat4(0.0);
+
+  int vm32 = vec3(0.0) * mat2(0.0);
+  int vm33 = vec3(0.0) * mat3(0.0);
+  int vm34 = vec3(0.0) * mat4(0.0);
+
+  int vm42 = vec4(0.0) * mat2(0.0);
+  int vm43 = vec4(0.0) * mat3(0.0);
+  int vm44 = vec4(0.0) * mat4(0.0);
+
+  int mv22 = mat2(0.0) * vec2(0.0);
+  int mv23 = mat2(0.0) * vec3(0.0);
+  int mv24 = mat2(0.0) * vec4(0.0);
+
+  int mv32 = mat3(0.0) * vec2(0.0);
+  int mv33 = mat3(0.0) * vec3(0.0);
+  int mv34 = mat3(0.0) * vec4(0.0);
+
+  int mv42 = mat4(0.0) * vec2(0.0);
+  int mv43 = mat4(0.0) * vec3(0.0);
+  int mv44 = mat4(0.0) * vec4(0.0);
+}
+", "
+<stdin>:2:14: error: Cannot convert from type \"vec2\" to type \"int\"
+  int vm22 = vec2(0.0) * mat2(0.0);
+             ~~~~~~~~~~~~~~~~~~~~~
+<stdin>:3:24: error: No binary operator \"*\" for type \"vec2\" and type \"mat3\"
+  int vm23 = vec2(0.0) * mat3(0.0);
+                       ^
+<stdin>:4:24: error: No binary operator \"*\" for type \"vec2\" and type \"mat4\"
+  int vm24 = vec2(0.0) * mat4(0.0);
+                       ^
+<stdin>:6:24: error: No binary operator \"*\" for type \"vec3\" and type \"mat2\"
+  int vm32 = vec3(0.0) * mat2(0.0);
+                       ^
+<stdin>:7:14: error: Cannot convert from type \"vec3\" to type \"int\"
+  int vm33 = vec3(0.0) * mat3(0.0);
+             ~~~~~~~~~~~~~~~~~~~~~
+<stdin>:8:24: error: No binary operator \"*\" for type \"vec3\" and type \"mat4\"
+  int vm34 = vec3(0.0) * mat4(0.0);
+                       ^
+<stdin>:10:24: error: No binary operator \"*\" for type \"vec4\" and type \"mat2\"
+  int vm42 = vec4(0.0) * mat2(0.0);
+                       ^
+<stdin>:11:24: error: No binary operator \"*\" for type \"vec4\" and type \"mat3\"
+  int vm43 = vec4(0.0) * mat3(0.0);
+                       ^
+<stdin>:12:14: error: Cannot convert from type \"vec4\" to type \"int\"
+  int vm44 = vec4(0.0) * mat4(0.0);
+             ~~~~~~~~~~~~~~~~~~~~~
+<stdin>:14:14: error: Cannot convert from type \"vec2\" to type \"int\"
+  int mv22 = mat2(0.0) * vec2(0.0);
+             ~~~~~~~~~~~~~~~~~~~~~
+<stdin>:15:24: error: No binary operator \"*\" for type \"mat2\" and type \"vec3\"
+  int mv23 = mat2(0.0) * vec3(0.0);
+                       ^
+<stdin>:16:24: error: No binary operator \"*\" for type \"mat2\" and type \"vec4\"
+  int mv24 = mat2(0.0) * vec4(0.0);
+                       ^
+<stdin>:18:24: error: No binary operator \"*\" for type \"mat3\" and type \"vec2\"
+  int mv32 = mat3(0.0) * vec2(0.0);
+                       ^
+<stdin>:19:14: error: Cannot convert from type \"vec3\" to type \"int\"
+  int mv33 = mat3(0.0) * vec3(0.0);
+             ~~~~~~~~~~~~~~~~~~~~~
+<stdin>:20:24: error: No binary operator \"*\" for type \"mat3\" and type \"vec4\"
+  int mv34 = mat3(0.0) * vec4(0.0);
+                       ^
+<stdin>:22:24: error: No binary operator \"*\" for type \"mat4\" and type \"vec2\"
+  int mv42 = mat4(0.0) * vec2(0.0);
+                       ^
+<stdin>:23:24: error: No binary operator \"*\" for type \"mat4\" and type \"vec3\"
+  int mv43 = mat4(0.0) * vec3(0.0);
+                       ^
+<stdin>:24:14: error: Cannot convert from type \"vec4\" to type \"int\"
+  int mv44 = mat4(0.0) * vec4(0.0);
+             ~~~~~~~~~~~~~~~~~~~~~
+")
+
+  }
+}

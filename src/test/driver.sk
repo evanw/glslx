@@ -84,8 +84,10 @@ namespace GLSLX.Tests {
 
   @entry
   def main int {
+    testEmitter
     testMinifier
     testParser
+    testResolver
     testRewriter
 
     var report = Unit.TerminalReport.new
