@@ -189,7 +189,7 @@ namespace GLSLX.Parser {
   def parseDoWhile(context ParserContext) Node {
     var token = context.next
     context.pushScope(Scope.new(.LOOP, context.scope))
-    var body = parseStatement(context)
+    var body = parseStatement(context, .LOCAL)
     if body == null || !context.expect(.WHILE) || !context.expect(.LEFT_PARENTHESIS) {
       return null
     }
@@ -212,7 +212,7 @@ namespace GLSLX.Parser {
     # Parse a modifier block
     if context.eat(.LEFT_BRACE) {
       var node = Node.createModifierBlock
-      if !parseStatements(context, node) || !context.expect(.RIGHT_BRACE) {
+      if !parseStatements(context, node, .GLOBAL) || !context.expect(.RIGHT_BRACE) {
         return null
       }
       context.flags = old
@@ -220,7 +220,7 @@ namespace GLSLX.Parser {
     }
 
     # Just parse a single statement
-    var statement = parseStatement(context)
+    var statement = parseStatement(context, .GLOBAL)
     if statement == null {
       return null
     }
@@ -257,7 +257,7 @@ namespace GLSLX.Parser {
         context.compilationData.currentExtensions[name] = .DEFAULT # Silence warnings about this name
       }
       var block = Node.createModifierBlock
-      if !parseStatements(context, block) || !context.expect(.RIGHT_BRACE) {
+      if !parseStatements(context, block, .GLOBAL) || !context.expect(.RIGHT_BRACE) {
         return null
       }
       for child = block.firstChild; child != null; child = child.nextSibling {
@@ -305,7 +305,7 @@ namespace GLSLX.Parser {
     var setup Node = null
     if !context.eat(.SEMICOLON) {
       # Check for a type
-      var flags = parseFlags(context, .NORMAL)
+      var flags = parseFlags(context, .LOCAL)
       var type Node = null
       if flags != 0 {
         type = parseType(context, .REPORT_ERRORS)
@@ -358,7 +358,7 @@ namespace GLSLX.Parser {
     }
 
     # Body
-    var body = parseStatement(context)
+    var body = parseStatement(context, .LOCAL)
     if body == null {
       return null
     }
@@ -378,13 +378,13 @@ namespace GLSLX.Parser {
     if !context.expect(.RIGHT_PARENTHESIS) {
       return null
     }
-    var yes = parseStatement(context)
+    var yes = parseStatement(context, .LOCAL)
     if yes == null {
       return null
     }
     var no Node = null
     if context.eat(.ELSE) {
-      no = parseStatement(context)
+      no = parseStatement(context, .LOCAL)
       if no == null {
         return null
       }
@@ -414,7 +414,7 @@ namespace GLSLX.Parser {
     if !context.expect(.RIGHT_PARENTHESIS) {
       return null
     }
-    var body = parseStatement(context)
+    var body = parseStatement(context, .LOCAL)
     if body == null {
       return null
     }
@@ -477,7 +477,7 @@ namespace GLSLX.Parser {
 
     context.pushScope(symbol.scope)
     while !context.peek(.RIGHT_BRACE) && !context.peek(.END_OF_FILE) {
-      var statement = parseStatement(context)
+      var statement = parseStatement(context, .STRUCT)
       if statement == null {
         return null
       }
@@ -552,7 +552,7 @@ namespace GLSLX.Parser {
     return variables.withRange(context.spanSince(range))
   }
 
-  def parseStatement(context ParserContext) Node {
+  def parseStatement(context ParserContext, mode VariableKind) Node {
     var token = context.current
 
     switch token.kind {
@@ -573,7 +573,7 @@ namespace GLSLX.Parser {
     }
 
     # Try to parse a variable or function
-    var flags = parseFlags(context, .NORMAL)
+    var flags = parseFlags(context, mode)
     var type Node = null
     if context.eat(.STRUCT) {
       var struct = parseStruct(context, flags)
@@ -629,42 +629,38 @@ namespace GLSLX.Parser {
     var token = context.current
     var block = Node.createBlock
     context.pushScope(Scope.new(.LOCAL, context.scope))
-    if !context.expect(.LEFT_BRACE) || !parseStatements(context, block) || !context.expect(.RIGHT_BRACE) {
+    if !context.expect(.LEFT_BRACE) || !parseStatements(context, block, .LOCAL) || !context.expect(.RIGHT_BRACE) {
       return null
     }
     context.popScope
     return block.withRange(context.spanSince(token.range))
   }
 
-  enum FlagsMode {
-    NORMAL
-    ARGUMENT
-  }
-
-  def parseFlags(context ParserContext, mode FlagsMode) SymbolFlags {
+  def parseFlags(context ParserContext, mode VariableKind) SymbolFlags {
     var flags SymbolFlags = 0
     while true {
       var kind = context.current.kind
 
-      if mode == .ARGUMENT && (kind == .ATTRIBUTE || kind == .UNIFORM || kind == .VARYING) {
+      switch kind {
+        case .ATTRIBUTE { flags |= .ATTRIBUTE }
+        case .CONST     { flags |= .CONST }
+        case .HIGHP     { flags |= .HIGHP }
+        case .IN        { flags |= .IN }
+        case .INOUT     { flags |= .INOUT }
+        case .LOWP      { flags |= .LOWP }
+        case .MEDIUMP   { flags |= .MEDIUMP }
+        case .OUT       { flags |= .OUT }
+        case .UNIFORM   { flags |= .UNIFORM }
+        case .VARYING   { flags |= .VARYING }
+        default { return flags }
+      }
+
+      if mode == .ARGUMENT && (kind == .ATTRIBUTE || kind == .UNIFORM || kind == .VARYING) ||
+          mode == .STRUCT && kind != .LOWP && kind != .MEDIUMP && kind != .HIGHP ||
+          mode != .ARGUMENT && (kind == .IN || kind == .OUT || kind == .INOUT) {
         context.log.syntaxErrorBadQualifier(context.current.range)
       }
 
-      else {
-        switch kind {
-          case .ATTRIBUTE { flags |= .ATTRIBUTE }
-          case .CONST     { flags |= .CONST }
-          case .HIGHP     { flags |= .HIGHP }
-          case .IN        { flags |= .IN }
-          case .INOUT     { flags |= .INOUT }
-          case .LOWP      { flags |= .LOWP }
-          case .MEDIUMP   { flags |= .MEDIUMP }
-          case .OUT       { flags |= .OUT }
-          case .UNIFORM   { flags |= .UNIFORM }
-          case .VARYING   { flags |= .VARYING }
-          default { return flags }
-        }
-      }
       context.next
     }
   }
@@ -896,9 +892,9 @@ namespace GLSLX.Parser {
     return true
   }
 
-  def parseStatements(context ParserContext, parent Node) bool {
+  def parseStatements(context ParserContext, parent Node, mode VariableKind) bool {
     while !context.peek(.END_OF_FILE) && !context.peek(.RIGHT_BRACE) {
-      var statement = parseStatement(context)
+      var statement = parseStatement(context, mode)
       if statement == null {
         return false
       }
@@ -926,7 +922,7 @@ namespace GLSLX.Parser {
 
     var context = ParserContext.new(log, tokens, data)
     context.pushScope(scope)
-    if parseStatements(context, global) {
+    if parseStatements(context, global, .GLOBAL) {
       context.expect(.END_OF_FILE)
     }
   }

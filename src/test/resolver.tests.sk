@@ -1,6 +1,17 @@
 namespace GLSLX.Tests {
   def testResolver {
 
+# Test invalid variable types
+test("
+void main() {
+  void v;
+}
+", "
+<stdin>:2:3: error: Cannot create a variable of type \"void\"
+  void v;
+  ~~~~
+")
+
 # Test implicit primitive conversions
 test("
 void main() {
@@ -205,10 +216,6 @@ void main(const int a) {
   const int b;
   const int c = 0;
 }
-
-struct Foo {
-  const int d;
-};
 ", "
 <stdin>:2:13: error: Constants must be initialized
   const int b;

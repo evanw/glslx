@@ -66,5 +66,93 @@ void main(
   ~~~~~~~
 ")
 
+# Test qualifier parsing for global variables
+test("
+attribute float a;
+const float c;
+highp float h;
+in float i;
+inout float io;
+lowp float l;
+mediump float m;
+out float o;
+uniform float u;
+varying float v;
+", "
+<stdin>:4:1: error: Cannot use this qualifier here
+in float i;
+~~
+<stdin>:5:1: error: Cannot use this qualifier here
+inout float io;
+~~~~~
+<stdin>:8:1: error: Cannot use this qualifier here
+out float o;
+~~~
+")
+
+# Test qualifier parsing for struct fields
+test("
+struct Foo {
+  attribute float a;
+  const float c;
+  highp float h;
+  in float i;
+  inout float io;
+  lowp float l;
+  mediump float m;
+  out float o;
+  uniform float u;
+  varying float v;
+};
+", "
+<stdin>:2:3: error: Cannot use this qualifier here
+  attribute float a;
+  ~~~~~~~~~
+<stdin>:3:3: error: Cannot use this qualifier here
+  const float c;
+  ~~~~~
+<stdin>:5:3: error: Cannot use this qualifier here
+  in float i;
+  ~~
+<stdin>:6:3: error: Cannot use this qualifier here
+  inout float io;
+  ~~~~~
+<stdin>:9:3: error: Cannot use this qualifier here
+  out float o;
+  ~~~
+<stdin>:10:3: error: Cannot use this qualifier here
+  uniform float u;
+  ~~~~~~~
+<stdin>:11:3: error: Cannot use this qualifier here
+  varying float v;
+  ~~~~~~~
+")
+
+# Test qualifier parsing for local variables
+test("
+void main() {
+  attribute float a;
+  const float c;
+  highp float h;
+  in float i;
+  inout float io;
+  lowp float l;
+  mediump float m;
+  out float o;
+  uniform float u;
+  varying float v;
+}
+", "
+<stdin>:5:3: error: Cannot use this qualifier here
+  in float i;
+  ~~
+<stdin>:6:3: error: Cannot use this qualifier here
+  inout float io;
+  ~~~~~
+<stdin>:9:3: error: Cannot use this qualifier here
+  out float o;
+  ~~~
+")
+
   }
 }
