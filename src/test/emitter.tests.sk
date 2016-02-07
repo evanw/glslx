@@ -37,18 +37,30 @@ void main() {
 test("
 void main() {
   int x = 0;
+  float y = 0.0;
+
   x++;
   x--;
   ++x;
   --x;
+
+  y++;
+  y--;
+  ++y;
+  --y;
 }
 ", "
 void main() {
   int x = 0;
+  float y = 0.0;
   x++;
   x--;
   ++x;
   --x;
+  y++;
+  y--;
+  ++y;
+  --y;
 }
 ")
 

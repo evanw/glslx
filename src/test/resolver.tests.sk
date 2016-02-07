@@ -2284,5 +2284,101 @@ int badWhile6() {
     ~~~~~~~~~
 ")
 
+# Test comparison operators
+test("
+void main() {
+  1 < 2;
+  1.0 < 2.0;
+  ivec2(1) < ivec2(2);
+  mat2(1.0) < mat2(2.0);
+  int vlt = lessThan(ivec2(1), ivec2(2));
+  int mlt = lessThan(mat2(1.0), mat2(2.0));
+
+  1 > 2;
+  1.0 > 2.0;
+  ivec2(1) > ivec2(2);
+  mat2(1.0) > mat2(2.0);
+  int vgt = greaterThan(ivec2(1), ivec2(2));
+  int mgt = greaterThan(mat2(1.0), mat2(2.0));
+
+  1 <= 2;
+  1.0 <= 2.0;
+  ivec2(1) <= ivec2(2);
+  mat2(1.0) <= mat2(2.0);
+  int vlte = lessThanEqual(ivec2(1), ivec2(2));
+  int mlte = lessThanEqual(mat2(1.0), mat2(2.0));
+
+  1 >= 2;
+  1.0 >= 2.0;
+  ivec2(1) >= ivec2(2);
+  mat2(1.0) >= mat2(2.0);
+  int vgte = greaterThanEqual(ivec2(1), ivec2(2));
+  int mgte = greaterThanEqual(mat2(1.0), mat2(2.0));
+}
+", "
+<stdin>:4:12: error: No binary operator \"<\" for type \"ivec2\" and type \"ivec2\"
+  ivec2(1) < ivec2(2);
+           ^
+<stdin>:5:13: error: No binary operator \"<\" for type \"mat2\" and type \"mat2\"
+  mat2(1.0) < mat2(2.0);
+            ^
+<stdin>:6:13: error: Cannot convert from type \"bvec2\" to type \"int\"
+  int vlt = lessThan(ivec2(1), ivec2(2));
+            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+<stdin>:7:13: error: No matching overload for function \"lessThan\"
+  int mlt = lessThan(mat2(1.0), mat2(2.0));
+            ~~~~~~~~
+<stdin>:11:12: error: No binary operator \">\" for type \"ivec2\" and type \"ivec2\"
+  ivec2(1) > ivec2(2);
+           ^
+<stdin>:12:13: error: No binary operator \">\" for type \"mat2\" and type \"mat2\"
+  mat2(1.0) > mat2(2.0);
+            ^
+<stdin>:13:13: error: Cannot convert from type \"bvec2\" to type \"int\"
+  int vgt = greaterThan(ivec2(1), ivec2(2));
+            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+<stdin>:14:13: error: No matching overload for function \"greaterThan\"
+  int mgt = greaterThan(mat2(1.0), mat2(2.0));
+            ~~~~~~~~~~~
+<stdin>:18:12: error: No binary operator \"<=\" for type \"ivec2\" and type \"ivec2\"
+  ivec2(1) <= ivec2(2);
+           ~~
+<stdin>:19:13: error: No binary operator \"<=\" for type \"mat2\" and type \"mat2\"
+  mat2(1.0) <= mat2(2.0);
+            ~~
+<stdin>:20:14: error: Cannot convert from type \"bvec2\" to type \"int\"
+  int vlte = lessThanEqual(ivec2(1), ivec2(2));
+             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+<stdin>:21:14: error: No matching overload for function \"lessThanEqual\"
+  int mlte = lessThanEqual(mat2(1.0), mat2(2.0));
+             ~~~~~~~~~~~~~
+<stdin>:25:12: error: No binary operator \">=\" for type \"ivec2\" and type \"ivec2\"
+  ivec2(1) >= ivec2(2);
+           ~~
+<stdin>:26:13: error: No binary operator \">=\" for type \"mat2\" and type \"mat2\"
+  mat2(1.0) >= mat2(2.0);
+            ~~
+<stdin>:27:14: error: Cannot convert from type \"bvec2\" to type \"int\"
+  int vgte = greaterThanEqual(ivec2(1), ivec2(2));
+             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+<stdin>:28:14: error: No matching overload for function \"greaterThanEqual\"
+  int mgte = greaterThanEqual(mat2(1.0), mat2(2.0));
+             ~~~~~~~~~~~~~~~~
+")
+
+# Test the sequence operator
+test("
+void main() {
+  int x = (0.5, 1 + 1.5, false);
+}
+", "
+<stdin>:2:19: error: No binary operator \"+\" for type \"int\" and type \"float\"
+  int x = (0.5, 1 + 1.5, false);
+                  ^
+<stdin>:2:12: error: Cannot convert from type \"bool\" to type \"int\"
+  int x = (0.5, 1 + 1.5, false);
+           ~~~~~~~~~~~~~~~~~~~
+")
+
   }
 }

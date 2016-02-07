@@ -282,20 +282,6 @@ namespace GLSLX.Folder {
     return null
   }
 
-  def _foldFloatOrIntToBool(left Node, right Node, op fn(double, double) bool) Node {
-    if left.kind == .FLOAT && right.kind == .FLOAT {
-      return Node.createBool(op(left.asFloat, right.asFloat))
-    }
-
-    if left.kind == .INT && right.kind == .INT {
-      return Node.createBool(op(left.asInt, right.asInt))
-    }
-
-    # TODO: CALL is a constructor, do op element-wise
-
-    return null
-  }
-
   ################################################################################
 
   def _foldUnaryBool(node Node, op fn(bool) bool) Node {
@@ -350,8 +336,17 @@ namespace GLSLX.Folder {
     var left = fold(node.binaryLeft)
     var right = fold(node.binaryRight)
 
+    # The comparison operators only work on scalars in GLSL. To do comparisons
+    # on vectors, the functions greaterThan(), lessThan(), greaterThanEqual(),
+    # and lessThanEqual() must be used.
     if left != null && right != null {
-      return _foldFloatOrIntToBool(left, right, op)
+      if left.kind == .FLOAT && right.kind == .FLOAT {
+        return Node.createBool(op(left.asFloat, right.asFloat))
+      }
+
+      if left.kind == .INT && right.kind == .INT {
+        return Node.createBool(op(left.asInt, right.asInt))
+      }
     }
 
     return null
