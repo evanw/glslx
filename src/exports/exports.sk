@@ -232,6 +232,41 @@ Advanced:
       }
     }
 
+    var handleSymbolsQuery = (message dynamic) dynamic => {
+      var name string = message.source + ""
+      var symbols List<dynamic> = null
+
+      if sources != null {
+        for source in sources {
+          if source.name == name {
+            if result != null {
+              var query = IDE.SymbolsQuery.new(source)
+              query.run(result)
+              symbols = query.symbols.map<dynamic>(symbol => {
+                return {
+                  "name": symbol.name,
+                  "kind":
+                    symbol.isVariable ? "variable" :
+                    symbol.isFunction ? "function" :
+                    symbol.isStruct ? "struct" :
+                    null,
+                  "range": rangeToJSON(symbol.range),
+                }
+              })
+            }
+            break
+          }
+        }
+      }
+
+      return {
+        "type": "symbols-query",
+        "id": message.id,
+        "source": name,
+        "symbols": symbols,
+      }
+    }
+
     return {
       "diagnostics": log.diagnostics.map<dynamic>(diagnostic => ({
         "kind": diagnostic.kind.toString.toLowerCase,
@@ -239,6 +274,7 @@ Advanced:
         "text": diagnostic.text,
       })),
       "tooltipQuery": handleTooltipQuery,
+      "symbolsQuery": handleSymbolsQuery,
     }
   }
 

@@ -180,4 +180,40 @@ namespace GLSLX.IDE {
       return text
     }
   }
+
+  class SymbolsQuery {
+    const source Source
+    const symbols List<Symbol> = []
+
+    def run(global Node) {
+      _visit(global)
+    }
+
+    def _visit(node Node) {
+      switch node.kind {
+        case .STRUCT, .FUNCTION {
+          _collectSymbol(node.symbol)
+        }
+
+        case .VARIABLES {
+          for child = node.variablesType.nextSibling; child != null; child = child.nextSibling {
+            assert(child.kind == .VARIABLE)
+            _collectSymbol(child.symbol)
+          }
+        }
+
+        case .GLOBAL {
+          for child = node.firstChild; child != null; child = child.nextSibling {
+            _visit(child)
+          }
+        }
+      }
+    }
+
+    def _collectSymbol(symbol Symbol) {
+      if symbol.range != null && symbol.range.source == source {
+        symbols.append(symbol)
+      }
+    }
+  }
 }
