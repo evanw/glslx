@@ -20,6 +20,17 @@ namespace GLSLX.Parser {
     return (context, left, token, right) => Node.createBinary(kind, left, right).withRange(Range.span(left.range, right.range)).withInternalRange(token.range)
   }
 
+  def parseInt(text string) int {
+    if text.count > 1 && text[0] == '0' && (text[1] != 'x' && text[1] != 'X') {
+      return dynamic.parseInt(text, 8)
+    }
+    return (text as dynamic) | 0
+  }
+
+  def parseFloat(text string) double {
+    return +(text as dynamic)
+  }
+
   def createExpressionParser Pratt {
     var pratt = Pratt.new
 
@@ -35,8 +46,8 @@ namespace GLSLX.Parser {
 
     pratt.literal(.TRUE, (context, token) => Node.createBool(true).withRange(token.range))
     pratt.literal(.FALSE, (context, token) => Node.createBool(false).withRange(token.range))
-    pratt.literal(.INT_LITERAL, (context, token) => Node.createInt((token.range.toString as dynamic) | 0).withRange(token.range))
-    pratt.literal(.FLOAT_LITERAL, (context, token) => Node.createFloat(+(token.range.toString as dynamic)).withRange(token.range))
+    pratt.literal(.INT_LITERAL, (context, token) => Node.createInt(parseInt(token.range.toString)).withRange(token.range))
+    pratt.literal(.FLOAT_LITERAL, (context, token) => Node.createFloat(parseFloat(token.range.toString)).withRange(token.range))
 
     pratt.literal(.BOOL, typeParselet(.BOOL))
     pratt.literal(.BVEC2, typeParselet(.BVEC2))

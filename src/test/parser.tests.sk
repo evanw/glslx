@@ -1,6 +1,34 @@
 namespace GLSLX.Tests {
   def testParser {
 
+# Test constant parsing
+test("
+void main() {
+  int i1 = 0x123;
+  int i2 = 0X123;
+  int i3 = 0123;
+
+  float f1 = .0;
+  float f2 = 0.;
+  float f3 = 1e2;
+  float f4 = 1e-2;
+  float f5 = 1.e2;
+  float f6 = .1e-2;
+}
+", "
+void main() {
+  int i1 = 291;
+  int i2 = 291;
+  int i3 = 83;
+  float f1 = 0.0;
+  float f2 = 0.0;
+  float f3 = 100.0;
+  float f4 = 0.01;
+  float f5 = 100.0;
+  float f6 = 1e-3;
+}
+")
+
 # Test invalid operators
 test("
 void main() {
