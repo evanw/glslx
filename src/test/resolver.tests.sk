@@ -452,6 +452,14 @@ void main(int x, vec2 y) {
   y += vec2(0.0);
   y.y += 0.0;
   y[0] += 0.0;
+
+  // Bad
+  vec2(0.0)[0]++;
+  --vec2(0.0)[0];
+
+  // Good
+  y[0]++;
+  --y[0];
 }
 ", "
 <stdin>:3:3: error: Cannot store to this location
@@ -478,6 +486,12 @@ void main(int x, vec2 y) {
 <stdin>:18:3: error: Cannot store to this location
   vec2(0.0)[0] += 0.0;
   ~~~~~~~~~~~~
+<stdin>:27:3: error: Cannot store to this location
+  vec2(0.0)[0]++;
+  ~~~~~~~~~~~~
+<stdin>:28:5: error: Cannot store to this location
+  --vec2(0.0)[0];
+    ~~~~~~~~~~~~
 ")
 
 # Cannot assign to a constant
@@ -2284,6 +2298,25 @@ int badWhile6() {
     ~~~~~~~~~
 ")
 
+# Test the not operator
+test("
+void main() {
+  int x = !true;
+  int y = !bvec2(true);
+  int z = not(bvec2(true));
+}
+", "
+<stdin>:2:11: error: Cannot convert from type \"bool\" to type \"int\"
+  int x = !true;
+          ~~~~~
+<stdin>:3:11: error: No unary operator \"!\" for type \"bvec2\"
+  int y = !bvec2(true);
+          ^
+<stdin>:4:11: error: Cannot convert from type \"bvec2\" to type \"int\"
+  int z = not(bvec2(true));
+          ~~~~~~~~~~~~~~~~
+")
+
 # Test comparison operators
 test("
 void main() {
@@ -2316,10 +2349,10 @@ void main() {
   int mgte = greaterThanEqual(mat2(1.0), mat2(2.0));
 }
 ", "
-<stdin>:4:12: error: No binary operator \"<\" for type \"ivec2\" and type \"ivec2\"
+<stdin>:4:12: error: There is no operator \"<\" defined for type \"ivec2\"
   ivec2(1) < ivec2(2);
            ^
-<stdin>:5:13: error: No binary operator \"<\" for type \"mat2\" and type \"mat2\"
+<stdin>:5:13: error: There is no operator \"<\" defined for type \"mat2\"
   mat2(1.0) < mat2(2.0);
             ^
 <stdin>:6:13: error: Cannot convert from type \"bvec2\" to type \"int\"
@@ -2328,10 +2361,10 @@ void main() {
 <stdin>:7:13: error: No matching overload for function \"lessThan\"
   int mlt = lessThan(mat2(1.0), mat2(2.0));
             ~~~~~~~~
-<stdin>:11:12: error: No binary operator \">\" for type \"ivec2\" and type \"ivec2\"
+<stdin>:11:12: error: There is no operator \">\" defined for type \"ivec2\"
   ivec2(1) > ivec2(2);
            ^
-<stdin>:12:13: error: No binary operator \">\" for type \"mat2\" and type \"mat2\"
+<stdin>:12:13: error: There is no operator \">\" defined for type \"mat2\"
   mat2(1.0) > mat2(2.0);
             ^
 <stdin>:13:13: error: Cannot convert from type \"bvec2\" to type \"int\"
@@ -2340,10 +2373,10 @@ void main() {
 <stdin>:14:13: error: No matching overload for function \"greaterThan\"
   int mgt = greaterThan(mat2(1.0), mat2(2.0));
             ~~~~~~~~~~~
-<stdin>:18:12: error: No binary operator \"<=\" for type \"ivec2\" and type \"ivec2\"
+<stdin>:18:12: error: There is no operator \"<=\" defined for type \"ivec2\"
   ivec2(1) <= ivec2(2);
            ~~
-<stdin>:19:13: error: No binary operator \"<=\" for type \"mat2\" and type \"mat2\"
+<stdin>:19:13: error: There is no operator \"<=\" defined for type \"mat2\"
   mat2(1.0) <= mat2(2.0);
             ~~
 <stdin>:20:14: error: Cannot convert from type \"bvec2\" to type \"int\"
@@ -2352,10 +2385,10 @@ void main() {
 <stdin>:21:14: error: No matching overload for function \"lessThanEqual\"
   int mlte = lessThanEqual(mat2(1.0), mat2(2.0));
              ~~~~~~~~~~~~~
-<stdin>:25:12: error: No binary operator \">=\" for type \"ivec2\" and type \"ivec2\"
+<stdin>:25:12: error: There is no operator \">=\" defined for type \"ivec2\"
   ivec2(1) >= ivec2(2);
            ~~
-<stdin>:26:13: error: No binary operator \">=\" for type \"mat2\" and type \"mat2\"
+<stdin>:26:13: error: There is no operator \">=\" defined for type \"mat2\"
   mat2(1.0) >= mat2(2.0);
             ~~
 <stdin>:27:14: error: Cannot convert from type \"bvec2\" to type \"int\"
@@ -2378,6 +2411,79 @@ void main() {
 <stdin>:2:12: error: Cannot convert from type \"bool\" to type \"int\"
   int x = (0.5, 1 + 1.5, false);
            ~~~~~~~~~~~~~~~~~~~
+")
+
+# Test the equality operator
+test("
+uniform sampler2D s2;
+uniform samplerCube sC;
+
+struct Foo1 {
+  int x;
+};
+
+struct Foo2 {
+  int x[2];
+};
+
+struct Foo3 {
+  sampler2D x;
+};
+
+struct Foo4 {
+  Foo1 x;
+};
+
+struct Foo5 {
+  Foo3 x;
+};
+
+void main(int i, float f, bool b, vec2 v, mat2 m, int a[2], Foo1 F1, Foo2 F2, Foo3 F3, Foo4 F4, Foo5 F5) {
+  0 == 0;
+  0.0 == 0.0;
+  false == false;
+  vec2(0.0) == vec2(0.0);
+  mat2(0.0) == mat2(0.0);
+
+  i == 0;
+  f == 0.0;
+  b == false;
+  v == vec2(0.0);
+  m == mat2(0.0);
+
+  i == i;
+  f == f;
+  b == b;
+  v == v;
+  m == m;
+  a == a;
+  s2 == s2;
+  sC == sC;
+  F1 == F1;
+  F2 == F2;
+  F3 == F3;
+  F4 == F4;
+  F5 == F5;
+}
+", "
+<stdin>:42:5: error: There is no operator \"==\" defined for type \"int[2]\"
+  a == a;
+    ~~
+<stdin>:43:6: error: There is no operator \"==\" defined for type \"sampler2D\"
+  s2 == s2;
+     ~~
+<stdin>:44:6: error: There is no operator \"==\" defined for type \"samplerCube\"
+  sC == sC;
+     ~~
+<stdin>:46:6: error: There is no operator \"==\" defined for type \"Foo2\"
+  F2 == F2;
+     ~~
+<stdin>:47:6: error: There is no operator \"==\" defined for type \"Foo3\"
+  F3 == F3;
+     ~~
+<stdin>:49:6: error: There is no operator \"==\" defined for type \"Foo5\"
+  F5 == F5;
+     ~~
 ")
 
   }

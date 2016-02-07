@@ -223,12 +223,16 @@ namespace GLSLX {
       error(range, "Cannot merge type \"\(left)\" and type \"\(right)\"")
     }
 
-    def semanticErrorBadUnary(range Range, operator string, type Type) {
+    def semanticErrorBadUnaryOperator(range Range, operator string, type Type) {
       error(range, "No unary operator \"\(operator)\" for type \"\(type)\"")
     }
 
-    def semanticErrorBadBinary(range Range, operator string, left Type, right Type) {
-      error(range, "No binary operator \"\(operator)\" for type \"\(left)\" and type \"\(right)\"")
+    def semanticErrorBadBinaryOperator(range Range, operator string, left Type, right Type) {
+      if left == right {
+        error(range, "There is no operator \"\(operator)\" defined for type \"\(left)\"")
+      } else {
+        error(range, "No binary operator \"\(operator)\" for type \"\(left)\" and type \"\(right)\"")
+      }
     }
 
     def semanticErrorBadIndex(range Range, left Type, right Type) {

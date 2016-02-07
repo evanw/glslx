@@ -3,6 +3,7 @@ namespace GLSLX {
     const symbol Symbol
     const isArrayOf Type
     const arrayCount int
+    var canUseEqualityOperators = true
     var _arrayTypes IntMap<Type> = null
 
     def rootType Type {
@@ -18,7 +19,7 @@ namespace GLSLX {
       _arrayTypes ?= {}
       var arrayType = _arrayTypes.get(count, null)
       if arrayType == null {
-        _arrayTypes[count] = arrayType = Type.new(null, self, count)
+        _arrayTypes[count] = arrayType = Type.new(null, self, count).disableEqualityOperator
       }
       return arrayType
     }
@@ -113,6 +114,11 @@ namespace GLSLX {
     def isBoolOrIntOrFloat bool {
       return isBool || isInt || isFloat
     }
+
+    def disableEqualityOperator Type {
+      canUseEqualityOperators = false
+      return self
+    }
   }
 
   namespace Type {
@@ -129,8 +135,8 @@ namespace GLSLX {
     const MAT2 = StructSymbol.new(-11, null, "mat2", null).resolvedType
     const MAT3 = StructSymbol.new(-12, null, "mat3", null).resolvedType
     const MAT4 = StructSymbol.new(-13, null, "mat4", null).resolvedType
-    const SAMPLER2D = StructSymbol.new(-14, null, "sampler2D", null).resolvedType
-    const SAMPLERCUBE = StructSymbol.new(-15, null, "samplerCube", null).resolvedType
+    const SAMPLER2D = StructSymbol.new(-14, null, "sampler2D", null).resolvedType.disableEqualityOperator
+    const SAMPLERCUBE = StructSymbol.new(-15, null, "samplerCube", null).resolvedType.disableEqualityOperator
     const VEC2 = StructSymbol.new(-16, null, "vec2", null).resolvedType
     const VEC3 = StructSymbol.new(-17, null, "vec3", null).resolvedType
     const VEC4 = StructSymbol.new(-18, null, "vec4", null).resolvedType

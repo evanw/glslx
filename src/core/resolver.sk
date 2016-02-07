@@ -156,6 +156,16 @@ class GLSLX.Resolver {
 
       case .STRUCT {
         _resolveChildren(node)
+
+        # A struct loses operator "==" and "!=" when it contains a type without those operators
+        for variables = node.firstChild; variables != null; variables = variables.nextSibling {
+          for variable = variables.variablesType.nextSibling; variable != null; variable = variable.nextSibling {
+            if !variable.symbol.asVariable.type.resolvedType.canUseEqualityOperators {
+              node.symbol.resolvedType.canUseEqualityOperators = false
+              break
+            }
+          }
+        }
       }
 
       case .VARIABLES {
@@ -280,7 +290,7 @@ class GLSLX.Resolver {
     }
 
     if node.resolvedType == .ERROR && valueType != .ERROR {
-      _log.semanticErrorBadUnary(node.internalRange, node.internalRange.toString, valueType)
+      _log.semanticErrorBadUnaryOperator(node.internalRange, node.internalRange.toString, valueType)
     }
   }
 
@@ -319,7 +329,7 @@ class GLSLX.Resolver {
 
       case .EQUAL, .NOT_EQUAL {
         node.resolvedType =
-          isSame ? .BOOL :
+          isSame && leftType.canUseEqualityOperators ? .BOOL :
           .ERROR
       }
 
@@ -383,7 +393,7 @@ class GLSLX.Resolver {
       if node.kind == .INDEX {
         _log.semanticErrorBadIndex(node.internalRange, leftType, rightType)
       } else {
-        _log.semanticErrorBadBinary(node.internalRange, node.internalRange.toString, leftType, rightType)
+        _log.semanticErrorBadBinaryOperator(node.internalRange, node.internalRange.toString, leftType, rightType)
       }
     }
   }
