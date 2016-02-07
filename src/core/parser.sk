@@ -122,7 +122,7 @@ namespace GLSLX.Parser {
         context.log.syntaxErrorDisabledExtension(token.range, name, symbol.requiredExtension)
       }
 
-      return Node.createName(symbol).withRange(token.range)
+      return (symbol.isStruct ? Node.createType(symbol.resolvedType) : Node.createName(symbol)).withRange(token.range)
     })
 
     # Sequence

@@ -83,6 +83,27 @@ void main() {
              ~~~~~~~~~~~
 ")
 
+# Make sure primitive constructors work with extra values inside constant expressions
+test("
+void main() {
+  int v2[int(vec2(false))];
+  int m3[int(mat3(false))];
+}
+", "
+<stdin>:2:14: warning: The constructor for type \"int\" only takes 1 argument, ignoring 1 extra argument
+  int v2[int(vec2(false))];
+             ~~~~~~~~~~~
+<stdin>:2:10: error: Cannot declare an array with a size of \"0\"
+  int v2[int(vec2(false))];
+         ~~~~~~~~~~~~~~~~
+<stdin>:3:14: warning: The constructor for type \"int\" only takes 1 argument, ignoring 8 extra arguments
+  int m3[int(mat3(false))];
+             ~~~~~~~~~~~
+<stdin>:3:10: error: Cannot declare an array with a size of \"0\"
+  int m3[int(mat3(false))];
+         ~~~~~~~~~~~~~~~~
+")
+
 # Test constant expressions for logical operators
 test("
 void main() {
@@ -193,6 +214,71 @@ void main() {
                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ")
 
+# Make sure casts inside vector and matrix constructors work in constant expressions
+test("
+void main() {
+  int iv2b[ivec2(false).x];
+  int iv2i[ivec2(-1).x];
+  int iv2f[ivec2(-1.0).x];
+
+  int bv2b[int(bvec2(false).x)];
+  int bv2i[int(bvec2(-1).x)];
+  int bv2f[int(bvec2(-1.0).x)];
+
+  int v2b[int(vec2(false).x)];
+  int v2i[int(vec2(-1).x)];
+  int v2f[int(vec2(-1.0).x)];
+
+  int m2b[int(mat2(false)[0] != vec2(0.0))];
+  int m2i[int(mat2(-1, -1, -1, -1)[0] != vec2(-1.0))];
+  int m2f[int(mat2(-1.0, -1.0, -1.0, -1.0)[0] != vec2(-1.0))];
+
+  int m2bx[int(mat2(false)[0].x)];
+  int m2ix[int(mat2(-1)[0].x)];
+  int m2fx[int(mat2(-1.0)[0].x)];
+}
+", "
+<stdin>:2:12: error: Cannot declare an array with a size of \"0\"
+  int iv2b[ivec2(false).x];
+           ~~~~~~~~~~~~~~
+<stdin>:3:12: error: Cannot declare an array with a size of \"-1\"
+  int iv2i[ivec2(-1).x];
+           ~~~~~~~~~~~
+<stdin>:4:12: error: Cannot declare an array with a size of \"-1\"
+  int iv2f[ivec2(-1.0).x];
+           ~~~~~~~~~~~~~
+<stdin>:6:12: error: Cannot declare an array with a size of \"0\"
+  int bv2b[int(bvec2(false).x)];
+           ~~~~~~~~~~~~~~~~~~~
+<stdin>:10:11: error: Cannot declare an array with a size of \"0\"
+  int v2b[int(vec2(false).x)];
+          ~~~~~~~~~~~~~~~~~~
+<stdin>:11:11: error: Cannot declare an array with a size of \"-1\"
+  int v2i[int(vec2(-1).x)];
+          ~~~~~~~~~~~~~~~
+<stdin>:12:11: error: Cannot declare an array with a size of \"-1\"
+  int v2f[int(vec2(-1.0).x)];
+          ~~~~~~~~~~~~~~~~~
+<stdin>:14:11: error: Cannot declare an array with a size of \"0\"
+  int m2b[int(mat2(false)[0] != vec2(0.0))];
+          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+<stdin>:15:11: error: Cannot declare an array with a size of \"0\"
+  int m2i[int(mat2(-1, -1, -1, -1)[0] != vec2(-1.0))];
+          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+<stdin>:16:11: error: Cannot declare an array with a size of \"0\"
+  int m2f[int(mat2(-1.0, -1.0, -1.0, -1.0)[0] != vec2(-1.0))];
+          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+<stdin>:18:12: error: Cannot declare an array with a size of \"0\"
+  int m2bx[int(mat2(false)[0].x)];
+           ~~~~~~~~~~~~~~~~~~~~~
+<stdin>:19:12: error: Cannot declare an array with a size of \"-1\"
+  int m2ix[int(mat2(-1)[0].x)];
+           ~~~~~~~~~~~~~~~~~~
+<stdin>:20:12: error: Cannot declare an array with a size of \"-1\"
+  int m2fx[int(mat2(-1.0)[0].x)];
+           ~~~~~~~~~~~~~~~~~~~~
+")
+
 # Compound constant vector expression tests
 test("
 void main() {
@@ -232,5 +318,156 @@ void main() {
   int extra2[int(ivec2(ivec3(1, 2, 3)) != ivec2(1, 2))];
              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ")
+
+# Check unary no-op of compound constant expressions
+test("
+void main() {
+  int iv21[int(+ivec2(1, 2) == ivec2(1, 2))];
+  int iv22[int(+ivec2(1, 2) != ivec2(1, 2))];
+  int iv23[int(+ivec2(1, 2) == ivec2(2, 3))];
+  int iv24[int(+ivec2(1, 2) != ivec2(2, 3))];
+
+  int v21[int(+vec2(1.0, 2.0) == vec2(1.0, 2.0))];
+  int v22[int(+vec2(1.0, 2.0) != vec2(1.0, 2.0))];
+  int v23[int(+vec2(1.0, 2.0) == vec2(2.0, 3.0))];
+  int v24[int(+vec2(1.0, 2.0) != vec2(2.0, 3.0))];
+
+  int m21[int(+mat2(1.0, 2.0, 3.0, 4.0) == mat2(1.0, 2.0, 3.0, 4.0))];
+  int m22[int(+mat2(1.0, 2.0, 3.0, 4.0) != mat2(1.0, 2.0, 3.0, 4.0))];
+  int m23[int(+mat2(1.0, 2.0, 3.0, 4.0) == mat2(2.0, 3.0, 4.0, 5.0))];
+  int m24[int(+mat2(1.0, 2.0, 3.0, 4.0) != mat2(2.0, 3.0, 4.0, 5.0))];
+}
+", "
+<stdin>:3:12: error: Cannot declare an array with a size of \"0\"
+  int iv22[int(+ivec2(1, 2) != ivec2(1, 2))];
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+<stdin>:4:12: error: Cannot declare an array with a size of \"0\"
+  int iv23[int(+ivec2(1, 2) == ivec2(2, 3))];
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+<stdin>:8:11: error: Cannot declare an array with a size of \"0\"
+  int v22[int(+vec2(1.0, 2.0) != vec2(1.0, 2.0))];
+          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+<stdin>:9:11: error: Cannot declare an array with a size of \"0\"
+  int v23[int(+vec2(1.0, 2.0) == vec2(2.0, 3.0))];
+          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+<stdin>:13:11: error: Cannot declare an array with a size of \"0\"
+  int m22[int(+mat2(1.0, 2.0, 3.0, 4.0) != mat2(1.0, 2.0, 3.0, 4.0))];
+          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+<stdin>:14:11: error: Cannot declare an array with a size of \"0\"
+  int m23[int(+mat2(1.0, 2.0, 3.0, 4.0) == mat2(2.0, 3.0, 4.0, 5.0))];
+          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+")
+
+# Check unary negation of compound constant expressions
+test("
+void main() {
+  int iv21[int(-ivec2(1, 2) == ivec2(-1, -2))];
+  int iv22[int(-ivec2(1, 2) != ivec2(-1, -2))];
+  int iv23[int(-ivec2(1, 2) == ivec2(-2, -3))];
+  int iv24[int(-ivec2(1, 2) != ivec2(-2, -3))];
+
+  int v21[int(-vec2(1.0, 2.0) == vec2(-1.0, -2.0))];
+  int v22[int(-vec2(1.0, 2.0) != vec2(-1.0, -2.0))];
+  int v23[int(-vec2(1.0, 2.0) == vec2(-2.0, -3.0))];
+  int v24[int(-vec2(1.0, 2.0) != vec2(-2.0, -3.0))];
+
+  int m21[int(-mat2(1.0, 2.0, 3.0, 4.0) == mat2(-1.0, -2.0, -3.0, -4.0))];
+  int m22[int(-mat2(1.0, 2.0, 3.0, 4.0) != mat2(-1.0, -2.0, -3.0, -4.0))];
+  int m23[int(-mat2(1.0, 2.0, 3.0, 4.0) == mat2(-2.0, -3.0, -4.0, -5.0))];
+  int m24[int(-mat2(1.0, 2.0, 3.0, 4.0) != mat2(-2.0, -3.0, -4.0, -5.0))];
+}
+", "
+<stdin>:3:12: error: Cannot declare an array with a size of \"0\"
+  int iv22[int(-ivec2(1, 2) != ivec2(-1, -2))];
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+<stdin>:4:12: error: Cannot declare an array with a size of \"0\"
+  int iv23[int(-ivec2(1, 2) == ivec2(-2, -3))];
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+<stdin>:8:11: error: Cannot declare an array with a size of \"0\"
+  int v22[int(-vec2(1.0, 2.0) != vec2(-1.0, -2.0))];
+          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+<stdin>:9:11: error: Cannot declare an array with a size of \"0\"
+  int v23[int(-vec2(1.0, 2.0) == vec2(-2.0, -3.0))];
+          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+<stdin>:13:11: error: Cannot declare an array with a size of \"0\"
+  int m22[int(-mat2(1.0, 2.0, 3.0, 4.0) != mat2(-1.0, -2.0, -3.0, -4.0))];
+          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+<stdin>:14:11: error: Cannot declare an array with a size of \"0\"
+  int m23[int(-mat2(1.0, 2.0, 3.0, 4.0) == mat2(-2.0, -3.0, -4.0, -5.0))];
+          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+")
+
+# Check component-wise addition of constant expressions
+test("
+void main() {
+  int iv21[int(ivec2(1, 2) + ivec2(3, 4) == ivec2(4, 6))];
+  int iv22[int(ivec2(1, 2) + ivec2(3, 4) != ivec2(4, 6))];
+  int iv23[int(ivec2(1, 2) + ivec2(3, 4) == ivec2(6, 4))];
+  int iv24[int(ivec2(1, 2) + ivec2(3, 4) != ivec2(6, 4))];
+
+  int v21[int(vec2(1.0, 2.0) + vec2(3.0, 4.0) == vec2(4.0, 6.0))];
+  int v22[int(vec2(1.0, 2.0) + vec2(3.0, 4.0) != vec2(4.0, 6.0))];
+  int v23[int(vec2(1.0, 2.0) + vec2(3.0, 4.0) == vec2(6.0, 4.0))];
+  int v24[int(vec2(1.0, 2.0) + vec2(3.0, 4.0) != vec2(6.0, 4.0))];
+
+  int m21[int(mat2(1.0, 2.0, 3.0, 4.0) + mat2(5.0, 6.0, 7.0, 8.0) == mat2(6.0, 8.0, 10.0, 12.0))];
+  int m22[int(mat2(1.0, 2.0, 3.0, 4.0) + mat2(5.0, 6.0, 7.0, 8.0) != mat2(6.0, 8.0, 10.0, 12.0))];
+  int m23[int(mat2(1.0, 2.0, 3.0, 4.0) + mat2(5.0, 6.0, 7.0, 8.0) == mat2(12.0, 10.0, 8.0, 6.0))];
+  int m24[int(mat2(1.0, 2.0, 3.0, 4.0) + mat2(5.0, 6.0, 7.0, 8.0) != mat2(12.0, 10.0, 8.0, 6.0))];
+}
+", "
+<stdin>:3:12: error: Cannot declare an array with a size of \"0\"
+  int iv22[int(ivec2(1, 2) + ivec2(3, 4) != ivec2(4, 6))];
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+<stdin>:4:12: error: Cannot declare an array with a size of \"0\"
+  int iv23[int(ivec2(1, 2) + ivec2(3, 4) == ivec2(6, 4))];
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+<stdin>:8:11: error: Cannot declare an array with a size of \"0\"
+  int v22[int(vec2(1.0, 2.0) + vec2(3.0, 4.0) != vec2(4.0, 6.0))];
+          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+<stdin>:9:11: error: Cannot declare an array with a size of \"0\"
+  int v23[int(vec2(1.0, 2.0) + vec2(3.0, 4.0) == vec2(6.0, 4.0))];
+          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+<stdin>:13:11: error: Cannot declare an array with a size of \"0\"
+  int m22[int(mat2(1.0, 2.0, 3.0, 4.0) + mat2(5.0, 6.0, 7.0, 8.0) != mat2(6.0, 8.0, 10.0, 12.0))];
+          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+<stdin>:14:11: error: Cannot declare an array with a size of \"0\"
+  int m23[int(mat2(1.0, 2.0, 3.0, 4.0) + mat2(5.0, 6.0, 7.0, 8.0) == mat2(12.0, 10.0, 8.0, 6.0))];
+          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+")
+
+# Check constant struct expressions
+test("
+struct S {
+  int i;
+  float f;
+};
+
+void main() {
+  int equal1[int(S(1, 2.0) == S(1, 2.0))];
+  int equal2[int(S(1, 2.0) != S(1, 2.0))];
+  int equal3[int(S(1, 2.0) == S(3, 4.0))];
+  int equal4[int(S(1, 2.0) != S(3, 4.0))];
+
+  int field1[int(S(1, 2.0).f == 2.0)];
+  int field2[int(S(1, 2.0).f != 2.0)];
+  int field3[int(S(1, 2.0).f == 3.0)];
+  int field4[int(S(1, 2.0).f != 3.0)];
+}
+", "
+<stdin>:8:14: error: Cannot declare an array with a size of \"0\"
+  int equal2[int(S(1, 2.0) != S(1, 2.0))];
+             ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+<stdin>:9:14: error: Cannot declare an array with a size of \"0\"
+  int equal3[int(S(1, 2.0) == S(3, 4.0))];
+             ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+<stdin>:13:14: error: Cannot declare an array with a size of \"0\"
+  int field2[int(S(1, 2.0).f != 2.0)];
+             ~~~~~~~~~~~~~~~~~~~~~~~
+<stdin>:14:14: error: Cannot declare an array with a size of \"0\"
+  int field3[int(S(1, 2.0).f == 3.0)];
+             ~~~~~~~~~~~~~~~~~~~~~~~
+")
+
   }
 }

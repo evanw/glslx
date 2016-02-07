@@ -88,6 +88,13 @@ namespace GLSLX {
       }
     }
 
+    def isMatrix bool {
+      switch self {
+        case MAT2, MAT3, MAT4 { return true }
+        default { return false }
+      }
+    }
+
     def isBool bool {
       switch self {
         case BOOL, BVEC2, BVEC3, BVEC4 { return true }
@@ -112,10 +119,6 @@ namespace GLSLX {
 
     def isIntOrFloat bool {
       return isInt || isFloat
-    }
-
-    def isBoolOrIntOrFloat bool {
-      return isBool || isInt || isFloat
     }
 
     def canUseEqualityOperators bool {

@@ -315,7 +315,7 @@ class GLSLX.Resolver {
     switch node.kind {
       case .ADD, .SUBTRACT, .MULTIPLY, .DIVIDE {
         node.resolvedType =
-          isSame && leftType.isBoolOrIntOrFloat ? leftType :
+          isSame && leftType.componentType != null ? leftType :
 
           leftType.isFloat && rightType == .FLOAT ? leftType :
           leftType.isInt && rightType == .INT ? leftType :
@@ -359,7 +359,7 @@ class GLSLX.Resolver {
 
       case .ASSIGN_ADD, .ASSIGN_SUBTRACT, .ASSIGN_MULTIPLY, .ASSIGN_DIVIDE {
         node.resolvedType =
-          isSame && leftType.isBoolOrIntOrFloat ? leftType :
+          isSame && leftType.componentType != null ? leftType :
 
           leftType.isFloat && rightType == .FLOAT ? leftType :
           leftType.isInt && rightType == .INT ? leftType :
@@ -544,7 +544,7 @@ class GLSLX.Resolver {
       return
     }
 
-    if type.isBoolOrIntOrFloat {
+    if type.componentType != null {
       var count = type.componentCount
 
       # Visit each argument and make sure it's useful toward construction
@@ -553,7 +553,7 @@ class GLSLX.Resolver {
         var argumentType = argument.resolvedType
         var deltaCount = argumentType.componentCount
 
-        if !(argumentType.isBoolOrIntOrFloat) {
+        if argumentType.componentType == null {
           if argumentType != .ERROR {
             _log.semanticErrorBadConstructorValue(argument.range, argumentType, type)
           }

@@ -673,13 +673,13 @@ int main() {
 }
 ", "
 int main() {
-  struct a {
+  struct c {
+    int a;
+  };
+  struct d {
     int b;
   };
-  struct c {
-    int d;
-  };
-  return a(0).b + c(1).d;
+  return c(0).a + d(1).b;
 }
 ").compactSyntaxTree.renameAll.trimSymbols
 

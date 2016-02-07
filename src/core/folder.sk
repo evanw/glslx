@@ -1,5 +1,69 @@
 namespace GLSLX.Folder {
   def fold(node Node) Node {
+    if RELEASE {
+      return _fold(node)
+    }
+
+    # Run sanity checks in debug mode
+    else {
+      var folded = _fold(node)
+      if folded != null && folded.kind != .UNKNOWN_CONSTANT {
+        _check(folded)
+      }
+      return folded
+    }
+  }
+
+  def _check(node Node) {
+    switch node.kind {
+      case .INT { assert(node.resolvedType == .INT && !node.hasChildren) }
+      case .BOOL { assert(node.resolvedType == .BOOL && !node.hasChildren) }
+      case .FLOAT { assert(node.resolvedType == .FLOAT && !node.hasChildren) }
+
+      case .CALL {
+        var target = node.callTarget
+        assert(target.kind == .TYPE)
+        assert(target.resolvedType == node.resolvedType)
+
+        var componentType = target.resolvedType.componentType
+        var componentCount = target.resolvedType.componentCount
+
+        # Native component types
+        if componentType != null {
+          assert(node.childCount == 1 + componentCount)
+          assert(
+            target.resolvedType != .INT &&
+            target.resolvedType != .BOOL &&
+            target.resolvedType != .FLOAT)
+
+          for child = target.nextSibling; child != null; child = child.nextSibling {
+            assert(child.resolvedType == componentType)
+            assert(child.kind != .CALL)
+            _check(child)
+          }
+        }
+
+        # User-defined structs
+        else {
+          var struct = target.resolvedType.symbol.asStruct
+          var i = 0
+          assert(node.childCount == 1 + struct.variables.count)
+
+          for child = target.nextSibling; child != null; child = child.nextSibling {
+            assert(child.resolvedType == struct.variables[i].type.resolvedType)
+            _check(child)
+            i++
+          }
+        }
+      }
+
+      default {
+        assert(false)
+      }
+    }
+  }
+
+  def _fold(node Node) Node {
     switch node.kind {
       case .INT, .FLOAT, .BOOL {
         return node.clone
@@ -40,25 +104,43 @@ namespace GLSLX.Folder {
 
       case .DOT {
         var folded = fold(node.dotTarget)
-
-        # Evaluate a swizzle
-        if folded != null && folded.kind == .CALL && folded.resolvedType.isVector {
+        if folded != null && folded.kind == .CALL {
+          var resolvedType = folded.resolvedType
           var name = node.asString
-          var count = name.count
-          var componentCount = folded.resolvedType.componentCount
 
-          # Find the swizzle set
-          for set in Swizzle.strings(componentCount) {
-            if name.get(0) in set {
-              if count == 1 {
-                return folded.childAt(1 + set.indexOf(name))
+          # Evaluate a swizzle
+          if resolvedType.isVector {
+            var count = name.count
+            var componentCount = resolvedType.componentCount
+
+            # Find the swizzle set
+            for set in Swizzle.strings(componentCount) {
+              if name.get(0) in set {
+                if count == 1 {
+                  return folded.childAt(1 + set.indexOf(name))
+                }
+                var swizzleType = Swizzle.type(resolvedType.componentType, count)
+                var result = Node.createCall(Node.createType(swizzleType)).withType(swizzleType)
+                for i in 0..count {
+                  result.appendChild(folded.childAt(1 + set.indexOf(name.get(i))).remove)
+                }
+                return result
               }
-              var swizzleType = Swizzle.type(folded.resolvedType.componentType, count)
-              var result = Node.createCall(Node.createType(swizzleType)).withType(swizzleType)
-              for i in 0..count {
-                result.appendChild(folded.childAt(1 + set.indexOf(name.get(i))).remove)
+            }
+          }
+
+          # Evaluate a struct field
+          else if resolvedType.symbol != null && resolvedType.symbol.isStruct {
+            var symbol = resolvedType.symbol.asStruct
+            var variables = symbol.variables
+            assert(folded.childCount == 1 + variables.count)
+
+            # Extract the field from the constructor call
+            for i in 0..variables.count {
+              var variable = variables[i]
+              if variable.name == name {
+                return folded.childAt(1 + i).remove
               }
-              return result
             }
           }
         }
@@ -70,12 +152,33 @@ namespace GLSLX.Folder {
 
         # Both children must also be constants
         if foldedLeft != null && foldedLeft.kind == .CALL && foldedRight != null && foldedRight.kind == .INT {
-          var indexCount = foldedLeft.resolvedType.indexCount
-          var index = foldedRight.asInt
+          var type = foldedLeft.resolvedType
+          if type.isVector {
+            var indexCount = type.indexCount
+            var index = foldedRight.asInt
 
-          # The index must be in range
-          if 0 <= index && index < indexCount {
-            return foldedLeft.childAt(index + 1).remove
+            # The index must be in range
+            if 0 <= index && index < indexCount {
+              return foldedLeft.childAt(index + 1).remove
+            }
+          }
+
+          # Indexing into a matrix creates a vector
+          else if type.isMatrix {
+            var indexCount = type.indexCount
+            var index = foldedRight.asInt
+            assert(foldedLeft.childCount == 1 + indexCount * indexCount)
+
+            # The index must be in range
+            if 0 <= index && index < indexCount {
+              var indexType = type.indexType
+              var result = Node.createCall(Node.createType(indexType)).withType(indexType)
+              var before = foldedLeft.childAt(index * indexCount)
+              for i in 0..indexCount {
+                result.appendChild(before.nextSibling.remove)
+              }
+              return result
+            }
           }
         }
       }
@@ -89,6 +192,8 @@ namespace GLSLX.Folder {
         }
 
         # Make sure all arguments are constants
+        var type = target.resolvedType
+        var componentType = type.componentType
         var arguments List<Node> = []
         for child = target.nextSibling; child != null; child = child.nextSibling {
           var folded = fold(child)
@@ -97,29 +202,34 @@ namespace GLSLX.Folder {
           }
 
           # Expand values inline from constructed native types
-          if folded.kind == .CALL && target.resolvedType.isBoolOrIntOrFloat && folded.callTarget.resolvedType.isBoolOrIntOrFloat {
+          if folded.kind == .CALL && componentType != null && folded.callTarget.resolvedType.componentType != null {
             for value = folded.callTarget.nextSibling; value != null; value = value.nextSibling {
-              arguments.append(value.clone)
+              var casted = _castValue(componentType, value)
+              if casted == null {
+                return null
+              }
+              arguments.append(casted)
             }
           }
 
-          # Just append the value directly
+          # Auto-cast values for primitive types
           else {
+            if componentType != null {
+              folded = _castValue(componentType, folded)
+              if folded == null {
+                return null
+              }
+            }
             arguments.append(folded)
           }
         }
 
-        switch target.resolvedType {
-          case .BOOL { return _foldPrimitiveCast(arguments, value => Node.createBool(value as bool)) }
-          case .INT { return _foldPrimitiveCast(arguments, value => Node.createInt(value as int)) }
-          case .FLOAT { return _foldPrimitiveCast(arguments, value => Node.createFloat(value)) }
+        if type.componentType != null {
+          return _foldComponentConstructor(arguments, type)
+        }
 
-          case .VEC2, .VEC3, .VEC4,
-              .IVEC2, .IVEC3, .IVEC4,
-              .BVEC2, .BVEC3, .BVEC4,
-              .MAT2, .MAT3, .MAT4 {
-            return _foldVectorOrMatrixConstructor(arguments, target.resolvedType)
-          }
+        if type.symbol != null && type.symbol.isStruct {
+          return _foldStruct(arguments, type)
         }
       }
 
@@ -147,19 +257,26 @@ namespace GLSLX.Folder {
     return null
   }
 
-  def _foldPrimitiveCast(arguments List<Node>, cast fn(double) Node) Node {
-    if arguments.count == 1 {
-      var value = _doubleValue(arguments.first)
+  def _castValue(type Type, node Node) Node {
+    var value double
 
-      if !value.isNaN {
-        return cast(value)
-      }
+    switch node.kind {
+      case .BOOL { value = node.asBool as double }
+      case .INT { value = node.asInt }
+      case .FLOAT { value = node.asFloat }
+      default { return null }
+    }
+
+    switch type {
+      case .BOOL { return Node.createBool(value as bool) }
+      case .INT { return Node.createInt(value as int) }
+      case .FLOAT { return Node.createFloat(value) }
     }
 
     return null
   }
 
-  def _foldVectorOrMatrixConstructor(arguments List<Node>, type Type) Node {
+  def _foldComponentConstructor(arguments List<Node>, type Type) Node {
     var componentCount = type.componentCount
     var componentType = type.componentType
     var node = Node.createCall(Node.createType(type)).withType(type)
@@ -174,10 +291,9 @@ namespace GLSLX.Folder {
       for i in 0..componentCount {
         node.appendChild(argument.clone)
       }
-      return node
     }
 
-    # Multiple arguments are more tricky
+    # Multiple arguments are more involved
     else {
       # Extra arguments are ignored
       if arguments.count < componentCount {
@@ -192,9 +308,35 @@ namespace GLSLX.Folder {
 
         node.appendChild(arguments[i])
       }
-
-      return node
     }
+
+    # Don't wrap primitive types
+    if type.indexType == null {
+      return node.lastChild.remove
+    }
+
+    return node
+  }
+
+  def _foldStruct(arguments List<Node>, type Type) Node {
+    var variables = type.symbol.asStruct.variables
+    var node = Node.createCall(Node.createType(type)).withType(type)
+
+    # Structs can only be constructed with the exact number of arguments
+    if arguments.count != variables.count {
+      return null
+    }
+
+    # The constructed value is represented as a constructor call
+    for i in 0..arguments.count {
+      if arguments[i].resolvedType != variables[i].type.resolvedType {
+        return null
+      }
+
+      node.appendChild(arguments[i])
+    }
+
+    return node
   }
 
   def _foldBinaryEquality(node Node) Node {
@@ -209,23 +351,22 @@ namespace GLSLX.Folder {
     return null
   }
 
-  def _doubleValue(node Node) double {
-    switch node.kind {
-      case .BOOL { return node.asBool as double }
-      case .INT { return node.asInt }
-      case .FLOAT { return node.asFloat }
-      default { return Math.NAN }
-    }
-  }
-
   ################################################################################
 
-  def _foldBool(node Node, op fn(bool) bool) Node {
-    if node.kind == .BOOL {
-      return Node.createBool(op(node.asBool))
-    }
+  def _foldComponentwiseBinary(node Node, componentType Type, argumentKind NodeKind, op fn(Node) Node) Node {
+    if node.kind == .CALL && node.callTarget.kind == .TYPE && node.callTarget.resolvedType.componentType == componentType {
+      var result = Node.createCall(node.callTarget.clone).withType(node.callTarget.resolvedType)
 
-    # TODO: CALL is a constructor, do op element-wise
+      for child = node.callTarget.nextSibling; child != null; child = child.nextSibling {
+        var folded = fold(child)
+        if folded == null || folded.kind != argumentKind {
+          return null
+        }
+        result.appendChild(op(folded))
+      }
+
+      return result
+    }
 
     return null
   }
@@ -235,9 +376,7 @@ namespace GLSLX.Folder {
       return Node.createFloat(op(node.asFloat))
     }
 
-    # TODO: CALL is a constructor, do op element-wise
-
-    return null
+    return _foldComponentwiseBinary(node, .FLOAT, .FLOAT, x => Node.createFloat(op(x.asFloat)))
   }
 
   def _foldInt(node Node, op fn(int) int) Node {
@@ -245,19 +384,36 @@ namespace GLSLX.Folder {
       return Node.createInt(op(node.asInt))
     }
 
-    # TODO: CALL is a constructor, do op element-wise
-
-    return null
+    return _foldComponentwiseBinary(node, .INT, .INT, x => Node.createInt(op(x.asInt)))
   }
 
   ################################################################################
 
-  def _foldBool(left Node, right Node, op fn(bool, bool) bool) Node {
-    if left.kind == .BOOL && right.kind == .BOOL {
-      return Node.createBool(op(left.asBool, right.asBool))
-    }
+  def _foldComponentwiseBinary(left Node, right Node, componentType Type, argumentKind NodeKind, op fn(Node, Node) Node) Node {
+    if left.kind == .CALL && left.callTarget.kind == .TYPE && left.callTarget.resolvedType.componentType == componentType &&
+        right.kind == .CALL && right.callTarget.kind == .TYPE && right.callTarget.resolvedType == left.callTarget.resolvedType {
+      var result = Node.createCall(left.callTarget.clone).withType(left.callTarget.resolvedType)
+      var leftChild = left.callTarget.nextSibling
+      var rightChild = right.callTarget.nextSibling
 
-    # TODO: CALL is a constructor, do op element-wise
+      while leftChild != null && rightChild != null {
+        var foldedLeft = fold(leftChild)
+        var foldedRight = fold(rightChild)
+
+        if foldedLeft == null || foldedLeft.kind != argumentKind ||
+            foldedRight == null || foldedRight.kind != argumentKind {
+          return null
+        }
+
+        result.appendChild(op(foldedLeft, foldedRight))
+        leftChild = leftChild.nextSibling
+        rightChild = rightChild.nextSibling
+      }
+
+      if leftChild == null && rightChild == null {
+        return result
+      }
+    }
 
     return null
   }
@@ -267,9 +423,7 @@ namespace GLSLX.Folder {
       return Node.createFloat(op(left.asFloat, right.asFloat))
     }
 
-    # TODO: CALL is a constructor, do op element-wise
-
-    return null
+    return _foldComponentwiseBinary(left, right, .FLOAT, .FLOAT, (a, b) => Node.createFloat(op(a.asFloat, b.asFloat)))
   }
 
   def _foldInt(left Node, right Node, op fn(int, int) int) Node {
@@ -277,9 +431,7 @@ namespace GLSLX.Folder {
       return Node.createInt(op(left.asInt, right.asInt))
     }
 
-    # TODO: CALL is a constructor, do op element-wise
-
-    return null
+    return _foldComponentwiseBinary(left, right, .INT, .INT, (a, b) => Node.createInt(op(a.asInt, b.asInt)))
   }
 
   ################################################################################
@@ -287,8 +439,8 @@ namespace GLSLX.Folder {
   def _foldUnaryBool(node Node, op fn(bool) bool) Node {
     var value = fold(node.unaryValue)
 
-    if value != null {
-      return _foldBool(value, op)
+    if value != null && value.kind == .BOOL {
+      return Node.createBool(op(value.asBool))
     }
 
     return null
@@ -312,8 +464,8 @@ namespace GLSLX.Folder {
     var left = fold(node.binaryLeft)
     var right = fold(node.binaryRight)
 
-    if left != null && right != null {
-      return _foldBool(left, right, op)
+    if left != null && right != null && left.kind == .BOOL && right.kind == .BOOL {
+      return Node.createBool(op(left.asBool, right.asBool))
     }
 
     return null
