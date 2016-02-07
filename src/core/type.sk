@@ -95,21 +95,14 @@ namespace GLSLX {
       }
     }
 
-    def isBool bool {
-      switch self {
-        case BOOL, BVEC2, BVEC3, BVEC4 { return true }
-        default { return false }
-      }
-    }
-
-    def isInt bool {
+    def hasIntComponents bool {
       switch self {
         case INT, IVEC2, IVEC3, IVEC4 { return true }
         default { return false }
       }
     }
 
-    def isFloat bool {
+    def hasFloatComponents bool {
       switch self {
         case FLOAT, VEC2, VEC3, VEC4 { return true }
         case MAT2, MAT3, MAT4 { return true }
@@ -118,7 +111,7 @@ namespace GLSLX {
     }
 
     def isIntOrFloat bool {
-      return isInt || isFloat
+      return hasIntComponents || hasFloatComponents
     }
 
     def canUseEqualityOperators bool {

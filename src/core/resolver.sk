@@ -317,11 +317,11 @@ class GLSLX.Resolver {
         node.resolvedType =
           isSame && leftType.componentType != null ? leftType :
 
-          leftType.isFloat && rightType == .FLOAT ? leftType :
-          leftType.isInt && rightType == .INT ? leftType :
+          leftType.hasFloatComponents && rightType == .FLOAT ? leftType :
+          leftType.hasIntComponents && rightType == .INT ? leftType :
 
-          leftType == .FLOAT && rightType.isFloat ? rightType :
-          leftType == .INT && rightType.isInt ? rightType :
+          leftType == .FLOAT && rightType.hasFloatComponents ? rightType :
+          leftType == .INT && rightType.hasIntComponents ? rightType :
 
           node.kind == .MULTIPLY && (leftType == .VEC2 && rightType == .MAT2 || leftType == .MAT2 && rightType == .VEC2) ? .VEC2 :
           node.kind == .MULTIPLY && (leftType == .VEC3 && rightType == .MAT3 || leftType == .MAT3 && rightType == .VEC3) ? .VEC3 :
@@ -361,8 +361,8 @@ class GLSLX.Resolver {
         node.resolvedType =
           isSame && leftType.componentType != null ? leftType :
 
-          leftType.isFloat && rightType == .FLOAT ? leftType :
-          leftType.isInt && rightType == .INT ? leftType :
+          leftType.hasFloatComponents && rightType == .FLOAT ? leftType :
+          leftType.hasIntComponents && rightType == .INT ? leftType :
 
           node.kind == .ASSIGN_MULTIPLY && (
             leftType == .VEC2 && rightType == .MAT2 ||
