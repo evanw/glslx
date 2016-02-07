@@ -14,8 +14,8 @@ namespace GLSLX.Renamer {
     var isArgumentOrLocalVariable = false
   }
 
-  const _first = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_$"
-  const _rest = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_$0123456789"
+  const _first = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_"
+  const _rest = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_0123456789"
 
   def _numberToName(number int) string {
     var name = _first.get(number % _first.count)
