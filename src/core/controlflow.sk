@@ -1,0 +1,77 @@
+class GLSLX.ControlFlowAnalyzer {
+  var _isLoopBreakTarget List<bool> = []
+  var _isControlFlowLive List<bool> = []
+
+  def pushBlock(node Node) {
+    var parent = node.parent
+
+    # Push control flow
+    _isControlFlowLive.append(_isControlFlowLive.isEmpty || _isControlFlowLive.last)
+
+    # Push loop info
+    if parent != null && parent.kind.isLoop {
+      _isLoopBreakTarget.append(false)
+    }
+  }
+
+  def popBlock(node Node) {
+    var parent = node.parent
+
+    # Pop control flow
+    var isLive = _isControlFlowLive.takeLast
+    if isLive {
+      node.hasControlFlowAtEnd = true
+    }
+
+    # Pop loop info
+    if parent != null && parent.kind.isLoop && !_isLoopBreakTarget.takeLast && (
+        parent.kind == .WHILE && parent.whileTest.isTrue ||
+        parent.kind == .DO_WHILE && parent.doWhileTest.isTrue ||
+        parent.kind == .FOR && (parent.forTest == null || parent.forTest.isTrue)) {
+      _isControlFlowLive.last = false
+    }
+  }
+
+  def visitStatement(node Node) {
+    if !_isControlFlowLive.last {
+      return
+    }
+
+    switch node.kind {
+      case .BREAK {
+        if !_isLoopBreakTarget.isEmpty {
+          _isLoopBreakTarget.last = true
+        }
+        _isControlFlowLive.last = false
+      }
+
+      case .RETURN, .DISCARD, .CONTINUE {
+        _isControlFlowLive.last = false
+      }
+
+      case .IF {
+        var test = node.ifTest
+        var trueValue = node.ifTrue
+        var falseValue = node.ifFalse
+
+        if test.isTrue {
+          if !trueValue.hasControlFlowAtEnd {
+            _isControlFlowLive.last = false
+          }
+        }
+
+        else if test.isFalse && falseValue != null {
+          if !falseValue.hasControlFlowAtEnd {
+            _isControlFlowLive.last = false
+          }
+        }
+
+        else if trueValue != null && falseValue != null {
+          if !trueValue.hasControlFlowAtEnd && !falseValue.hasControlFlowAtEnd {
+            _isControlFlowLive.last = false
+          }
+        }
+      }
+    }
+  }
+}

@@ -570,20 +570,21 @@ void main() {
 
 # There was previously a crash in this case where we would
 # remove the true-branch of the if-statement leading to an
-# invalid AST.
+# invalid AST
 test("
-bool func() { /* This function might run important code. */ }
+bool func(); // This function might run important code
 
 export void test() {
   if (func())
     float thing = 1.0; // Unused, so it will be removed
-}", "
-bool func() {
 }
+", "
+bool func();
 
 void main() {
   func();
-}").trimSymbols.compactSyntaxTree
+}
+").trimSymbols.compactSyntaxTree
 
 # Test explicit extensions
 test("

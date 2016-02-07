@@ -112,6 +112,10 @@ namespace GLSLX {
     def isJump bool {
       return self == BREAK || self == CONTINUE || self == DISCARD || self == RETURN
     }
+
+    def isLoop bool {
+      return self == DO_WHILE || self == FOR || self == WHILE
+    }
   }
 
   class Node {
@@ -128,6 +132,7 @@ namespace GLSLX {
     var _lastChild Node = null
     var _previousSibling Node = null
     var _nextSibling Node = null
+    var hasControlFlowAtEnd = false
 
     def _copyMembersFrom(node Node) {
       kind = node.kind

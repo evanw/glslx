@@ -2091,5 +2091,198 @@ void main() {
       ~~~~~~~~~~~
 ")
 
+# Check jumps and loops
+test("
+void main() {
+  break;
+  continue;
+
+  for (int i = 0; i < 10; i++) break;
+  for (int i = 0; i < 10; i++) continue;
+
+  while (true) break;
+  while (true) continue;
+
+  do break; while(true);
+  do continue; while(true);
+}
+", "
+<stdin>:2:3: error: This statement cannot be used outside a loop
+  break;
+  ~~~~~
+<stdin>:3:3: error: This statement cannot be used outside a loop
+  continue;
+  ~~~~~~~~
+")
+
+# Test control flow checking with if statements
+test("
+int bad1() {}
+
+int bad2() {
+  if (true) ;
+  else return 0;
+}
+
+int bad3() {
+  if (true) {}
+  else discard;
+}
+
+int bad4(bool x, bool y) {
+  if (x) return 0;
+  else if (y) return 1;
+  else ;
+}
+
+int bad5(bool x, bool y) {
+  if (x) { return 0; }
+  else if (y) { return 1; }
+  else {}
+}
+
+int bad6(bool x) {
+  if (x) 0;
+  else 1;
+}
+
+int bad7(bool x) {
+  if (x) { 0; }
+  else { 1; }
+}
+
+int good1() {
+  return 0;
+}
+
+int good2() {
+  discard;
+}
+
+int good3() {
+  if (true) return 0;
+}
+
+int good4() {
+  if (true) discard;
+}
+
+int good5() {
+  if (false) ;
+  else return 0;
+}
+
+int good6() {
+  if (false) {}
+  else discard;
+}
+
+int good7(bool x, bool y) {
+  if (x) return 0;
+  else if (y) discard;
+  else return 2;
+}
+", "
+<stdin>:1:5: error: All control paths for \"bad1\" must return a value of type \"int\"
+int bad1() {}
+    ~~~~
+<stdin>:3:5: error: All control paths for \"bad2\" must return a value of type \"int\"
+int bad2() {
+    ~~~~
+<stdin>:8:5: error: All control paths for \"bad3\" must return a value of type \"int\"
+int bad3() {
+    ~~~~
+<stdin>:13:5: error: All control paths for \"bad4\" must return a value of type \"int\"
+int bad4(bool x, bool y) {
+    ~~~~
+<stdin>:19:5: error: All control paths for \"bad5\" must return a value of type \"int\"
+int bad5(bool x, bool y) {
+    ~~~~
+<stdin>:25:5: error: All control paths for \"bad6\" must return a value of type \"int\"
+int bad6(bool x) {
+    ~~~~
+<stdin>:30:5: error: All control paths for \"bad7\" must return a value of type \"int\"
+int bad7(bool x) {
+    ~~~~
+")
+
+# Test control flow checking with loops
+test("
+int badWhile1() {
+  while (false) return 0;
+}
+
+int badWhile2() {
+  while (false) { return 0; }
+}
+
+int badWhile3(bool x) {
+  while (x) return 0;
+}
+
+int badWhile4(bool x) {
+  while (x) { return 0; }
+}
+
+int badWhile5() {
+  while (true) break;
+}
+
+int badWhile6() {
+  while (true) { break; }
+}
+
+int goodWhile1() {
+  while (true) ;
+}
+
+int goodWhile2() {
+  while (true) {}
+}
+
+int goodDoWhile1() {
+  do ; while (true);
+}
+
+int goodDoWhile2() {
+  do {} while (true);
+}
+
+int goodFor1() {
+  for (; true;) ;
+}
+
+int goodFor2() {
+  for (; true;) {}
+}
+
+int goodFor3() {
+  for (;;) ;
+}
+
+int goodFor4() {
+  for (;;) {}
+}
+", "
+<stdin>:1:5: error: All control paths for \"badWhile1\" must return a value of type \"int\"
+int badWhile1() {
+    ~~~~~~~~~
+<stdin>:5:5: error: All control paths for \"badWhile2\" must return a value of type \"int\"
+int badWhile2() {
+    ~~~~~~~~~
+<stdin>:9:5: error: All control paths for \"badWhile3\" must return a value of type \"int\"
+int badWhile3(bool x) {
+    ~~~~~~~~~
+<stdin>:13:5: error: All control paths for \"badWhile4\" must return a value of type \"int\"
+int badWhile4(bool x) {
+    ~~~~~~~~~
+<stdin>:17:5: error: All control paths for \"badWhile5\" must return a value of type \"int\"
+int badWhile5() {
+    ~~~~~~~~~
+<stdin>:21:5: error: All control paths for \"badWhile6\" must return a value of type \"int\"
+int badWhile6() {
+    ~~~~~~~~~
+")
+
   }
 }

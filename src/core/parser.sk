@@ -519,13 +519,17 @@ namespace GLSLX.Parser {
   }
 
   def checkForLoopAndSemicolon(context ParserContext, range Range, node Node) Node {
+    var found = false
     for scope = context.scope; scope != null; scope = scope.parent {
       if scope.kind == .LOOP {
-        return checkForSemicolon(context, range, node)
+        found = true
+        break
       }
     }
-    context.log.syntaxErrorOutsideLoop(range)
-    return null
+    if !found {
+      context.log.syntaxErrorOutsideLoop(range)
+    }
+    return checkForSemicolon(context, range, node)
   }
 
   def checkForSemicolon(context ParserContext, range Range, node Node) Node {

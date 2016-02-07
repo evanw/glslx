@@ -1,8 +1,9 @@
 class GLSLX.Resolver {
   const _log Log
   const _data CompilerData
-  var _versions List<Node> = []
-  var _generatedExtensions StringMap<Node> = {}
+  const _controlFlow = ControlFlowAnalyzer.new
+  const _versions List<Node> = []
+  const _generatedExtensions StringMap<Node> = {}
   var _returnType Type = null
 
   def resolveGlobal(global Node) {
@@ -79,14 +80,14 @@ class GLSLX.Resolver {
       }
 
       case .BLOCK {
-        _resolveChildren(node)
+        _resolveBlockOrStatement(node)
       }
 
       case .BREAK, .CONTINUE, .DISCARD {
       }
 
       case .DO_WHILE {
-        resolveNode(node.doWhileBody)
+        _resolveBlockOrStatement(node.doWhileBody)
         resolveNode(node.doWhileTest)
         checkConversion(node.doWhileTest, .BOOL)
       }
@@ -109,7 +110,7 @@ class GLSLX.Resolver {
         if node.forUpdate != null {
           _resolveAsExpression(node.forUpdate)
         }
-        resolveNode(node.forBody)
+        _resolveBlockOrStatement(node.forBody)
       }
 
       case .FUNCTION {
@@ -120,7 +121,13 @@ class GLSLX.Resolver {
         resolveNode(symbol.returnType)
         if symbol.block != null {
           _returnType = symbol.returnType.resolvedType
-          resolveNode(symbol.block)
+          _resolveBlockOrStatement(symbol.block)
+
+          # Missing a return statement is an error
+          if _returnType != .VOID && symbol.block.hasControlFlowAtEnd {
+            _log.semanticErrorMissingReturn(symbol.range, symbol.name, _returnType)
+          }
+
           _returnType = null
         }
       }
@@ -128,9 +135,9 @@ class GLSLX.Resolver {
       case .IF {
         resolveNode(node.ifTest)
         checkConversion(node.ifTest, .BOOL)
-        resolveNode(node.ifTrue)
+        _resolveBlockOrStatement(node.ifTrue)
         if node.ifFalse != null {
-          resolveNode(node.ifFalse)
+          _resolveBlockOrStatement(node.ifFalse)
         }
       }
 
@@ -162,7 +169,7 @@ class GLSLX.Resolver {
       case .WHILE {
         resolveNode(node.whileTest)
         checkConversion(node.whileTest, .BOOL)
-        resolveNode(node.whileBody)
+        _resolveBlockOrStatement(node.whileBody)
       }
 
       case .CALL {
@@ -228,6 +235,23 @@ class GLSLX.Resolver {
     }
 
     assert(node.resolvedType != null)
+  }
+
+  def _resolveBlockOrStatement(node Node) {
+    assert(node.kind.isStatement)
+    _controlFlow.pushBlock(node)
+
+    if node.kind == .BLOCK {
+      for child = node.firstChild; child != null; child = child.nextSibling {
+        resolveNode(child)
+        _controlFlow.visitStatement(child)
+      }
+    } else {
+      resolveNode(node)
+      _controlFlow.visitStatement(node)
+    }
+
+    _controlFlow.popBlock(node)
   }
 
   def _resolveUnary(node Node) {

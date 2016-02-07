@@ -246,6 +246,10 @@ namespace GLSLX {
     def semanticErrorUninitializedConstant(range Range) {
       error(range, "Constants must be initialized")
     }
+
+    def semanticErrorMissingReturn(range Range, name string, type Type) {
+      error(range, "All control paths for \"\(name)\" must return a value of type \"\(type)\"")
+    }
   }
 
   namespace Log {
