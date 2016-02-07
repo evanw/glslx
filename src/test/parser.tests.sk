@@ -340,6 +340,73 @@ void main() {
 }
 ")
 
+# Check C scoping rules
+test("
+void main() {
+  const int x = 0;
+  {
+    const int x = -1, y = x;
+    int a[x];
+    int b[y];
+  }
+}
+", "
+<stdin>:5:11: error: Cannot declare an array with a size of \"-1\"
+    int a[x];
+          ^
+<stdin>:6:11: error: Cannot declare an array with a size of \"-1\"
+    int b[y];
+          ^
+")
+
+# Check C scoping rules
+test("
+void main() {
+  const int x = -1;
+  {
+    const int x = x;
+    int y[x];
+  }
+}
+", "
+<stdin>:5:11: error: Cannot declare an array with a size of \"-1\"
+    int y[x];
+          ^
+")
+
+# Check C scoping rules
+test("
+void main() {
+  const int x = -1;
+  {
+    int x[x];
+  }
+}
+", "
+<stdin>:4:11: error: Cannot declare an array with a size of \"-1\"
+    int x[x];
+          ^
+")
+
+# Check C scoping rules
+test("
+void main() {
+  struct S {
+    int x;
+  };
+
+  {
+    S S = S(0); // This definition hides the type 'S' and declares the variable 'S'
+    S.x = 1;
+    S y; // The type 'S' is hidden and cannot be used
+  }
+}
+", "
+<stdin>:9:7: error: Expected SEMICOLON but found IDENTIFIER
+    S y; // The type 'S' is hidden and cannot be used
+      ^
+")
+
 # Nested struct definitions must be different types
 test("
 void main() {

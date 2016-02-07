@@ -913,7 +913,6 @@ namespace GLSLX.Parser {
         .LOCAL)
       symbol.flags |= context.flags | flags
       symbol.type = type
-      tryToDefineUniquelyInScope(context, symbol)
 
       # Initial value
       var assign = context.current.range
@@ -937,6 +936,7 @@ namespace GLSLX.Parser {
         context.resolver.resolveNode(variable)
       }
       variables.appendChild(variable)
+      tryToDefineUniquelyInScope(context, symbol)
 
       if !context.eat(.COMMA) {
         if !context.expect(.SEMICOLON) {
