@@ -40,7 +40,7 @@ namespace GLSLX.IDE {
           if !struct.isNative {
             text += " {\n"
             for variable in struct.variables {
-              text += "  \(variable.flags)\(variable.type.resolvedType) \(variable.name);\n"
+              text += "  \(_variableText(variable));\n"
             }
             text += "}"
           }
@@ -50,7 +50,7 @@ namespace GLSLX.IDE {
 
         if symbol.isVariable {
           var variable = symbol.asVariable
-          var text = "\(variable.flags)\(variable.type.resolvedType) \(symbol.name)"
+          var text = _variableText(variable)
 
           if variable.constantValue != null {
             var constantValue = constantValueToString(variable.constantValue)
@@ -70,7 +70,7 @@ namespace GLSLX.IDE {
             if argument != function.arguments.first {
               text += ", "
             }
-            text += "\(argument.flags)\(argument.type.resolvedType) \(argument.name)"
+            text += _variableText(argument)
           }
 
           return text + ");"
@@ -102,7 +102,7 @@ namespace GLSLX.IDE {
     }
 
     def _visitVariable(variable VariableSymbol) bool {
-      return _visitSymbol(variable) || _visit(variable.type) || _visit(variable.value)
+      return _visitSymbol(variable) || _visit(variable.type) || _visit(variable.arrayCount) || _visit(variable.value)
     }
 
     def _visitFunction(function FunctionSymbol) bool {
@@ -167,6 +167,17 @@ namespace GLSLX.IDE {
       }
 
       return false
+    }
+  }
+
+  namespace SymbolQuery {
+    def _variableText(variable VariableSymbol) string {
+      var type = variable.type.resolvedType
+      var text = "\(variable.flags)\(type.isArrayOf ?? type) \(variable.name)"
+      if type.isArrayOf != null {
+        text += type.arrayCount != 0 ? "[\(type.arrayCount)]" : "[]"
+      }
+      return text
     }
   }
 }

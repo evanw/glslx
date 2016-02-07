@@ -14,6 +14,7 @@ void main() {
   float f4 = 1e-2;
   float f5 = 1.e2;
   float f6 = .1e-2;
+  float f7 = 010.5;
 }
 ", "
 void main() {
@@ -26,6 +27,7 @@ void main() {
   float f4 = 0.01;
   float f5 = 100.0;
   float f6 = 1e-3;
+  float f7 = 10.5;
 }
 ")
 

@@ -7,7 +7,7 @@
   const window dynamic
 }
 
-namespace GLSLX {
+namespace GLSLX.Exports {
   const outputFormats StringMap<OutputFormat> = {
     "json": .JSON,
     "c++": .CPP,
@@ -116,116 +116,228 @@ Advanced:
     }
   }
 
+  def sourcesFromInput(input dynamic) List<Source> {
+    if input is string {
+      return [Source.new("<stdin>", input)]
+    }
+
+    if input is List<dynamic> {
+      var sources List<Source> = []
+      for i in 0..input.length {
+        sources.append(Source.new(input[i].name, input[i].contents))
+      }
+      return sources
+    }
+
+    return [Source.new(input.name, input.contents)]
+  }
+
+  def rangeToJSON(range Range) dynamic {
+    if range == null {
+      return null
+    }
+
+    var source = range.source
+    var start = source.indexToLineColumn(range.start)
+    var end = source.indexToLineColumn(range.end)
+
+    return {
+      "source": source.name,
+      "start": {
+        "line": start.line,
+        "column": start.column,
+      },
+      "end": {
+        "line": end.line,
+        "column": end.column,
+      },
+    }
+  }
+
+  # Do a non-interactive compile
+  const compile = (input dynamic, args dynamic) dynamic => {
+    args = args || ({} as dynamic)
+    var sources = sourcesFromInput(input)
+    var log = Log.new
+    var options = CompilerOptions.new
+
+    options.renameSymbols = renameSymbols.get(args.renaming, .ALL)
+    if args.disableRewriting { options.compactSyntaxTree = false }
+    if args.prettyPrint { options.removeWhitespace = false }
+    if args.keepSymbols { options.trimSymbols = false }
+
+    var result = Compiler.compile(log, sources, options)
+    return {
+      "log": log.toString,
+      "output": result != null ? result.output(outputFormats.get(args.format, .JSON)) : null,
+    }
+  }
+
+  # Do a compile that can have queries done on it later
+  const compileIDE = (input dynamic, args dynamic) dynamic => {
+    args = args || ({} as dynamic)
+    var sources = sourcesFromInput(input)
+    var log = Log.new
+    var options = CompilerOptions.new
+    var result = Compiler.typeCheck(log, sources, options)
+
+    var handleTooltipQuery = (message dynamic) dynamic => {
+      var name string = message.source + ""
+      var line int = message.line | 0
+      var column int = message.column | 0
+      var ignoreDiagnostics bool = !!message.ignoreDiagnostics
+      var range Range = null
+      var tooltip string = null
+      var symbol string = null
+
+      if sources != null {
+        for source in sources {
+          if source.name == name {
+            var index = source.lineColumnToIndex(line, column)
+            if index != -1 {
+              # Search diagnostics first
+              if !ignoreDiagnostics && log != null {
+                for diagnostic in log.diagnostics {
+                  if diagnostic.range != null && diagnostic.range.source == source && diagnostic.range.touches(index) {
+                    tooltip = diagnostic.text
+                    range = diagnostic.range
+                    break
+                  }
+                }
+              }
+
+              # Search the syntax tree next
+              if tooltip == null && result != null {
+                var query = IDE.SymbolQuery.new(source, index)
+                query.run(result)
+                if query.symbol != null {
+                  tooltip = query.generateTooltip
+                  range = query.range
+                  symbol = query.symbol.name
+                }
+              }
+            }
+            break
+          }
+        }
+      }
+
+      return {
+        "type": "tooltip-query",
+        "id": message.id,
+        "source": name,
+        "tooltip": tooltip,
+        "range": rangeToJSON(range),
+        "symbol": symbol,
+      }
+    }
+
+    return {
+      "diagnostics": log.diagnostics.map<dynamic>(diagnostic => ({
+        "kind": diagnostic.kind.toString.toLowerCase,
+        "range": rangeToJSON(diagnostic.range),
+        "text": diagnostic.text,
+      })),
+      "tooltipQuery": handleTooltipQuery,
+    }
+  }
+
+  def commandLineMain {
+    var args List<string> = process.argv.slice(2)
+    var options = CompilerOptions.new
+    var sources List<Source> = []
+    var outputFormat = OutputFormat.JSON
+    var outputPath string = null
+    var fs = require("fs")
+
+    for arg in args {
+      if !arg.startsWith("-") {
+        sources.append(Source.new(arg, fs.readFileSync(arg, "utf8")))
+        continue
+      }
+
+      switch arg {
+        case "--disable-rewriting" {
+          options.compactSyntaxTree = false
+        }
+
+        case "--pretty-print" {
+          options.removeWhitespace = false
+        }
+
+        case "--keep-symbols" {
+          options.trimSymbols = false
+        }
+
+        case "--help", "-h" {
+          printUsage
+          return
+        }
+
+        default {
+          if arg.startsWith("--output=") {
+            outputPath = arg.slice("--output=".count)
+          }
+
+          else if arg.startsWith("--format=") {
+            var text = arg.slice("--format=".count)
+            if !(text in outputFormats) {
+              console.log("invalid output format \"\(text)\"")
+              process.exit(1)
+            }
+            outputFormat = outputFormats[text]
+          }
+
+          else if arg.startsWith("--renaming=") {
+            var text = arg.slice("--renaming=".count)
+            if !(text in renameSymbols) {
+              console.log("invalid symbol renaming mode \"\(text)\"")
+              process.exit(1)
+            }
+            options.renameSymbols = renameSymbols[text]
+          }
+
+          else {
+            console.log("invalid flag \"\(arg)\"")
+            process.exit(1)
+          }
+        }
+      }
+    }
+
+    if sources.isEmpty {
+      printUsage
+      return
+    }
+
+    var log = Log.new
+    var result = Compiler.compile(log, sources, options)
+
+    if result != null {
+      if outputPath != null {
+        fs.writeFileSync(outputPath, result.output(outputFormat))
+        printLogWithColor(log)
+      } else {
+        process.stdout.write(result.output(outputFormat))
+      }
+    } else {
+      printLogWithColor(log)
+      process.exit(1)
+    }
+  }
+
   @entry
   def main {
     var this = (=> dynamic.this)()
     var root = dynamic.typeof(exports) != "undefined" ? exports : (this.GLSLX = {})
-    root.compile = (input dynamic, args dynamic) dynamic => {
-      args = args || ({} as dynamic)
-      var sources List<Source> = []
-      if input is string {
-        sources.append(Source.new("<stdin>", input))
-      } else {
-        for i in 0..input.length {
-          sources.append(Source.new(input[i].name, input[i].contents))
-        }
-      }
-      var log = Log.new
-      var options = CompilerOptions.new
-      options.renameSymbols = renameSymbols.get(args.renaming, .ALL)
-      if args.disableRewriting { options.compactSyntaxTree = false }
-      if args.prettyPrint { options.removeWhitespace = false }
-      if args.keepSymbols { options.trimSymbols = false }
-      var result = Compiler.compile(log, sources, options)
-      return {
-        "log": log.toString,
-        "output": result != null ? result.output(outputFormats.get(args.format, .JSON)) : null,
-      }
-    }
 
-    # Also include a small command-line utility
+    # API exports
+    root.compile = compile
+    root.compileIDE = compileIDE
+
+    # Also include a small command-line utility for when this is run in node
     if dynamic.typeof(require) != "undefined" && dynamic.typeof(module) != "undefined" && require.main == module {
-      var args List<string> = process.argv.slice(2)
-      var options = CompilerOptions.new
-      var sources List<Source> = []
-      var outputFormat = OutputFormat.JSON
-      var outputPath string = null
-      var fs = require("fs")
-
-      for arg in args {
-        if !arg.startsWith("-") {
-          sources.append(Source.new(arg, fs.readFileSync(arg, "utf8")))
-          continue
-        }
-
-        switch arg {
-          case "--disable-rewriting" {
-            options.compactSyntaxTree = false
-          }
-
-          case "--pretty-print" {
-            options.removeWhitespace = false
-          }
-
-          case "--keep-symbols" {
-            options.trimSymbols = false
-          }
-
-          case "--help", "-h" {
-            printUsage
-            return
-          }
-
-          default {
-            if arg.startsWith("--output=") {
-              outputPath = arg.slice("--output=".count)
-            }
-
-            else if arg.startsWith("--format=") {
-              var text = arg.slice("--format=".count)
-              if !(text in outputFormats) {
-                console.log("invalid output format \"\(text)\"")
-                process.exit(1)
-              }
-              outputFormat = outputFormats[text]
-            }
-
-            else if arg.startsWith("--renaming=") {
-              var text = arg.slice("--renaming=".count)
-              if !(text in renameSymbols) {
-                console.log("invalid symbol renaming mode \"\(text)\"")
-                process.exit(1)
-              }
-              options.renameSymbols = renameSymbols[text]
-            }
-
-            else {
-              console.log("invalid flag \"\(arg)\"")
-              process.exit(1)
-            }
-          }
-        }
-      }
-
-      if sources.isEmpty {
-        printUsage
-        return
-      }
-
-      var log = Log.new
-      var result = Compiler.compile(log, sources, options)
-
-      if result != null {
-        if outputPath != null {
-          fs.writeFileSync(outputPath, result.output(outputFormat))
-          printLogWithColor(log)
-        } else {
-          process.stdout.write(result.output(outputFormat))
-        }
-      } else {
-        printLogWithColor(log)
-        process.exit(1)
-      }
+      commandLineMain
     }
   }
 }

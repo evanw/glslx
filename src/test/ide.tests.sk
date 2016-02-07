@@ -55,5 +55,19 @@ const Foo baz = Foo(7 / 3, 0.25 - vec2(2, 3) / 2.0);
   expect("const Foo baz = Foo(2, vec2(-0.75, -1.25));", ide.tooltipQuery(3, 10))
 })
 
+# Check arrays
+testIDE("
+const int N = 2;
+int x[N];
+", (ide, expect) => {
+  expect("struct int;", ide.tooltipQuery(1, 0))
+  expect("struct int;", ide.tooltipQuery(1, 3))
+  expect("int x[2];", ide.tooltipQuery(1, 4))
+  expect("int x[2];", ide.tooltipQuery(1, 5))
+  expect("const int N = 2;", ide.tooltipQuery(1, 6))
+  expect("const int N = 2;", ide.tooltipQuery(1, 7))
+  expect("", ide.tooltipQuery(1, 8))
+})
+
   }
 }
