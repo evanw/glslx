@@ -60,6 +60,9 @@ class GLSLX.Resolver {
         if symbol.value != null {
           _resolveAsExpression(symbol.value)
           checkConversion(symbol.value, type)
+          if type.containsArray {
+            _log.semanticErrorArrayAssignment(node.internalRange, type)
+          }
         }
 
         # Constants must be initialized

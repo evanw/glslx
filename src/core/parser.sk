@@ -897,11 +897,14 @@ namespace GLSLX.Parser {
       tryToDefineUniquelyInScope(context, symbol)
 
       # Initial value
+      var assign = context.current.range
       if context.eat(.ASSIGN) {
         symbol.value = pratt.parse(context, .COMMA)
         if symbol.value == null {
           return null
         }
+      } else {
+        assign = null
       }
 
       # Array size
@@ -910,7 +913,7 @@ namespace GLSLX.Parser {
       }
 
       # Constants must be resolved immediately
-      var variable = Node.createVariable(symbol).withRange(context.spanSince(symbol.range))
+      var variable = Node.createVariable(symbol).withRange(context.spanSince(symbol.range)).withInternalRange(assign)
       if symbol.kind == .LOCAL && symbol.isConst {
         context.resolver.resolveNode(variable)
       }

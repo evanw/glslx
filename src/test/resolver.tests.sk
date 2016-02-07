@@ -642,6 +642,8 @@ void main(int a[2], bool b, S1 s1, S2 s2) {
   b = b;
   s1 = s1;
   s2 = s2;
+  S1 t1 = s1;
+  S2 t2 = s2;
 }
 ", "
 <stdin>:10:5: error: Cannot assign to array type \"int[2]\"
@@ -650,6 +652,9 @@ void main(int a[2], bool b, S1 s1, S2 s2) {
 <stdin>:12:6: error: Cannot assign to type \"S1\" because it contains an array
   s1 = s1;
      ^
+<stdin>:14:9: error: Cannot assign to type \"S1\" because it contains an array
+  S1 t1 = s1;
+        ^
 ")
 
 # Vector-matrix and matrix-vector addition
