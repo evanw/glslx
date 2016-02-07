@@ -65,190 +65,13 @@ namespace GLSLX.Folder {
 
   def _fold(node Node) Node {
     switch node.kind {
-      case .INT, .FLOAT, .BOOL {
-        return node.clone
-      }
-
-      case .NAME {
-        var symbol = node.symbol
-        if symbol != null && symbol.isConst {
-          if symbol.constantValue != null {
-            return symbol.constantValue.clone
-          }
-
-          if symbol.asVariable.kind != .ARGUMENT {
-            return Node.createUnknownConstant(node.resolvedType)
-          }
-        }
-      }
-
-      case .SEQUENCE {
-        for child = node.firstChild; child != null; child = child.nextSibling {
-          var folded = fold(child)
-
-          if folded == null || child == node.lastChild {
-            return folded
-          }
-        }
-      }
-
-      case .HOOK {
-        var foldedTest = fold(node.hookTest)
-        var foldedTrue = fold(node.hookTrue)
-        var foldedFalse = fold(node.hookFalse)
-
-        if foldedTest.kind == .BOOL && foldedTrue != null && foldedFalse != null {
-          return foldedTest.asBool ? foldedTrue : foldedFalse
-        }
-      }
-
-      case .DOT {
-        var folded = fold(node.dotTarget)
-        if folded != null && folded.kind == .CALL {
-          var resolvedType = folded.resolvedType
-          var name = node.asString
-
-          # Evaluate a swizzle
-          if resolvedType.isVector {
-            var count = name.count
-            var componentCount = resolvedType.componentCount
-
-            # Find the swizzle set
-            for set in Swizzle.strings(componentCount) {
-              if name.get(0) in set {
-                if count == 1 {
-                  return folded.childAt(1 + set.indexOf(name))
-                }
-                var swizzleType = Swizzle.type(resolvedType.componentType, count)
-                var result = Node.createCall(Node.createType(swizzleType)).withType(swizzleType)
-                for i in 0..count {
-                  result.appendChild(folded.childAt(1 + set.indexOf(name.get(i))).remove)
-                }
-                return result
-              }
-            }
-          }
-
-          # Evaluate a struct field
-          else if resolvedType.symbol != null && resolvedType.symbol.isStruct {
-            var symbol = resolvedType.symbol.asStruct
-            var variables = symbol.variables
-            assert(folded.childCount == 1 + variables.count)
-
-            # Extract the field from the constructor call
-            for i in 0..variables.count {
-              var variable = variables[i]
-              if variable.name == name {
-                return folded.childAt(1 + i).remove
-              }
-            }
-          }
-        }
-      }
-
-      case .INDEX {
-        var foldedLeft = fold(node.binaryLeft)
-        var foldedRight = fold(node.binaryRight)
-
-        # Both children must also be constants
-        if foldedLeft != null && foldedLeft.kind == .CALL && foldedRight != null && foldedRight.kind == .INT {
-          var type = foldedLeft.resolvedType
-          if type.isVector {
-            var indexCount = type.indexCount
-            var index = foldedRight.asInt
-
-            # The index must be in range
-            if 0 <= index && index < indexCount {
-              return foldedLeft.childAt(index + 1).remove
-            }
-          }
-
-          # Indexing into a matrix creates a vector
-          else if type.isMatrix {
-            var indexCount = type.indexCount
-            var index = foldedRight.asInt
-            assert(foldedLeft.childCount == 1 + indexCount * indexCount)
-
-            # The index must be in range
-            if 0 <= index && index < indexCount {
-              var indexType = type.indexType
-              var result = Node.createCall(Node.createType(indexType)).withType(indexType)
-              var before = foldedLeft.childAt(index * indexCount)
-              for i in 0..indexCount {
-                result.appendChild(before.nextSibling.remove)
-              }
-              return result
-            }
-          }
-        }
-      }
-
-      case .CALL {
-        var target = node.callTarget
-
-        # Only constructor calls are considered constants
-        if target.kind != .TYPE {
-          return null
-        }
-
-        var type = target.resolvedType
-        var componentType = type.componentType
-        var matrixStride = 0
-        var arguments List<Node> = []
-        var count = 0
-
-        # Make sure all arguments are constants
-        for child = target.nextSibling; child != null; child = child.nextSibling {
-          var folded = fold(child)
-          if folded == null {
-            return null
-          }
-
-          # Expand values inline from constructed native types
-          if folded.kind == .CALL && componentType != null && folded.callTarget.resolvedType.componentType != null {
-            for value = folded.callTarget.nextSibling; value != null; value = value.nextSibling {
-              var casted = _castValue(componentType, value)
-              if casted == null {
-                return null
-              }
-              arguments.append(casted)
-            }
-          }
-
-          # Auto-cast values for primitive types
-          else {
-            if componentType != null {
-              folded = _castValue(componentType, folded)
-              if folded == null {
-                return null
-              }
-            }
-            arguments.append(folded)
-          }
-
-          if folded.resolvedType.isMatrix {
-            matrixStride = folded.resolvedType.indexCount
-          }
-
-          count++
-        }
-
-        # If a matrix argument is given to a matrix constructor, it is an error
-        # to have any other arguments
-        if type.isMatrix && matrixStride != 0 && count != 1 {
-          return null
-        }
-
-        # Native component-based types
-        if type.componentType != null {
-          return _foldComponentConstructor(arguments, type, type.isMatrix ? matrixStride : 0)
-        }
-
-        # User-defined struct types
-        if type.symbol != null && type.symbol.isStruct {
-          return _foldStruct(arguments, type)
-        }
-      }
+      case .INT, .FLOAT, .BOOL { return node.clone }
+      case .NAME { return _foldName(node) }
+      case .SEQUENCE { return _foldSequence(node) }
+      case .HOOK { return _foldHook(node) }
+      case .DOT { return _foldDot(node) }
+      case .INDEX { return _foldIndex(node) }
+      case .CALL { return _foldCall(node) }
 
       case .NEGATIVE { return _foldUnaryFloatOrInt(node, x => -x, x => -x) }
       case .NOT { return _foldUnaryBool(node, x => !x) }
@@ -257,7 +80,7 @@ namespace GLSLX.Folder {
       case .ADD { return _foldBinaryFloatOrInt(node, (a, b) => a + b, (a, b) => a + b) }
       case .SUBTRACT { return _foldBinaryFloatOrInt(node, (a, b) => a - b, (a, b) => a - b) }
       case .MULTIPLY { return _foldBinaryFloatOrInt(node, (a, b) => a * b, (a, b) => a * b) }
-      case .DIVIDE { return _foldBinaryFloatOrInt(node, (a, b) => b != 0 ? a / b : 0, (a, b) => b != 0 ? a / b : 0) }
+      case .DIVIDE { return _foldBinaryFloatOrInt(node, (a, b) => b != 0 ? a / b : 0, (a, b) => b != 0 ? a / b : 0) } # Dividing by zero is undefined
 
       case .EQUAL, .NOT_EQUAL { return _foldBinaryEquality(node) }
 
@@ -269,6 +92,199 @@ namespace GLSLX.Folder {
       case .GREATER_THAN_OR_EQUAL { return _foldBinaryFloatOrIntToBool(node, (a, b) => a >= b) }
       case .LESS_THAN { return _foldBinaryFloatOrIntToBool(node, (a, b) => a < b) }
       case .LESS_THAN_OR_EQUAL { return _foldBinaryFloatOrIntToBool(node, (a, b) => a <= b) }
+    }
+
+    return null
+  }
+
+  def _foldName(node Node) Node {
+    var symbol = node.symbol
+    if symbol != null && symbol.isConst {
+      if symbol.constantValue != null {
+        return symbol.constantValue.clone
+      }
+
+      if symbol.asVariable.kind != .ARGUMENT {
+        return Node.createUnknownConstant(node.resolvedType)
+      }
+    }
+
+    return null
+  }
+
+  def _foldSequence(node Node) Node {
+    for child = node.firstChild; child != null; child = child.nextSibling {
+      var folded = fold(child)
+
+      if folded == null || child == node.lastChild {
+        return folded
+      }
+    }
+
+    return null
+  }
+
+  def _foldHook(node Node) Node {
+    var foldedTest = fold(node.hookTest)
+    var foldedTrue = fold(node.hookTrue)
+    var foldedFalse = fold(node.hookFalse)
+
+    if foldedTest.kind == .BOOL && foldedTrue != null && foldedFalse != null {
+      return foldedTest.asBool ? foldedTrue : foldedFalse
+    }
+
+    return null
+  }
+
+  def _foldDot(node Node) Node {
+    var folded = fold(node.dotTarget)
+    if folded != null && folded.kind == .CALL {
+      var resolvedType = folded.resolvedType
+      var name = node.asString
+
+      # Evaluate a swizzle
+      if resolvedType.isVector {
+        var count = name.count
+        var componentCount = resolvedType.componentCount
+
+        # Find the swizzle set
+        for set in Swizzle.strings(componentCount) {
+          if name.get(0) in set {
+            if count == 1 {
+              return folded.childAt(1 + set.indexOf(name))
+            }
+            var swizzleType = Swizzle.type(resolvedType.componentType, count)
+            var result = Node.createCall(Node.createType(swizzleType)).withType(swizzleType)
+            for i in 0..count {
+              result.appendChild(folded.childAt(1 + set.indexOf(name.get(i))).remove)
+            }
+            return result
+          }
+        }
+      }
+
+      # Evaluate a struct field
+      else if resolvedType.symbol != null && resolvedType.symbol.isStruct {
+        var symbol = resolvedType.symbol.asStruct
+        var variables = symbol.variables
+        assert(folded.childCount == 1 + variables.count)
+
+        # Extract the field from the constructor call
+        for i in 0..variables.count {
+          var variable = variables[i]
+          if variable.name == name {
+            return folded.childAt(1 + i).remove
+          }
+        }
+      }
+    }
+
+    return null
+  }
+
+  def _foldIndex(node Node) Node {
+    var foldedLeft = fold(node.binaryLeft)
+    var foldedRight = fold(node.binaryRight)
+
+    # Both children must also be constants
+    if foldedLeft != null && foldedLeft.kind == .CALL && foldedRight != null && foldedRight.kind == .INT {
+      var type = foldedLeft.resolvedType
+      if type.isVector {
+        var indexCount = type.indexCount
+        var index = foldedRight.asInt
+
+        # The index must be in range
+        if 0 <= index && index < indexCount {
+          return foldedLeft.childAt(index + 1).remove
+        }
+      }
+
+      # Indexing into a matrix creates a vector
+      else if type.isMatrix {
+        var indexCount = type.indexCount
+        var index = foldedRight.asInt
+        assert(foldedLeft.childCount == 1 + indexCount * indexCount)
+
+        # The index must be in range
+        if 0 <= index && index < indexCount {
+          var indexType = type.indexType
+          var result = Node.createCall(Node.createType(indexType)).withType(indexType)
+          var before = foldedLeft.childAt(index * indexCount)
+          for i in 0..indexCount {
+            result.appendChild(before.nextSibling.remove)
+          }
+          return result
+        }
+      }
+    }
+
+    return null
+  }
+
+  def _foldCall(node Node) Node {
+    var target = node.callTarget
+
+    # Only constructor calls are considered constants
+    if target.kind != .TYPE {
+      return null
+    }
+
+    var type = target.resolvedType
+    var componentType = type.componentType
+    var matrixStride = 0
+    var arguments List<Node> = []
+    var count = 0
+
+    # Make sure all arguments are constants
+    for child = target.nextSibling; child != null; child = child.nextSibling {
+      var folded = fold(child)
+      if folded == null {
+        return null
+      }
+
+      # Expand values inline from constructed native types
+      if folded.kind == .CALL && componentType != null && folded.callTarget.resolvedType.componentType != null {
+        for value = folded.callTarget.nextSibling; value != null; value = value.nextSibling {
+          var casted = _castValue(componentType, value)
+          if casted == null {
+            return null
+          }
+          arguments.append(casted)
+        }
+      }
+
+      # Auto-cast values for primitive types
+      else {
+        if componentType != null {
+          folded = _castValue(componentType, folded)
+          if folded == null {
+            return null
+          }
+        }
+        arguments.append(folded)
+      }
+
+      if folded.resolvedType.isMatrix {
+        matrixStride = folded.resolvedType.indexCount
+      }
+
+      count++
+    }
+
+    # If a matrix argument is given to a matrix constructor, it is an error
+    # to have any other arguments
+    if type.isMatrix && matrixStride != 0 && count != 1 {
+      return null
+    }
+
+    # Native component-based types
+    if type.componentType != null {
+      return _foldComponentConstructor(arguments, type, type.isMatrix ? matrixStride : 0)
+    }
+
+    # User-defined struct types
+    if type.symbol != null && type.symbol.isStruct {
+      return _foldStruct(arguments, type)
     }
 
     return null
