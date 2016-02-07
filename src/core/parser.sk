@@ -617,7 +617,7 @@ namespace GLSLX.Parser {
   }
 
   def checkStatementLocation(context ParserContext, node Node) {
-    if node.kind == .VARIABLES {
+    if node.kind == .VARIABLES || node.kind == .STRUCT {
       return
     }
 
@@ -629,7 +629,6 @@ namespace GLSLX.Parser {
       node.kind == .EXTENSION ||
       node.kind == .FUNCTION ||
       node.kind == .PRECISION ||
-      node.kind == .STRUCT ||
       node.kind == .VERSION
 
     if shouldBeOutsideFunction && !isOutsideFunction {

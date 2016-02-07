@@ -312,6 +312,29 @@ void main() {
 }
 ")
 
+# Nested struct definitions must be different types
+test("
+void main() {
+  struct S { int x; };
+  S a;
+  a = a;
+  {
+    struct S { int x; };
+    S b;
+    b = b;
+    a = b;
+    b = a;
+  }
+}
+", "
+<stdin>:9:9: error: Cannot convert from type \"S\" to type \"S\"
+    a = b;
+        ^
+<stdin>:10:9: error: Cannot convert from type \"S\" to type \"S\"
+    b = a;
+        ^
+")
+
 # Test invalid array syntax
 test("
 void main(int[] x) {
