@@ -18,6 +18,10 @@ namespace GLSLX {
       return "\(source.name):\(location.line + 1):\(location.column + 1)"
     }
 
+    def touches(index int) bool {
+      return start <= index && index <= end
+    }
+
     def format(maxLength int) FormattedRange {
       assert(source != null)
       var start = source.indexToLineColumn(self.start)

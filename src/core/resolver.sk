@@ -66,7 +66,7 @@ class GLSLX.Resolver {
         }
 
         # Constants must be initialized
-        if symbol.kind == .LOCAL && symbol.isConst {
+        if symbol.isConst {
           if symbol.value != null {
             var folded = Folder.fold(symbol.value)
             if folded == null {
@@ -76,7 +76,7 @@ class GLSLX.Resolver {
               assert(folded.resolvedType != null)
               symbol.constantValue = folded
             }
-          } else {
+          } else if symbol.kind == .LOCAL {
             _log.semanticErrorUninitializedConstant(symbol.range)
           }
         }

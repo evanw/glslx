@@ -146,12 +146,12 @@ namespace GLSLX.Parser {
 
     # Group
     pratt.parselet(.LEFT_PARENTHESIS, .LOWEST).prefix = (context) => {
-      context.next
+      var token = context.next
       var value = pratt.parse(context, .LOWEST)
       if value == null || !context.expect(.RIGHT_PARENTHESIS) {
         return null
       }
-      return value
+      return value.withRange(context.spanSince(token.range))
     }
 
     # Call

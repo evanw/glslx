@@ -466,8 +466,14 @@ void main() {
   int iv21[int(ivec2(1, 2) + ivec2(3, 4) == ivec2(4, 6))];
   int iv22[int(ivec2(1, 2) + ivec2(3, 4) != ivec2(4, 6))];
 
+  int iv2i1[int(ivec2(1, 2) + 3 == ivec2(4, 5))];
+  int iv2i2[int(ivec2(1, 2) + 3 != ivec2(4, 5))];
+
   int v21[int(vec2(1.0, 2.0) + vec2(3.0, 4.0) == vec2(4.0, 6.0))];
   int v22[int(vec2(1.0, 2.0) + vec2(3.0, 4.0) != vec2(4.0, 6.0))];
+
+  int fv21[int(1.0 + vec2(2, 3) == vec2(3, 4))];
+  int fv22[int(1.0 + vec2(2, 3) != vec2(3, 4))];
 
   int m21[int(mat2(1.0, 2.0, 3.0, 4.0) + mat2(5.0, 6.0, 7.0, 8.0) == mat2(6.0, 8.0, 10.0, 12.0))];
   int m22[int(mat2(1.0, 2.0, 3.0, 4.0) + mat2(5.0, 6.0, 7.0, 8.0) != mat2(6.0, 8.0, 10.0, 12.0))];
@@ -476,10 +482,16 @@ void main() {
 <stdin>:3:12: error: Cannot declare an array with a size of \"0\"
   int iv22[int(ivec2(1, 2) + ivec2(3, 4) != ivec2(4, 6))];
            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-<stdin>:6:11: error: Cannot declare an array with a size of \"0\"
+<stdin>:6:13: error: Cannot declare an array with a size of \"0\"
+  int iv2i2[int(ivec2(1, 2) + 3 != ivec2(4, 5))];
+            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+<stdin>:9:11: error: Cannot declare an array with a size of \"0\"
   int v22[int(vec2(1.0, 2.0) + vec2(3.0, 4.0) != vec2(4.0, 6.0))];
           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-<stdin>:9:11: error: Cannot declare an array with a size of \"0\"
+<stdin>:12:12: error: Cannot declare an array with a size of \"0\"
+  int fv22[int(1.0 + vec2(2, 3) != vec2(3, 4))];
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+<stdin>:15:11: error: Cannot declare an array with a size of \"0\"
   int m22[int(mat2(1.0, 2.0, 3.0, 4.0) + mat2(5.0, 6.0, 7.0, 8.0) != mat2(6.0, 8.0, 10.0, 12.0))];
           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ")
@@ -490,8 +502,14 @@ void main() {
   int iv21[int(ivec2(1, 2) - ivec2(4, 3) == ivec2(-3, -1))];
   int iv22[int(ivec2(1, 2) - ivec2(4, 3) != ivec2(-3, -1))];
 
+  int iv2i1[int(ivec2(1, 2) - 3 == ivec2(-2, -1))];
+  int iv2i2[int(ivec2(1, 2) - 3 != ivec2(-2, -1))];
+
   int v21[int(vec2(1.0, 2.0) - vec2(4.0, 3.0) == vec2(-3.0, -1.0))];
   int v22[int(vec2(1.0, 2.0) - vec2(4.0, 3.0) != vec2(-3.0, -1.0))];
+
+  int fv21[int(1.0 - vec2(2, 3) == vec2(-1, -2))];
+  int fv22[int(1.0 - vec2(2, 3) != vec2(-1, -2))];
 
   int m21[int(mat2(1.0, 2.0, 3.0, 4.0) - mat2(8.0, 7.0, 6.0, 5.0) == mat2(-7.0, -5.0, -3.0, -1.0))];
   int m22[int(mat2(1.0, 2.0, 3.0, 4.0) - mat2(8.0, 7.0, 6.0, 5.0) != mat2(-7.0, -5.0, -3.0, -1.0))];
@@ -500,10 +518,16 @@ void main() {
 <stdin>:3:12: error: Cannot declare an array with a size of \"0\"
   int iv22[int(ivec2(1, 2) - ivec2(4, 3) != ivec2(-3, -1))];
            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-<stdin>:6:11: error: Cannot declare an array with a size of \"0\"
+<stdin>:6:13: error: Cannot declare an array with a size of \"0\"
+  int iv2i2[int(ivec2(1, 2) - 3 != ivec2(-2, -1))];
+            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+<stdin>:9:11: error: Cannot declare an array with a size of \"0\"
   int v22[int(vec2(1.0, 2.0) - vec2(4.0, 3.0) != vec2(-3.0, -1.0))];
           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-<stdin>:9:11: error: Cannot declare an array with a size of \"0\"
+<stdin>:12:12: error: Cannot declare an array with a size of \"0\"
+  int fv22[int(1.0 - vec2(2, 3) != vec2(-1, -2))];
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+<stdin>:15:11: error: Cannot declare an array with a size of \"0\"
   int m22[int(mat2(1.0, 2.0, 3.0, 4.0) - mat2(8.0, 7.0, 6.0, 5.0) != mat2(-7.0, -5.0, -3.0, -1.0))];
           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ")
@@ -513,6 +537,12 @@ test("
 void main() {
   int v21[int(vec2(1, 2) * vec2(3, -4) == vec2(3, -8))];
   int v22[int(vec2(1, 2) * vec2(3, -4) != vec2(3, -8))];
+
+  int v2f1[int(vec2(1, 2) * 3.0 == vec2(3, 6))];
+  int v2f2[int(vec2(1, 2) * 3.0 != vec2(3, 6))];
+
+  int fv21[int(-3.0 * mat2(1, -2, 3, -4) == mat2(-3, 6, -9, 12))];
+  int fv22[int(-3.0 * mat2(1, -2, 3, -4) != mat2(-3, 6, -9, 12))];
 
   // Matrix-vector multiply
   int m2v21[int(mat2(1, 2, 3, 4) * vec2(5, 6) == vec2(23, 34))];
@@ -530,13 +560,19 @@ void main() {
 <stdin>:3:11: error: Cannot declare an array with a size of \"0\"
   int v22[int(vec2(1, 2) * vec2(3, -4) != vec2(3, -8))];
           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-<stdin>:7:13: error: Cannot declare an array with a size of \"0\"
+<stdin>:6:12: error: Cannot declare an array with a size of \"0\"
+  int v2f2[int(vec2(1, 2) * 3.0 != vec2(3, 6))];
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+<stdin>:9:12: error: Cannot declare an array with a size of \"0\"
+  int fv22[int(-3.0 * mat2(1, -2, 3, -4) != mat2(-3, 6, -9, 12))];
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+<stdin>:13:13: error: Cannot declare an array with a size of \"0\"
   int m2v22[int(mat2(1, 2, 3, 4) * vec2(5, 6) != vec2(23, 34))];
             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-<stdin>:11:13: error: Cannot declare an array with a size of \"0\"
+<stdin>:17:13: error: Cannot declare an array with a size of \"0\"
   int v2m22[int(vec2(1, 2) * mat2(3, 4, 5, 6) != vec2(11, 17))];
             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-<stdin>:15:11: error: Cannot declare an array with a size of \"0\"
+<stdin>:21:11: error: Cannot declare an array with a size of \"0\"
   int m22[int(mat2(1, 2, 3, 4) * mat2(5, 6, 7, 8) != mat2(23, 34, 31, 46))];
           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ")
@@ -546,6 +582,12 @@ test("
 void main() {
   int iv21[int(ivec2(7, 10) / ivec2(2, 3) == ivec2(3, 3))];
   int iv22[int(ivec2(7, 10) / ivec2(2, 3) != ivec2(3, 3))];
+
+  int iv2i1[int(ivec2(7, 10) / 3 == ivec2(2, 3))];
+  int iv2i2[int(ivec2(7, 10) / 3 != ivec2(2, 3))];
+
+  int iiv21[int(11 / ivec2(3, 5) == ivec2(3, 2))];
+  int iiv22[int(11 / ivec2(3, 5) != ivec2(3, 2))];
 
   int iv23[int(ivec2(-7, 10) / ivec2(2, -3) == ivec2(-3, -3))];
   int iv24[int(ivec2(-7, 10) / ivec2(2, -3) != ivec2(-3, -3))];
@@ -557,10 +599,16 @@ void main() {
 <stdin>:3:12: error: Cannot declare an array with a size of \"0\"
   int iv22[int(ivec2(7, 10) / ivec2(2, 3) != ivec2(3, 3))];
            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-<stdin>:6:12: error: Cannot declare an array with a size of \"0\"
+<stdin>:6:13: error: Cannot declare an array with a size of \"0\"
+  int iv2i2[int(ivec2(7, 10) / 3 != ivec2(2, 3))];
+            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+<stdin>:9:13: error: Cannot declare an array with a size of \"0\"
+  int iiv22[int(11 / ivec2(3, 5) != ivec2(3, 2))];
+            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+<stdin>:12:12: error: Cannot declare an array with a size of \"0\"
   int iv24[int(ivec2(-7, 10) / ivec2(2, -3) != ivec2(-3, -3))];
            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-<stdin>:9:11: error: Cannot declare an array with a size of \"0\"
+<stdin>:15:11: error: Cannot declare an array with a size of \"0\"
   int m22[int(mat2(1, -2, 3, 4) / mat2(5, 4, 2, -1) != mat2(0.2, -0.5, 1.5, -4.0))];
           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ")

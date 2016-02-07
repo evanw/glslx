@@ -98,6 +98,42 @@ namespace GLSLX {
 }
 
 namespace GLSLX.Compiler {
+  def typeCheck(log Log, sources List<Source>, options CompilerOptions) Node {
+    if log.hasErrors {
+      return null
+    }
+
+    # Generate tokens once
+    sources.prepend(Source.new("<api>", API))
+    for source in sources {
+      source.tokens = Tokenizer.tokenize(log, source)
+    }
+    if log.hasErrors {
+      return null
+    }
+
+    var global = Node.createGlobal
+    var scope = Scope.new(.GLOBAL, null)
+    var data = CompilerData.new
+    var resolver = Resolver.new(log, data)
+
+    # Parse everything next
+    for source in sources {
+      Parser.parse(log, source.tokens, global, data, scope, resolver)
+    }
+    if log.hasErrors {
+      return null
+    }
+
+    # Then run type checking
+    resolver.resolveGlobal(global)
+    if log.hasErrors {
+      return null
+    }
+
+    return global
+  }
+
   def compile(log Log, sources List<Source>, options CompilerOptions) CompilerResult {
     if log.hasErrors {
       return null

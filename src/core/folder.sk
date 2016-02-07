@@ -7,8 +7,11 @@ namespace GLSLX.Folder {
     # Run sanity checks in debug mode
     else {
       var folded = _fold(node)
-      if folded != null && folded.kind != .UNKNOWN_CONSTANT {
-        _check(folded)
+      if folded != null {
+        assert(folded.parent == null)
+        if folded.kind != .UNKNOWN_CONSTANT {
+          _check(folded)
+        }
       }
       return folded
     }
@@ -151,7 +154,7 @@ namespace GLSLX.Folder {
         for set in Swizzle.strings(componentCount) {
           if name.get(0) in set {
             if count == 1 {
-              return folded.childAt(1 + set.indexOf(name))
+              return folded.childAt(1 + set.indexOf(name)).remove
             }
             var swizzleType = Swizzle.type(resolvedType.componentType, count)
             var result = Node.createConstructorCall(swizzleType)
@@ -491,7 +494,7 @@ namespace GLSLX.Folder {
 
   ################################################################################
 
-  def _foldComponentwiseBinary(node Node, componentType Type, argumentKind NodeKind, op fn(Node) Node) Node {
+  def _foldComponentwiseUnary(node Node, componentType Type, argumentKind NodeKind, op fn(Node) Node) Node {
     if node.kind == .CALL && node.callTarget.kind == .TYPE && node.callTarget.resolvedType.componentType == componentType {
       var result = Node.createConstructorCall(node.callTarget.resolvedType)
 
@@ -514,7 +517,7 @@ namespace GLSLX.Folder {
       return Node.createFloat(op(node.asFloat))
     }
 
-    return _foldComponentwiseBinary(node, .FLOAT, .FLOAT, x => Node.createFloat(op(x.asFloat)))
+    return _foldComponentwiseUnary(node, .FLOAT, .FLOAT, x => Node.createFloat(op(x.asFloat)))
   }
 
   def _foldInt(node Node, op fn(int) int) Node {
@@ -522,15 +525,18 @@ namespace GLSLX.Folder {
       return Node.createInt(op(node.asInt))
     }
 
-    return _foldComponentwiseBinary(node, .INT, .INT, x => Node.createInt(op(x.asInt)))
+    return _foldComponentwiseUnary(node, .INT, .INT, x => Node.createInt(op(x.asInt)))
   }
 
   ################################################################################
 
   def _foldComponentwiseBinary(left Node, right Node, componentType Type, argumentKind NodeKind, op fn(Node, Node) Node) Node {
-    if left.kind == .CALL && left.callTarget.kind == .TYPE && left.callTarget.resolvedType.componentType == componentType &&
-        right.kind == .CALL && right.callTarget.kind == .TYPE && right.callTarget.resolvedType == left.callTarget.resolvedType {
-      var result = Node.createConstructorCall(left.callTarget.resolvedType)
+    var leftHasComponents = left.kind == .CALL && left.callTarget.kind == .TYPE && left.callTarget.resolvedType.componentType == componentType
+    var rightHasComponents = right.kind == .CALL && right.callTarget.kind == .TYPE && right.callTarget.resolvedType.componentType == componentType
+
+    # Vector-vector binary operator
+    if leftHasComponents && rightHasComponents && right.resolvedType == left.resolvedType {
+      var result = Node.createConstructorCall(left.resolvedType)
       var leftChild = left.callTarget.nextSibling
       var rightChild = right.callTarget.nextSibling
 
@@ -551,6 +557,32 @@ namespace GLSLX.Folder {
       if leftChild == null && rightChild == null {
         return result
       }
+    }
+
+    # Vector-scalar binary operator
+    else if leftHasComponents && right.kind == argumentKind {
+      var result = Node.createConstructorCall(left.resolvedType)
+      for child = left.callTarget.nextSibling; child != null; child = child.nextSibling {
+        var folded = fold(child)
+        if folded == null || folded.kind != argumentKind {
+          return null
+        }
+        result.appendChild(op(folded, right))
+      }
+      return result
+    }
+
+    # Scalar-vector binary operator
+    else if left.kind == argumentKind && rightHasComponents {
+      var result = Node.createConstructorCall(right.resolvedType)
+      for child = right.callTarget.nextSibling; child != null; child = child.nextSibling {
+        var folded = fold(child)
+        if folded == null || folded.kind != argumentKind {
+          return null
+        }
+        result.appendChild(op(left, folded))
+      }
+      return result
     }
 
     return null

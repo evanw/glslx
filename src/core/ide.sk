@@ -1,0 +1,172 @@
+namespace GLSLX.IDE {
+  def constantValueToString(node Node) string {
+    switch node.kind {
+      case .INT { return node.asInt.toString }
+      case .BOOL { return node.asBool.toString }
+      case .FLOAT { return Emitter.floatToString(node.asFloat, .NORMAL) }
+
+      case .CALL {
+        assert(node.callTarget.kind == .TYPE)
+        assert(node.callTarget.resolvedType == node.resolvedType)
+        var callTarget = node.callTarget
+        var text = "\(node.resolvedType)("
+        for child = callTarget.nextSibling; child != null; child = child.nextSibling {
+          if child.previousSibling != callTarget {
+            text += ", "
+          }
+          text += constantValueToString(child)
+        }
+        return text + ")"
+      }
+    }
+
+    return null
+  }
+
+  class SymbolQuery {
+    const source Source
+    const index int
+
+    var resolvedType Type = null
+    var symbol Symbol = null
+    var range Range = null
+
+    def generateTooltip string {
+      if symbol != null {
+        if symbol.isStruct {
+          var struct = symbol.asStruct
+          var text = "\(struct.flags)struct \(symbol.name)"
+
+          if !struct.isNative {
+            text += " {\n"
+            for variable in struct.variables {
+              text += "  \(variable.flags)\(variable.type.resolvedType) \(variable.name);\n"
+            }
+            text += "}"
+          }
+
+          return text + ";"
+        }
+
+        if symbol.isVariable {
+          var variable = symbol.asVariable
+          var text = "\(variable.flags)\(variable.type.resolvedType) \(symbol.name)"
+
+          if variable.constantValue != null {
+            var constantValue = constantValueToString(variable.constantValue)
+            if constantValue != null {
+              text += " = " + constantValue
+            }
+          }
+
+          return text + ";"
+        }
+
+        if symbol.isFunction {
+          var function = symbol.asFunction
+          var text = "\(function.flags)\(function.returnType.resolvedType) \(symbol.name)("
+
+          for argument in function.arguments {
+            if argument != function.arguments.first {
+              text += ", "
+            }
+            text += "\(argument.flags)\(argument.type.resolvedType) \(argument.name)"
+          }
+
+          return text + ");"
+        }
+
+        assert(false)
+      }
+
+      return null
+    }
+
+    def run(global Node) {
+      _visit(global)
+    }
+
+    def _touches(range Range) bool {
+      return range.source == source && range.touches(index)
+    }
+
+    def _visitSymbol(query Symbol) bool {
+      if _touches(query.range) {
+        resolvedType = query.resolvedType
+        symbol = query
+        range = query.range
+        return true
+      }
+
+      return false
+    }
+
+    def _visitVariable(variable VariableSymbol) bool {
+      return _visitSymbol(variable) || _visit(variable.type) || _visit(variable.value)
+    }
+
+    def _visitFunction(function FunctionSymbol) bool {
+      for argument in function.arguments {
+        if _visitVariable(argument) {
+          return true
+        }
+      }
+      return _visitSymbol(function) || _visit(function.returnType) || _visit(function.block)
+    }
+
+    def _visitStruct(struct StructSymbol) bool {
+      for variable in struct.variables {
+        if _visitVariable(variable) {
+          return true
+        }
+      }
+      return _visitSymbol(struct)
+    }
+
+    def _visit(node Node) bool {
+      if node == null {
+        return false
+      }
+
+      for child = node.firstChild; child != null; child = child.nextSibling {
+        if _visit(child) {
+          return true
+        }
+      }
+
+      switch node.kind {
+        case .NAME {
+          if _touches(node.range) {
+            resolvedType = node.resolvedType
+            symbol = node.symbol
+            range = node.range
+            return true
+          }
+        }
+
+        case .TYPE {
+          if _touches(node.range) {
+            resolvedType = node.resolvedType
+            symbol = (resolvedType.isArrayOf ?? resolvedType).symbol
+            range = node.range
+            return true
+          }
+        }
+
+        case .VARIABLE {
+          return _visitVariable(node.symbol.asVariable)
+        }
+
+        case .FUNCTION {
+          return _visitFunction(node.symbol.asFunction)
+        }
+
+        case .STRUCT {
+          return _visitStruct(node.symbol.asStruct)
+        }
+      }
+
+      return false
+    }
+  }
+}

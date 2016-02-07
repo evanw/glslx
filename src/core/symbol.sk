@@ -15,6 +15,25 @@ namespace GLSLX {
     # Internal compiler flags
     EXPORTED
     IMPORTED
+
+    def toString string {
+      var text = ""
+
+      if ATTRIBUTE in self { text += "attribute " }
+      if CONST in self { text += "const " }
+      if UNIFORM in self { text += "uniform " }
+      if VARYING in self { text += "varying " }
+
+      if HIGHP in self { text += "highp " }
+      if LOWP in self { text += "lowp " }
+      if MEDIUMP in self { text += "mediump " }
+
+      if IN in self { text += "in " }
+      if INOUT in self { text += "inout " }
+      if OUT in self { text += "out " }
+
+      return text
+    }
   }
 
   class Symbol {
@@ -49,6 +68,10 @@ namespace GLSLX {
     def isFunction bool { return self is FunctionSymbol }
     def isVariable bool { return self is VariableSymbol }
     def isArgumentOrLocalVariable bool { return isVariable && (asVariable.kind == .ARGUMENT || asVariable.kind == .LOCAL) }
+
+    def isNative bool {
+      return id < 0
+    }
 
     def asStruct StructSymbol {
       assert(isStruct)

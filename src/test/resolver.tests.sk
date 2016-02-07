@@ -2484,9 +2484,9 @@ void main() {
 <stdin>:2:19: error: No binary operator \"+\" for type \"int\" and type \"float\"
   int x = (0.5, 1 + 1.5, false);
                   ^
-<stdin>:2:12: error: Cannot convert from type \"bool\" to type \"int\"
+<stdin>:2:11: error: Cannot convert from type \"bool\" to type \"int\"
   int x = (0.5, 1 + 1.5, false);
-           ~~~~~~~~~~~~~~~~~~~
+          ~~~~~~~~~~~~~~~~~~~~~
 ")
 
 # Test the equality operator

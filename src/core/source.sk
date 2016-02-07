@@ -53,6 +53,17 @@ namespace GLSLX {
       return LineColumn.new(line - 1, column)
     }
 
+    def lineColumnToIndex(line int, column int) int {
+      _computeLineOffsets
+      if line >= 0 && line < _lineOffsets.count {
+        var index = _lineOffsets[line]
+        if column >= 0 && index + column < (line + 1 < _lineOffsets.count ? _lineOffsets[line + 1] : contents.count) {
+          return index + column
+        }
+      }
+      return -1
+    }
+
     def _computeLineOffsets {
       if _lineOffsets == null {
         _lineOffsets = [0]

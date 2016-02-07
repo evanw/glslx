@@ -1,0 +1,59 @@
+namespace GLSLX.Tests {
+  def testTooltips {
+
+# Basic global symbols
+testIDE("
+int globalFunction ( int x ) { return x; }
+int globalVariable = 0;
+struct GlobalStruct { int x; };
+", (ide, expect) => {
+  expect("struct int;", ide.tooltipQuery(0, 0))
+  expect("struct int;", ide.tooltipQuery(0, 3))
+  expect("int globalFunction(int x);", ide.tooltipQuery(0, 4))
+  expect("int globalFunction(int x);", ide.tooltipQuery(0, 18))
+  expect("", ide.tooltipQuery(0, 19))
+  expect("", ide.tooltipQuery(0, 20))
+  expect("struct int;", ide.tooltipQuery(0, 21))
+  expect("struct int;", ide.tooltipQuery(0, 24))
+  expect("int x;", ide.tooltipQuery(0, 25))
+  expect("int x;", ide.tooltipQuery(0, 26))
+  expect("", ide.tooltipQuery(0, 27))
+  expect("", ide.tooltipQuery(0, 37))
+  expect("int x;", ide.tooltipQuery(0, 38))
+  expect("int x;", ide.tooltipQuery(0, 39))
+  expect("", ide.tooltipQuery(0, 40))
+
+  expect("struct int;", ide.tooltipQuery(1, 0))
+  expect("struct int;", ide.tooltipQuery(1, 3))
+  expect("int globalVariable;", ide.tooltipQuery(1, 4))
+  expect("int globalVariable;", ide.tooltipQuery(1, 18))
+  expect("", ide.tooltipQuery(1, 19))
+
+  expect("", ide.tooltipQuery(2, 6))
+  expect("struct GlobalStruct {\n  int x;\n};", ide.tooltipQuery(2, 7))
+  expect("struct GlobalStruct {\n  int x;\n};", ide.tooltipQuery(2, 19))
+  expect("", ide.tooltipQuery(2, 20))
+  expect("", ide.tooltipQuery(2, 21))
+  expect("struct int;", ide.tooltipQuery(2, 22))
+  expect("struct int;", ide.tooltipQuery(2, 25))
+  expect("int x;", ide.tooltipQuery(2, 26))
+  expect("int x;", ide.tooltipQuery(2, 27))
+  expect("", ide.tooltipQuery(2, 28))
+
+  expect("", ide.tooltipQuery(3, 0))
+})
+
+# Check constant expressions
+testIDE("
+struct Foo { int i; vec2 v2; };
+const float foo = (vec2(2, 3) / 2.0).y;
+const vec2 bar = vec2(1, 2) + vec2(3, 4);
+const Foo baz = Foo(7 / 3, 0.25 - vec2(2, 3) / 2.0);
+", (ide, expect) => {
+  expect("const float foo = 1.5;", ide.tooltipQuery(1, 12))
+  expect("const vec2 bar = vec2(4.0, 6.0);", ide.tooltipQuery(2, 11))
+  expect("const Foo baz = Foo(2, vec2(-0.75, -1.25));", ide.tooltipQuery(3, 10))
+})
+
+  }
+}

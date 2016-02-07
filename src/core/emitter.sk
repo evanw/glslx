@@ -12,6 +12,50 @@ namespace GLSLX.Emitter {
   def _isFunctionWithBlock(node Node) bool {
     return node.kind == .FUNCTION && node.symbol.asFunction.block != null
   }
+
+  enum EmitMode {
+    NORMAL
+    MINIFIED
+  }
+
+  def floatToString(value double, mode EmitMode) string {
+    var text = value.toString
+
+    # Check to see if exponential form is smaller
+    var exponential string = (value as dynamic).toExponential()
+    if exponential.count < text.count {
+      text = exponential
+    }
+
+    # Strip off the exponent
+    var e = text.indexOf("e")
+    var exponent = ""
+    if e != -1 {
+      exponent = text.slice(e)
+      text = text.slice(0, e)
+    }
+
+    # 32-bit floating point only needs six digits
+    text = (+((+(text as dynamic)).toFixed(6))).toString()
+
+    # Make sure there's a dot if there isn't an exponent
+    if exponent == "" && !("." in text) {
+      text += mode == .MINIFIED ? "." : ".0"
+    }
+
+    # Strip the leading zero
+    if mode == .MINIFIED && text.startsWith("0.") && text != "0." {
+      text = text.slice(1)
+    }
+
+    # Strip the leading zero with a minus sign
+    if mode == .MINIFIED && text.startsWith("-0.") && text != "-0." {
+      text = "-" + text.slice(2)
+    }
+
+    # Put the exponent back
+    return text + exponent
+  }
 }
 
 class GLSLX.Emitter {
@@ -63,21 +107,6 @@ class GLSLX.Emitter {
     if !_removeWhitespace {
       _indent = _indent.slice(2)
     }
-  }
-
-  def _emitFlags(flags SymbolFlags) {
-    if .ATTRIBUTE in flags { _emit("attribute ") }
-    if .CONST in flags { _emit("const ") }
-    if .UNIFORM in flags { _emit("uniform ") }
-    if .VARYING in flags { _emit("varying ") }
-
-    if .HIGHP in flags { _emit("highp ") }
-    if .LOWP in flags { _emit("lowp ") }
-    if .MEDIUMP in flags { _emit("mediump ") }
-
-    if .IN in flags { _emit("in ") }
-    if .INOUT in flags { _emit("inout ") }
-    if .OUT in flags { _emit("out ") }
   }
 
   def _emit(node Node) {
@@ -164,7 +193,7 @@ class GLSLX.Emitter {
 
       case .FUNCTION {
         var function = node.symbol as FunctionSymbol
-        _emitFlags(function.flags)
+        _emit(function.flags.toString)
         _emit(function.returnType, .LOWEST)
         _emit(" ")
         _emit(function.name)
@@ -173,7 +202,7 @@ class GLSLX.Emitter {
           if argument != function.arguments.first {
             _emit("," + _space)
           }
-          _emitFlags(argument.flags)
+          _emit(argument.flags.toString)
           _emit(argument.type, .LOWEST)
           _emit(" ")
           _emit(argument)
@@ -205,7 +234,7 @@ class GLSLX.Emitter {
 
       case .PRECISION {
         _emit("precision ")
-        _emitFlags(node.precisionFlag)
+        _emit(node.precisionFlag.toString)
         _emit(node.precisionType, .LOWEST)
         _emit(";")
       }
@@ -224,7 +253,7 @@ class GLSLX.Emitter {
 
       case .STRUCT {
         var symbol = node.symbol.asStruct
-        _emitFlags(symbol.flags)
+        _emit(symbol.flags.toString)
         _emit("struct " + symbol.name + _space + "{" + _newline)
         _increaseIndent
         for child = node.structBlock.firstChild; child != null; child = child.nextSibling {
@@ -246,7 +275,7 @@ class GLSLX.Emitter {
       }
 
       case .VARIABLES {
-        _emitFlags(node.variablesFlags)
+        _emit(node.variablesFlags.toString)
         _emit(node.variablesType, .LOWEST)
         for child = node.variablesType.nextSibling; child != null; child = child.nextSibling {
           var variable = child.symbol.asVariable
@@ -381,43 +410,7 @@ class GLSLX.Emitter {
       }
 
       case .FLOAT {
-        var value = node.asFloat
-        var text = value.toString
-
-        # Check to see if exponential form is smaller
-        var exponential string = (value as dynamic).toExponential()
-        if exponential.count < text.count {
-          text = exponential
-        }
-
-        # Strip off the exponent
-        var e = text.indexOf("e")
-        var exponent = ""
-        if e != -1 {
-          exponent = text.slice(e)
-          text = text.slice(0, e)
-        }
-
-        # 32-bit floating point only needs six digits
-        text = (+((+(text as dynamic)).toFixed(6))).toString()
-
-        # Make sure there's a dot if there isn't an exponent
-        if exponent == "" && !("." in text) {
-          text += _removeWhitespace ? "." : ".0"
-        }
-
-        # Strip the leading zero
-        if _removeWhitespace && text.startsWith("0.") && text != "0." {
-          text = text.slice(1)
-        }
-
-        # Strip the leading zero with a minus sign
-        if _removeWhitespace && text.startsWith("-0.") && text != "-0." {
-          text = "-" + text.slice(2)
-        }
-
-        # Put the exponent back
-        _emit(text + exponent)
+        _emit(floatToString(node.asFloat, _removeWhitespace ? .MINIFIED : .NORMAL))
       }
 
       case .INT {
