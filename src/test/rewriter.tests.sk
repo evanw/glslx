@@ -631,5 +631,57 @@ void main() {
 }
 ").compactSyntaxTree
 
+# Test weird struct-variable combo syntax
+test("
+int main() {
+  struct S {
+    int x;
+  } y;
+
+  struct T {
+    int a;
+  } b;
+
+  b.a = 2;
+  return b.a;
+}
+", "
+int main() {
+  struct c {
+    int d;
+  };
+  struct e {
+    int a;
+  } b;
+  b.a = 2;
+  return b.a;
+}
+").compactSyntaxTree.renameAll.trimSymbols
+
+# Test weird struct-variable combo syntax
+test("
+int main() {
+  struct S {
+    int x;
+  } y;
+
+  struct T {
+    int a;
+  } b;
+
+  return S(0).x + T(1).a;
+}
+", "
+int main() {
+  struct a {
+    int b;
+  };
+  struct c {
+    int d;
+  };
+  return a(0).b + c(1).d;
+}
+").compactSyntaxTree.renameAll.trimSymbols
+
   }
 }

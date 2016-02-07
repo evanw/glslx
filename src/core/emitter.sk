@@ -227,20 +227,29 @@ class GLSLX.Emitter {
         _emitFlags(symbol.flags)
         _emit("struct " + symbol.name + _space + "{" + _newline)
         _increaseIndent
-        for child = node.firstChild; child != null; child = child.nextSibling {
+        for child = node.structBlock.firstChild; child != null; child = child.nextSibling {
+          assert(child.kind == .VARIABLES)
           _emit(_indent)
           _emit(child)
           _emit(_newline)
         }
         _decreaseIndent
-        _emit(_indent + "};")
+        _emit(_indent + "}")
+        if node.structVariables != null {
+          for child = node.structVariables.variablesType.nextSibling; child != null; child = child.nextSibling {
+            assert(child.kind == .VARIABLE)
+            _emit(child.previousSibling.previousSibling == null ? _space : "," + _space)
+            _emit(child.symbol.asVariable)
+          }
+        }
+        _emit(";")
       }
 
       case .VARIABLES {
         _emitFlags(node.variablesFlags)
         _emit(node.variablesType, .LOWEST)
         for child = node.variablesType.nextSibling; child != null; child = child.nextSibling {
-          var variable = child.symbol as VariableSymbol
+          var variable = child.symbol.asVariable
           _emit(child.previousSibling.previousSibling == null ? " " : "," + _space)
           _emit(variable)
         }

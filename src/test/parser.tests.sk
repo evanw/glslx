@@ -363,6 +363,64 @@ void main() {
         ^
 ")
 
+# Nested struct definitions are not allowed
+test("
+struct S {
+  int x;
+  struct T { int y; };
+};
+", "
+<stdin>:3:3: error: This statement cannot be used inside a struct
+  struct T { int y; };
+  ~~~~~~~~~~~~~~~~~~~~
+")
+
+# Nested struct definitions are not allowed
+test("
+struct S {
+  int x;
+  struct T { int y; } z;
+};
+", "
+<stdin>:3:3: error: This statement cannot be used inside a struct
+  struct T { int y; } z;
+  ~~~~~~~~~~~~~~~~~~~~~~
+")
+
+# Test weird struct-variable combo syntax
+test("
+void main() {
+  struct S {
+    int x;
+  } y, z[2];
+
+  S s;
+  x++;
+}
+", "
+<stdin>:7:3: error: There is no symbol called \"x\" in the current scope
+  x++;
+  ^
+")
+
+# Test weird struct-variable combo syntax
+test("
+void main() {
+  struct S {
+    int x;
+  } y, z[2];
+
+  y.x = z[0].x + z[2].x > 0;
+}
+", "
+<stdin>:6:20: error: Index \"2\" is out of bounds for type \"S[2]\"
+  y.x = z[0].x + z[2].x > 0;
+                   ^
+<stdin>:6:9: error: Cannot convert from type \"bool\" to type \"int\"
+  y.x = z[0].x + z[2].x > 0;
+        ~~~~~~~~~~~~~~~~~~~
+")
+
 # Test invalid array syntax
 test("
 void main(int[] x) {

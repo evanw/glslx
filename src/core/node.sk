@@ -2,6 +2,7 @@ namespace GLSLX {
   enum NodeKind {
     # Other
     GLOBAL
+    STRUCT_BLOCK
     VARIABLE
 
     # Statements
@@ -533,6 +534,10 @@ namespace GLSLX {
       return new(.GLOBAL)
     }
 
+    def createStructBlock Node {
+      return new(.STRUCT_BLOCK)
+    }
+
     def createVariable(symbol VariableSymbol) Node {
       return new(.VARIABLE).withSymbol(symbol)
     }
@@ -605,8 +610,10 @@ namespace GLSLX {
       return new(.RETURN).appendChild(value)
     }
 
-    def createStruct(symbol StructSymbol) Node {
-      return new(.STRUCT).withSymbol(symbol)
+    def createStruct(symbol StructSymbol, block Node, variables Node) Node {
+      assert(block.kind == .STRUCT_BLOCK)
+      assert(variables == null || variables.kind == .VARIABLES)
+      return new(.STRUCT).withSymbol(symbol).appendChild(block).appendChild(variables)
     }
 
     def createVariables(flags int, type Node) Node {
@@ -802,6 +809,20 @@ namespace GLSLX {
       assert(childCount >= 1)
       assert(_firstChild.kind.isExpression)
       return _firstChild
+    }
+
+    def structBlock Node {
+      assert(kind == .STRUCT)
+      assert(childCount == 1 || childCount == 2)
+      assert(_firstChild.kind == .STRUCT_BLOCK)
+      return _firstChild
+    }
+
+    def structVariables Node {
+      assert(kind == .STRUCT)
+      assert(childCount == 1 || childCount == 2)
+      assert(_firstChild._nextSibling == null || _firstChild._nextSibling.kind == .VARIABLES)
+      return _firstChild._nextSibling
     }
 
     def versionNumber int {

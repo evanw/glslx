@@ -33,6 +33,21 @@ void main() {
 }
 ")
 
+# Test weird struct-variable combo syntax
+test("
+void main() {
+  struct S {
+    int x;
+  } y, z[2];
+}
+", "
+void main() {
+  struct S {
+    int x;
+  } y, z[2];
+}
+")
+
 # Test unary assignment operator pass-through
 test("
 void main() {

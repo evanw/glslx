@@ -102,5 +102,18 @@ void main() {
 void main(){10.;.5;1.5;1e+4;}
 ").removeWhitespace
 
+# Test weird struct-variable combo syntax
+test("
+void main() {
+  struct S {
+    int x;
+  } y, z[2];
+
+  y.x = z[0].x + z[1].x;
+}
+", "
+void main(){struct S{int x;}y,z[2];y.x=z[0].x+z[1].x;}
+").removeWhitespace
+
   }
 }

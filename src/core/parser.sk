@@ -490,7 +490,9 @@ namespace GLSLX.Parser {
       return null
     }
 
-    var struct = Node.createStruct(symbol)
+    var range = context.current.range
+    var block = Node.createStructBlock
+    var variables Node = null
 
     if !context.expect(.LEFT_BRACE) {
       return null
@@ -508,7 +510,7 @@ namespace GLSLX.Parser {
         return null
       }
 
-      struct.appendChild(statement)
+      block.appendChild(statement)
 
       for child = statement.variablesType.nextSibling; child != null; child = child.nextSibling {
         var variable = child.symbol.asVariable
@@ -522,11 +524,28 @@ namespace GLSLX.Parser {
     }
     context.popScope
 
-    if !context.expect(.RIGHT_BRACE) || !context.expect(.SEMICOLON) {
+    if !context.expect(.RIGHT_BRACE) {
       return null
     }
 
-    return struct
+    block.withRange(context.spanSince(range))
+
+    # Parse weird struct-variable hybrid things
+    #
+    #   struct S { int x; } y, z[2];
+    #
+    if context.peek(.IDENTIFIER) {
+      variables = parseVariables(0, Node.createType(symbol.resolvedType), context.next.range, context)
+      if variables == null {
+        return null
+      }
+    }
+
+    else if !context.expect(.SEMICOLON) {
+      return null
+    }
+
+    return Node.createStruct(symbol, block, variables)
   }
 
   def checkForLoopAndSemicolon(context ParserContext, range Range, node Node) Node {
