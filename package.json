@@ -1,6 +1,11 @@
 {
+  "scripts": {
+    "test": "make test"
+  },
   "dependencies": {
-    "fast-watch": "1.0.0",
     "skew": "0.7.22"
+  },
+  "devDependencies": {
+    "fast-watch": "1.0.0"
   }
 }
