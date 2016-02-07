@@ -270,6 +270,34 @@ void main() {
       ^
 ")
 
+# Test duplicate prototypes
+test("
+void main();
+void main();
+", "
+<stdin>:2:6: error: There is already a symbol called \"main\" in the current scope
+void main();
+     ~~~~
+<stdin>:1:6: note: The previous definition of \"main\" is here
+void main();
+     ~~~~
+")
+
+# Test extra prototype
+test("
+void main() {
+}
+
+void main();
+", "
+<stdin>:4:6: error: There is already a symbol called \"main\" in the current scope
+void main();
+     ~~~~
+<stdin>:1:6: note: The previous definition of \"main\" is here
+void main() {
+     ~~~~
+")
+
 # Test duplicate functions
 test("
 void main() {}
@@ -309,6 +337,19 @@ struct Foo {
 <stdin>:2:7: note: The previous definition of \"x\" is here
   int x;
       ^
+")
+
+# These should not be duplicates
+test("
+void main();
+
+void main() {
+}
+", "
+void main();
+
+void main() {
+}
 ")
 
 # These should not be duplicates
