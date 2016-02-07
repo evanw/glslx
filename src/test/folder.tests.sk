@@ -465,38 +465,104 @@ test("
 void main() {
   int iv21[int(ivec2(1, 2) + ivec2(3, 4) == ivec2(4, 6))];
   int iv22[int(ivec2(1, 2) + ivec2(3, 4) != ivec2(4, 6))];
-  int iv23[int(ivec2(1, 2) + ivec2(3, 4) == ivec2(6, 4))];
-  int iv24[int(ivec2(1, 2) + ivec2(3, 4) != ivec2(6, 4))];
 
   int v21[int(vec2(1.0, 2.0) + vec2(3.0, 4.0) == vec2(4.0, 6.0))];
   int v22[int(vec2(1.0, 2.0) + vec2(3.0, 4.0) != vec2(4.0, 6.0))];
-  int v23[int(vec2(1.0, 2.0) + vec2(3.0, 4.0) == vec2(6.0, 4.0))];
-  int v24[int(vec2(1.0, 2.0) + vec2(3.0, 4.0) != vec2(6.0, 4.0))];
 
   int m21[int(mat2(1.0, 2.0, 3.0, 4.0) + mat2(5.0, 6.0, 7.0, 8.0) == mat2(6.0, 8.0, 10.0, 12.0))];
   int m22[int(mat2(1.0, 2.0, 3.0, 4.0) + mat2(5.0, 6.0, 7.0, 8.0) != mat2(6.0, 8.0, 10.0, 12.0))];
-  int m23[int(mat2(1.0, 2.0, 3.0, 4.0) + mat2(5.0, 6.0, 7.0, 8.0) == mat2(12.0, 10.0, 8.0, 6.0))];
-  int m24[int(mat2(1.0, 2.0, 3.0, 4.0) + mat2(5.0, 6.0, 7.0, 8.0) != mat2(12.0, 10.0, 8.0, 6.0))];
 }
 ", "
 <stdin>:3:12: error: Cannot declare an array with a size of \"0\"
   int iv22[int(ivec2(1, 2) + ivec2(3, 4) != ivec2(4, 6))];
            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-<stdin>:4:12: error: Cannot declare an array with a size of \"0\"
-  int iv23[int(ivec2(1, 2) + ivec2(3, 4) == ivec2(6, 4))];
-           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-<stdin>:8:11: error: Cannot declare an array with a size of \"0\"
+<stdin>:6:11: error: Cannot declare an array with a size of \"0\"
   int v22[int(vec2(1.0, 2.0) + vec2(3.0, 4.0) != vec2(4.0, 6.0))];
           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 <stdin>:9:11: error: Cannot declare an array with a size of \"0\"
-  int v23[int(vec2(1.0, 2.0) + vec2(3.0, 4.0) == vec2(6.0, 4.0))];
-          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-<stdin>:13:11: error: Cannot declare an array with a size of \"0\"
   int m22[int(mat2(1.0, 2.0, 3.0, 4.0) + mat2(5.0, 6.0, 7.0, 8.0) != mat2(6.0, 8.0, 10.0, 12.0))];
           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-<stdin>:14:11: error: Cannot declare an array with a size of \"0\"
-  int m23[int(mat2(1.0, 2.0, 3.0, 4.0) + mat2(5.0, 6.0, 7.0, 8.0) == mat2(12.0, 10.0, 8.0, 6.0))];
-          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+")
+
+# Check component-wise addition of constant expressions
+test("
+void main() {
+  int iv21[int(ivec2(1, 2) - ivec2(4, 3) == ivec2(-3, -1))];
+  int iv22[int(ivec2(1, 2) - ivec2(4, 3) != ivec2(-3, -1))];
+
+  int v21[int(vec2(1.0, 2.0) - vec2(4.0, 3.0) == vec2(-3.0, -1.0))];
+  int v22[int(vec2(1.0, 2.0) - vec2(4.0, 3.0) != vec2(-3.0, -1.0))];
+
+  int m21[int(mat2(1.0, 2.0, 3.0, 4.0) - mat2(8.0, 7.0, 6.0, 5.0) == mat2(-7.0, -5.0, -3.0, -1.0))];
+  int m22[int(mat2(1.0, 2.0, 3.0, 4.0) - mat2(8.0, 7.0, 6.0, 5.0) != mat2(-7.0, -5.0, -3.0, -1.0))];
+}
+", "
+<stdin>:3:12: error: Cannot declare an array with a size of \"0\"
+  int iv22[int(ivec2(1, 2) - ivec2(4, 3) != ivec2(-3, -1))];
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+<stdin>:6:11: error: Cannot declare an array with a size of \"0\"
+  int v22[int(vec2(1.0, 2.0) - vec2(4.0, 3.0) != vec2(-3.0, -1.0))];
+          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+<stdin>:9:11: error: Cannot declare an array with a size of \"0\"
+  int m22[int(mat2(1.0, 2.0, 3.0, 4.0) - mat2(8.0, 7.0, 6.0, 5.0) != mat2(-7.0, -5.0, -3.0, -1.0))];
+          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+")
+
+# Check component-wise multiplication of constant expressions
+test("
+void main() {
+  int v21[int(vec2(1, 2) * vec2(3, -4) == vec2(3, -8))];
+  int v22[int(vec2(1, 2) * vec2(3, -4) != vec2(3, -8))];
+
+  // Matrix-vector multiply
+  int m2v21[int(mat2(1, 2, 3, 4) * vec2(5, 6) == vec2(23, 34))];
+  int m2v22[int(mat2(1, 2, 3, 4) * vec2(5, 6) != vec2(23, 34))];
+
+  // Vector-matrix multiply
+  int v2m21[int(vec2(1, 2) * mat2(3, 4, 5, 6) == vec2(11, 17))];
+  int v2m22[int(vec2(1, 2) * mat2(3, 4, 5, 6) != vec2(11, 17))];
+
+  // Matrix-matrix multiply
+  int m21[int(mat2(1, 2, 3, 4) * mat2(5, 6, 7, 8) == mat2(23, 34, 31, 46))];
+  int m22[int(mat2(1, 2, 3, 4) * mat2(5, 6, 7, 8) != mat2(23, 34, 31, 46))];
+}
+", "
+<stdin>:3:11: error: Cannot declare an array with a size of \"0\"
+  int v22[int(vec2(1, 2) * vec2(3, -4) != vec2(3, -8))];
+          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+<stdin>:7:13: error: Cannot declare an array with a size of \"0\"
+  int m2v22[int(mat2(1, 2, 3, 4) * vec2(5, 6) != vec2(23, 34))];
+            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+<stdin>:11:13: error: Cannot declare an array with a size of \"0\"
+  int v2m22[int(vec2(1, 2) * mat2(3, 4, 5, 6) != vec2(11, 17))];
+            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+<stdin>:15:11: error: Cannot declare an array with a size of \"0\"
+  int m22[int(mat2(1, 2, 3, 4) * mat2(5, 6, 7, 8) != mat2(23, 34, 31, 46))];
+          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+")
+
+# Check component-wise division of constant expressions
+test("
+void main() {
+  int iv21[int(ivec2(7, 10) / ivec2(2, 3) == ivec2(3, 3))];
+  int iv22[int(ivec2(7, 10) / ivec2(2, 3) != ivec2(3, 3))];
+
+  int iv23[int(ivec2(-7, 10) / ivec2(2, -3) == ivec2(-3, -3))];
+  int iv24[int(ivec2(-7, 10) / ivec2(2, -3) != ivec2(-3, -3))];
+
+  int m21[int(mat2(1, -2, 3, 4) / mat2(5, 4, 2, -1) == mat2(0.2, -0.5, 1.5, -4.0))];
+  int m22[int(mat2(1, -2, 3, 4) / mat2(5, 4, 2, -1) != mat2(0.2, -0.5, 1.5, -4.0))];
+}
+", "
+<stdin>:3:12: error: Cannot declare an array with a size of \"0\"
+  int iv22[int(ivec2(7, 10) / ivec2(2, 3) != ivec2(3, 3))];
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+<stdin>:6:12: error: Cannot declare an array with a size of \"0\"
+  int iv24[int(ivec2(-7, 10) / ivec2(2, -3) != ivec2(-3, -3))];
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+<stdin>:9:11: error: Cannot declare an array with a size of \"0\"
+  int m22[int(mat2(1, -2, 3, 4) / mat2(5, 4, 2, -1) != mat2(0.2, -0.5, 1.5, -4.0))];
+          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ")
 
 # Check constant struct expressions

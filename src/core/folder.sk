@@ -79,7 +79,7 @@ namespace GLSLX.Folder {
 
       case .ADD { return _foldBinaryFloatOrInt(node, (a, b) => a + b, (a, b) => a + b) }
       case .SUBTRACT { return _foldBinaryFloatOrInt(node, (a, b) => a - b, (a, b) => a - b) }
-      case .MULTIPLY { return _foldBinaryFloatOrInt(node, (a, b) => a * b, (a, b) => a * b) }
+      case .MULTIPLY { return _foldMultiply(node) }
       case .DIVIDE { return _foldBinaryFloatOrInt(node, (a, b) => b != 0 ? a / b : 0, (a, b) => b != 0 ? a / b : 0) } # Dividing by zero is undefined
 
       case .EQUAL, .NOT_EQUAL { return _foldBinaryEquality(node) }
@@ -154,7 +154,7 @@ namespace GLSLX.Folder {
               return folded.childAt(1 + set.indexOf(name))
             }
             var swizzleType = Swizzle.type(resolvedType.componentType, count)
-            var result = Node.createCall(Node.createType(swizzleType)).withType(swizzleType)
+            var result = Node.createConstructorCall(swizzleType)
             for i in 0..count {
               result.appendChild(folded.childAt(1 + set.indexOf(name.get(i))).remove)
             }
@@ -208,7 +208,7 @@ namespace GLSLX.Folder {
         # The index must be in range
         if 0 <= index && index < indexCount {
           var indexType = type.indexType
-          var result = Node.createCall(Node.createType(indexType)).withType(indexType)
+          var result = Node.createConstructorCall(indexType)
           var before = foldedLeft.childAt(index * indexCount)
           for i in 0..indexCount {
             result.appendChild(before.nextSibling.remove)
@@ -290,6 +290,83 @@ namespace GLSLX.Folder {
     return null
   }
 
+  def _floatValues(node Node) List<double> {
+    var values List<double> = []
+    for child = node.callTarget.nextSibling; child != null; child = child.nextSibling {
+      values.append(child.asFloat)
+    }
+    return values
+  }
+
+  def _foldMultiply(node Node) Node {
+    var left = fold(node.binaryLeft)
+    var right = fold(node.binaryRight)
+    var leftType = left?.resolvedType
+    var rightType = right?.resolvedType
+
+    if left != null && right != null {
+      # Vector-matrix multiply
+      if leftType == .VEC2 && rightType == .MAT2 ||
+          leftType == .VEC3 && rightType == .MAT3 ||
+          leftType == .VEC4 && rightType == .MAT4 {
+        var stride = leftType.indexCount
+        var result = Node.createConstructorCall(leftType)
+        var leftValues = _floatValues(left)
+        var rightValues = _floatValues(right)
+        for i in 0..stride {
+          var total = 0.0
+          for col in 0..stride {
+            total += leftValues[col] * rightValues[col + i * stride]
+          }
+          result.appendChild(Node.createFloat(total))
+        }
+        return result
+      }
+
+      # Matrix-vector multiply
+      if leftType == .MAT2 && rightType == .VEC2 ||
+          leftType == .MAT3 && rightType == .VEC3 ||
+          leftType == .MAT4 && rightType == .VEC4 {
+        var stride = leftType.indexCount
+        var result = Node.createConstructorCall(rightType)
+        var leftValues = _floatValues(left)
+        var rightValues = _floatValues(right)
+        for i in 0..stride {
+          var total = 0.0
+          for row in 0..stride {
+            total += leftValues[i + row * stride] * rightValues[row]
+          }
+          result.appendChild(Node.createFloat(total))
+        }
+        return result
+      }
+
+      # Matrix-matrix multiply
+      if leftType.isMatrix && rightType == leftType {
+        var stride = leftType.indexCount
+        var result = Node.createConstructorCall(leftType)
+        var leftValues = _floatValues(left)
+        var rightValues = _floatValues(right)
+        for row in 0..stride {
+          for col in 0..stride {
+            var total = 0.0
+            for i in 0..stride {
+              total += leftValues[col + i * stride] * rightValues[i + row * stride]
+            }
+            result.appendChild(Node.createFloat(total))
+          }
+        }
+        return result
+      }
+
+      return
+        _foldFloat(left, right, (a, b) => a * b) ??
+        _foldInt(left, right, (a, b) => a * b)
+    }
+
+    return null
+  }
+
   def _castValue(type Type, node Node) Node {
     var value double
 
@@ -312,7 +389,7 @@ namespace GLSLX.Folder {
   def _foldComponentConstructor(arguments List<Node>, type Type, matrixStride int) Node {
     var componentCount = type.componentCount
     var componentType = type.componentType
-    var node = Node.createCall(Node.createType(type)).withType(type)
+    var node = Node.createConstructorCall(type)
     assert(componentCount > 0)
 
     # Passing a single component as an argument always works
@@ -381,7 +458,7 @@ namespace GLSLX.Folder {
 
   def _foldStruct(arguments List<Node>, type Type) Node {
     var variables = type.symbol.asStruct.variables
-    var node = Node.createCall(Node.createType(type)).withType(type)
+    var node = Node.createConstructorCall(type)
 
     # Structs can only be constructed with the exact number of arguments
     if arguments.count != variables.count {
@@ -416,7 +493,7 @@ namespace GLSLX.Folder {
 
   def _foldComponentwiseBinary(node Node, componentType Type, argumentKind NodeKind, op fn(Node) Node) Node {
     if node.kind == .CALL && node.callTarget.kind == .TYPE && node.callTarget.resolvedType.componentType == componentType {
-      var result = Node.createCall(node.callTarget.clone).withType(node.callTarget.resolvedType)
+      var result = Node.createConstructorCall(node.callTarget.resolvedType)
 
       for child = node.callTarget.nextSibling; child != null; child = child.nextSibling {
         var folded = fold(child)
@@ -453,7 +530,7 @@ namespace GLSLX.Folder {
   def _foldComponentwiseBinary(left Node, right Node, componentType Type, argumentKind NodeKind, op fn(Node, Node) Node) Node {
     if left.kind == .CALL && left.callTarget.kind == .TYPE && left.callTarget.resolvedType.componentType == componentType &&
         right.kind == .CALL && right.callTarget.kind == .TYPE && right.callTarget.resolvedType == left.callTarget.resolvedType {
-      var result = Node.createCall(left.callTarget.clone).withType(left.callTarget.resolvedType)
+      var result = Node.createConstructorCall(left.callTarget.resolvedType)
       var leftChild = left.callTarget.nextSibling
       var rightChild = right.callTarget.nextSibling
 

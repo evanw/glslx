@@ -636,6 +636,10 @@ namespace GLSLX {
       return new(.CALL).appendChild(value)
     }
 
+    def createConstructorCall(type Type) Node {
+      return createCall(createType(type)).withType(type)
+    }
+
     def createDot(value Node, text string) Node {
       assert(value.kind.isExpression)
       assert(text != null)
