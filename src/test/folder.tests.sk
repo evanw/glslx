@@ -222,12 +222,12 @@ void main() {
 <stdin>:10:18: error: Cannot declare an array with a size of \"0\"
   int notEquals4[int(ivec4(ivec4(ivec4(1, 2, 3, 4))) != ivec4(1, 2, 3, 4))];
                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-<stdin>:12:23: warning: Expected 2 arguments but found 3 arguments when constructing type \"ivec2\", ignoring extra argument
+<stdin>:12:24: warning: The constructor for type \"ivec2\" only takes 2 arguments, ignoring 1 extra argument
   int extra1[int(ivec2(ivec3(1, 2, 3)) == ivec2(1, 2))];
-                      ~~~~~~~~~~~~~~~~
-<stdin>:13:23: warning: Expected 2 arguments but found 3 arguments when constructing type \"ivec2\", ignoring extra argument
+                       ~~~~~~~~~~~~~~
+<stdin>:13:24: warning: The constructor for type \"ivec2\" only takes 2 arguments, ignoring 1 extra argument
   int extra2[int(ivec2(ivec3(1, 2, 3)) != ivec2(1, 2))];
-                      ~~~~~~~~~~~~~~~~
+                       ~~~~~~~~~~~~~~
 <stdin>:13:14: error: Cannot declare an array with a size of \"0\"
   int extra2[int(ivec2(ivec3(1, 2, 3)) != ivec2(1, 2))];
              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

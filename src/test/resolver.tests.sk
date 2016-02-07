@@ -89,6 +89,8 @@ void main() {
   vec2 v2_2 = vec2(v2);
   vec2 v2_3 = vec2(v3);
   vec2 v2_4 = vec2(v4);
+  vec2 v2_5 = vec2(v1, v4);
+  vec2 v2_5_error = vec2(v4, v1);
 
   vec3 v3_1 = vec3(v1);
   vec3 v3_2 = vec3(v2);
@@ -96,6 +98,8 @@ void main() {
   vec3 v3_4 = vec3(v4);
   vec3 v3_12 = vec3(v1, v2);
   vec3 v3_21 = vec3(v2, v1);
+  vec3 v3_5 = vec3(v1, v4);
+  vec3 v3_5_error = vec3(v4, v1);
 
   vec4 v4_1 = vec4(v1);
   vec4 v4_2 = vec4(v2);
@@ -104,26 +108,52 @@ void main() {
   vec4 v4_13 = vec4(v1, v3);
   vec4 v4_31 = vec4(v3, v1);
   vec4 v4_22 = vec4(v2, v2);
+  vec4 v4_5 = vec4(v1, v4);
+  vec4 v4_5_error = vec4(v4, v1);
 }
 ", "
-<stdin>:9:19: warning: Expected 2 arguments but found 3 arguments when constructing type \"vec2\", ignoring extra argument
+<stdin>:9:20: warning: The constructor for type \"vec2\" only takes 2 arguments, ignoring 1 extra argument
   vec2 v2_3 = vec2(v3);
-                  ~~~~
-<stdin>:10:19: warning: Expected 2 arguments but found 4 arguments when constructing type \"vec2\", ignoring extra arguments
+                   ~~
+<stdin>:10:20: warning: The constructor for type \"vec2\" only takes 2 arguments, ignoring 2 extra arguments
   vec2 v2_4 = vec2(v4);
-                  ~~~~
-<stdin>:13:19: error: Cannot construct type \"vec3\" with 2 values
+                   ~~
+<stdin>:11:24: warning: The constructor for type \"vec2\" only takes 2 arguments, ignoring 3 extra arguments
+  vec2 v2_5 = vec2(v1, v4);
+                       ~~
+<stdin>:12:26: warning: The constructor for type \"vec2\" only takes 2 arguments, ignoring 2 extra arguments
+  vec2 v2_5_error = vec2(v4, v1);
+                         ~~
+<stdin>:12:30: error: The constructor for type \"vec2\" only takes 2 arguments and this argument would bring the total to 5
+  vec2 v2_5_error = vec2(v4, v1);
+                             ~~
+<stdin>:15:19: error: Cannot construct type \"vec3\" with 2 arguments
   vec3 v3_2 = vec3(v2);
                   ~~~~
-<stdin>:15:19: warning: Expected 3 arguments but found 4 arguments when constructing type \"vec3\", ignoring extra argument
+<stdin>:17:20: warning: The constructor for type \"vec3\" only takes 3 arguments, ignoring 1 extra argument
   vec3 v3_4 = vec3(v4);
-                  ~~~~
-<stdin>:20:19: error: Cannot construct type \"vec4\" with 2 values
+                   ~~
+<stdin>:20:24: warning: The constructor for type \"vec3\" only takes 3 arguments, ignoring 2 extra arguments
+  vec3 v3_5 = vec3(v1, v4);
+                       ~~
+<stdin>:21:26: warning: The constructor for type \"vec3\" only takes 3 arguments, ignoring 1 extra argument
+  vec3 v3_5_error = vec3(v4, v1);
+                         ~~
+<stdin>:21:30: error: The constructor for type \"vec3\" only takes 3 arguments and this argument would bring the total to 5
+  vec3 v3_5_error = vec3(v4, v1);
+                             ~~
+<stdin>:24:19: error: Cannot construct type \"vec4\" with 2 arguments
   vec4 v4_2 = vec4(v2);
                   ~~~~
-<stdin>:21:19: error: Cannot construct type \"vec4\" with 3 values
+<stdin>:25:19: error: Cannot construct type \"vec4\" with 3 arguments
   vec4 v4_3 = vec4(v3);
                   ~~~~
+<stdin>:30:24: warning: The constructor for type \"vec4\" only takes 4 arguments, ignoring 1 extra argument
+  vec4 v4_5 = vec4(v1, v4);
+                       ~~
+<stdin>:31:30: error: The constructor for type \"vec4\" only takes 4 arguments and this argument would bring the total to 5
+  vec4 v4_5_error = vec4(v4, v1);
+                             ~~
 ")
 
 # Test vector constructors with matrices
@@ -183,19 +213,19 @@ void main() {
     0.0, 0.0, 0.0, 0.0);
 }
 ", "
-<stdin>:4:7: error: Cannot construct type \"mat2\" with 3 values
+<stdin>:4:7: error: Cannot construct type \"mat2\" with 3 arguments
   mat2(0.0, 0.0, 0.0);
       ~~~~~~~~~~~~~~~
-<stdin>:8:7: error: Cannot construct type \"mat3\" with 2 values
+<stdin>:8:7: error: Cannot construct type \"mat3\" with 2 arguments
   mat3(0.0, 0.0);
       ~~~~~~~~~~
-<stdin>:10:7: error: Cannot construct type \"mat3\" with 4 values
+<stdin>:10:7: error: Cannot construct type \"mat3\" with 4 arguments
   mat3(0.0, 0.0, 0.0, 0.0);
       ~~~~~~~~~~~~~~~~~~~~
-<stdin>:17:7: error: Cannot construct type \"mat4\" with 2 values
+<stdin>:17:7: error: Cannot construct type \"mat4\" with 2 arguments
   mat4(0.0, 0.0);
       ~~~~~~~~~~
-<stdin>:18:7: error: Cannot construct type \"mat4\" with 3 values
+<stdin>:18:7: error: Cannot construct type \"mat4\" with 3 arguments
   mat4(0.0, 0.0, 0.0);
       ~~~~~~~~~~~~~~~
 ")
@@ -220,49 +250,49 @@ void main() {
   mat4();
 }
 ", "
-<stdin>:2:7: error: Cannot construct type \"bool\" with 0 values
+<stdin>:2:7: error: Cannot construct type \"bool\" with 0 arguments
   bool();
       ~~
-<stdin>:3:6: error: Cannot construct type \"int\" with 0 values
+<stdin>:3:6: error: Cannot construct type \"int\" with 0 arguments
   int();
      ~~
-<stdin>:4:8: error: Cannot construct type \"float\" with 0 values
+<stdin>:4:8: error: Cannot construct type \"float\" with 0 arguments
   float();
        ~~
-<stdin>:5:8: error: Cannot construct type \"ivec2\" with 0 values
+<stdin>:5:8: error: Cannot construct type \"ivec2\" with 0 arguments
   ivec2();
        ~~
-<stdin>:6:8: error: Cannot construct type \"ivec3\" with 0 values
+<stdin>:6:8: error: Cannot construct type \"ivec3\" with 0 arguments
   ivec3();
        ~~
-<stdin>:7:8: error: Cannot construct type \"ivec4\" with 0 values
+<stdin>:7:8: error: Cannot construct type \"ivec4\" with 0 arguments
   ivec4();
        ~~
-<stdin>:8:8: error: Cannot construct type \"bvec2\" with 0 values
+<stdin>:8:8: error: Cannot construct type \"bvec2\" with 0 arguments
   bvec2();
        ~~
-<stdin>:9:8: error: Cannot construct type \"bvec3\" with 0 values
+<stdin>:9:8: error: Cannot construct type \"bvec3\" with 0 arguments
   bvec3();
        ~~
-<stdin>:10:8: error: Cannot construct type \"bvec4\" with 0 values
+<stdin>:10:8: error: Cannot construct type \"bvec4\" with 0 arguments
   bvec4();
        ~~
-<stdin>:11:7: error: Cannot construct type \"vec2\" with 0 values
+<stdin>:11:7: error: Cannot construct type \"vec2\" with 0 arguments
   vec2();
       ~~
-<stdin>:12:7: error: Cannot construct type \"vec3\" with 0 values
+<stdin>:12:7: error: Cannot construct type \"vec3\" with 0 arguments
   vec3();
       ~~
-<stdin>:13:7: error: Cannot construct type \"vec4\" with 0 values
+<stdin>:13:7: error: Cannot construct type \"vec4\" with 0 arguments
   vec4();
       ~~
-<stdin>:14:7: error: Cannot construct type \"mat2\" with 0 values
+<stdin>:14:7: error: Cannot construct type \"mat2\" with 0 arguments
   mat2();
       ~~
-<stdin>:15:7: error: Cannot construct type \"mat3\" with 0 values
+<stdin>:15:7: error: Cannot construct type \"mat3\" with 0 arguments
   mat3();
       ~~
-<stdin>:16:7: error: Cannot construct type \"mat4\" with 0 values
+<stdin>:16:7: error: Cannot construct type \"mat4\" with 0 arguments
   mat4();
       ~~
 ")

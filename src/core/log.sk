@@ -189,13 +189,16 @@ namespace GLSLX {
       error(range, "Cannot use value of type \"\(type)\" when constructing type \"\(constructor)\"")
     }
 
-    def semanticWarningExtraConstructorValues(range Range, type Type, found int, expected int) {
-      warning(range, "Expected \(expected) argument\(plural(expected)) but found \(found) argument\(plural(found)) " +
-        "when constructing type \"\(type)\", ignoring extra argument\(plural(found - expected))")
+    def semanticWarningExtraConstructorValues(range Range, type Type, count int, extra int) {
+      warning(range, "The constructor for type \"\(type)\" only takes \(count) argument\(plural(count)), ignoring \(extra) extra argument\(plural(extra))")
+    }
+
+    def semanticErrorExtraConstructorValue(range Range, type Type, count int, total int) {
+      error(range, "The constructor for type \"\(type)\" only takes \(count) argument\(plural(count)) and this argument would bring the total to \(total)")
     }
 
     def semanticErrorBadConstructorCount(range Range, type Type, count int) {
-      error(range, "Cannot construct type \"\(type)\" with \(count) value\(plural(count))")
+      error(range, "Cannot construct type \"\(type)\" with \(count) argument\(plural(count))")
     }
 
     def semanticErrorArgumentCountFunction(range Range, expected int, found int, name string, function Range) {

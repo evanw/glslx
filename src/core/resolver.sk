@@ -511,22 +511,39 @@ class GLSLX.Resolver {
       var providedCount = 0
       for argument in arguments {
         var argumentType = argument.resolvedType
+        var deltaCount = argumentType.componentCount
+
         if !(argumentType.isBoolOrIntOrFloat) {
           if argumentType != .ERROR {
             _log.semanticErrorBadConstructorValue(argument.range, argumentType, type)
           }
           return
         }
-        providedCount += argumentType.componentCount
-      }
 
-      # Passing extra values to a constructor is allowed
-      if providedCount > count {
-        _log.semanticWarningExtraConstructorValues(node.internalRange, type, providedCount, count)
+        # Passing extra values to a constructor is allowed sometimes. When this
+        # happens, still emit a warning because this could be a mistake.
+        #
+        # Allowed:
+        #
+        #   vec3(vec4(1.0));
+        #   vec3(1.0, vec4(1.0));
+        #
+        # Not allowed:
+        #
+        #   vec3(vec4(1.0), 1.0);
+        #   vec3(vec3(1.0), vec3(1.0));
+        #
+        if providedCount >= count {
+          _log.semanticErrorExtraConstructorValue(argument.range, type, count, providedCount + deltaCount)
+        } else if providedCount + deltaCount > count {
+          _log.semanticWarningExtraConstructorValues(argument.range, type, count, providedCount + deltaCount - count)
+        }
+
+        providedCount += deltaCount
       }
 
       # Validate the count (matrices also have special diagonal constructors)
-      else if providedCount != count && providedCount != 1 &&
+      if providedCount < count && providedCount != 1 &&
           (providedCount != 2 || type != .MAT2) &&
           (providedCount != 3 || type != .MAT3) &&
           (providedCount != 4 || type != .MAT4) {
