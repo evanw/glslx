@@ -2541,5 +2541,57 @@ void main(int i, float f, bool b, vec2 v, mat2 m, int a[2], Foo1 F1, Foo2 F2, Fo
      ~~
 ")
 
+# Check struct constructors
+test("
+struct S1 {
+  int i;
+  float f;
+};
+
+struct S2 {
+  bool b;
+  S1 s1;
+};
+
+void main() {
+  S2 a = S2(false, S1(0, 0.5));
+  S2 b = S2(S1(0.5, 0), false);
+  S2 c = S2(false);
+  S2 d = S2(false, S1(0));
+  S2 e = S2(false, S1(0, 0.5, 1));
+}
+", "
+<stdin>:13:16: error: Cannot convert from type \"float\" to type \"int\"
+  S2 b = S2(S1(0.5, 0), false);
+               ~~~
+<stdin>:13:21: error: Cannot convert from type \"int\" to type \"float\"
+  S2 b = S2(S1(0.5, 0), false);
+                    ^
+<stdin>:13:13: error: Cannot convert from type \"S1\" to type \"bool\"
+  S2 b = S2(S1(0.5, 0), false);
+            ~~~~~~~~~~
+<stdin>:13:25: error: Cannot convert from type \"bool\" to type \"S1\"
+  S2 b = S2(S1(0.5, 0), false);
+                        ~~~~~
+<stdin>:14:12: error: Expected 2 arguments but found 1 argument when constructing type \"S2\"
+  S2 c = S2(false);
+           ~~~~~~~
+<stdin>:6:8: note: The definition of struct \"S2\" is here
+struct S2 {
+       ~~
+<stdin>:15:22: error: Expected 2 arguments but found 1 argument when constructing type \"S1\"
+  S2 d = S2(false, S1(0));
+                     ~~~
+<stdin>:1:8: note: The definition of struct \"S1\" is here
+struct S1 {
+       ~~
+<stdin>:16:22: error: Expected 2 arguments but found 3 arguments when constructing type \"S1\"
+  S2 e = S2(false, S1(0, 0.5, 1));
+                     ~~~~~~~~~~~
+<stdin>:1:8: note: The definition of struct \"S1\" is here
+struct S1 {
+       ~~
+")
+
   }
 }
