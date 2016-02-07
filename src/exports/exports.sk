@@ -232,6 +232,42 @@ Advanced:
       }
     }
 
+    var handleDefinitionQuery = (message dynamic) dynamic => {
+      var name string = message.source + ""
+      var line int = message.line | 0
+      var column int = message.column | 0
+      var range Range = null
+      var definition Range = null
+      var symbol string = null
+
+      if sources != null {
+        for source in sources {
+          if source.name == name {
+            var index = source.lineColumnToIndex(line, column)
+            if index != -1 && result != null {
+              var query = IDE.SymbolQuery.new(source, index)
+              query.run(result)
+              if query.symbol != null {
+                definition = query.symbol.range
+                range = query.range
+                symbol = query.symbol.name
+              }
+            }
+            break
+          }
+        }
+      }
+
+      return {
+        "type": "definition-query",
+        "id": message.id,
+        "source": name,
+        "definition": rangeToJSON(definition),
+        "range": rangeToJSON(range),
+        "symbol": symbol,
+      }
+    }
+
     var handleSymbolsQuery = (message dynamic) dynamic => {
       var name string = message.source + ""
       var symbols List<dynamic> = null
@@ -274,6 +310,7 @@ Advanced:
         "text": diagnostic.text,
       })),
       "tooltipQuery": handleTooltipQuery,
+      "definitionQuery": handleDefinitionQuery,
       "symbolsQuery": handleSymbolsQuery,
     }
   }
