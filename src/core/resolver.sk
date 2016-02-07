@@ -546,6 +546,7 @@ class GLSLX.Resolver {
 
     if type.componentType != null {
       var count = type.componentCount
+      var hasMatrixArgument = false
 
       # Visit each argument and make sure it's useful toward construction
       var providedCount = 0
@@ -553,6 +554,7 @@ class GLSLX.Resolver {
         var argumentType = argument.resolvedType
         var deltaCount = argumentType.componentCount
 
+        # Each type in a component-based types must be able to itself be unpacked into components
         if argumentType.componentType == null {
           if argumentType != .ERROR {
             _log.semanticErrorBadConstructorValue(argument.range, argumentType, type)
@@ -560,8 +562,7 @@ class GLSLX.Resolver {
           return
         }
 
-        # Passing extra values to a constructor is allowed sometimes. When this
-        # happens, still emit a warning because this could be a mistake.
+        # Passing extra values to a constructor is allowed sometimes
         #
         # Allowed:
         #
@@ -575,18 +576,24 @@ class GLSLX.Resolver {
         #
         if providedCount >= count {
           _log.semanticErrorExtraConstructorValue(argument.range, type, count, providedCount + deltaCount)
-        } else if providedCount + deltaCount > count {
-          _log.semanticWarningExtraConstructorValues(argument.range, type, count, providedCount + deltaCount - count)
+        }
+
+        if argumentType.isMatrix {
+          hasMatrixArgument = true
         }
 
         providedCount += deltaCount
       }
 
-      # Validate the count (matrices also have special diagonal constructors)
-      if providedCount < count && providedCount != 1 &&
-          (providedCount != 2 || type != .MAT2) &&
-          (providedCount != 3 || type != .MAT3) &&
-          (providedCount != 4 || type != .MAT4) {
+      # If a matrix argument is given to a matrix constructor, it is an error
+      # to have any other arguments
+      var isMatrixMatrixConstructor = type.isMatrix && hasMatrixArgument
+      if isMatrixMatrixConstructor && arguments.count != 1 {
+        _log.semanticErrorBadMatrixConstructor(node.internalRange)
+      }
+
+      # Validate the count (constructing a matrix using a matrix should always work)
+      else if providedCount < count && providedCount != 1 && !isMatrixMatrixConstructor {
         _log.semanticErrorBadConstructorCount(node.internalRange, type, providedCount)
       }
 

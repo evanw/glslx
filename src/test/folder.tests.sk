@@ -90,15 +90,9 @@ void main() {
   int m3[int(mat3(false))];
 }
 ", "
-<stdin>:2:14: warning: The constructor for type \"int\" only takes 1 argument, ignoring 1 extra argument
-  int v2[int(vec2(false))];
-             ~~~~~~~~~~~
 <stdin>:2:10: error: Cannot declare an array with a size of \"0\"
   int v2[int(vec2(false))];
          ~~~~~~~~~~~~~~~~
-<stdin>:3:14: warning: The constructor for type \"int\" only takes 1 argument, ignoring 8 extra arguments
-  int m3[int(mat3(false))];
-             ~~~~~~~~~~~
 <stdin>:3:10: error: Cannot declare an array with a size of \"0\"
   int m3[int(mat3(false))];
          ~~~~~~~~~~~~~~~~
@@ -279,6 +273,81 @@ void main() {
            ~~~~~~~~~~~~~~~~~~~~
 ")
 
+# Check matrix constructor layout
+test("
+void main() {
+  int m21[int(mat2(1) == mat2(1, 0, 0, 1))];
+  int m22[int(mat2(1) != mat2(1, 0, 0, 1))];
+  int m23[int(mat2(vec2(1, 2), vec2(3, 4)) == mat2(1, 2, 3, 4))];
+  int m24[int(mat2(vec2(1, 2), vec2(3, 4)) != mat2(1, 2, 3, 4))];
+
+  int m31[int(mat3(1) == mat3(1, 0, 0, 0, 1, 0, 0, 0, 1))];
+  int m32[int(mat3(1) != mat3(1, 0, 0, 0, 1, 0, 0, 0, 1))];
+  int m33[int(mat3(vec3(1, 2, 3), vec3(4, 5, 6), vec3(7, 8, 9)) == mat3(1, 2, 3, 4, 5, 6, 7, 8, 9))];
+  int m34[int(mat3(vec3(1, 2, 3), vec3(4, 5, 6), vec3(7, 8, 9)) != mat3(1, 2, 3, 4, 5, 6, 7, 8, 9))];
+
+  int m41[int(mat4(1) == mat4(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1))];
+  int m42[int(mat4(1) != mat4(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1))];
+  int m43[int(mat4(vec4(1, 2, 3, 4), vec4(5, 6, 7, 8), vec4(9, 10, 11, 12), vec4(13, 14, 15, 16)) == mat4(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16))];
+  int m44[int(mat4(vec4(1, 2, 3, 4), vec4(5, 6, 7, 8), vec4(9, 10, 11, 12), vec4(13, 14, 15, 16)) != mat4(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16))];
+
+  int m3m21[int(mat3(mat2(1, 2, 3, 4)) == mat3(1, 2, 0, 3, 4, 0, 0, 0, 1))];
+  int m3m22[int(mat3(mat2(1, 2, 3, 4)) != mat3(1, 2, 0, 3, 4, 0, 0, 0, 1))];
+
+  int m4m21[int(mat4(mat2(1, 2, 3, 4)) == mat4(1, 2, 0, 0, 3, 4, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1))];
+  int m4m22[int(mat4(mat2(1, 2, 3, 4)) != mat4(1, 2, 0, 0, 3, 4, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1))];
+
+  int m4m31[int(mat4(mat3(1, 2, 3, 4, 5, 6, 7, 8, 9)) == mat4(1, 2, 3, 0, 4, 5, 6, 0, 7, 8, 9, 0, 0, 0, 0, 1))];
+  int m4m32[int(mat4(mat3(1, 2, 3, 4, 5, 6, 7, 8, 9)) != mat4(1, 2, 3, 0, 4, 5, 6, 0, 7, 8, 9, 0, 0, 0, 0, 1))];
+
+  int m2m31[int(mat2(mat3(1, 2, 3, 4, 5, 6, 7, 8, 9)) == mat2(1, 2, 4, 5))];
+  int m2m32[int(mat2(mat3(1, 2, 3, 4, 5, 6, 7, 8, 9)) != mat2(1, 2, 4, 5))];
+
+  int m2m41[int(mat2(mat4(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16)) == mat2(1, 2, 5, 6))];
+  int m2m42[int(mat2(mat4(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16)) != mat2(1, 2, 5, 6))];
+
+  int m3m41[int(mat3(mat4(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16)) == mat3(1, 2, 3, 5, 6, 7, 9, 10, 11))];
+  int m3m42[int(mat3(mat4(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16)) != mat3(1, 2, 3, 5, 6, 7, 9, 10, 11))];
+}
+", "
+<stdin>:3:11: error: Cannot declare an array with a size of \"0\"
+  int m22[int(mat2(1) != mat2(1, 0, 0, 1))];
+          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+<stdin>:5:11: error: Cannot declare an array with a size of \"0\"
+  int m24[int(mat2(vec2(1, 2), vec2(3, 4)) != mat2(1, 2, 3, 4))];
+          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+<stdin>:8:11: error: Cannot declare an array with a size of \"0\"
+  int m32[int(mat3(1) != mat3(1, 0, 0, 0, 1, 0, 0, 0, 1))];
+          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+<stdin>:10:11: error: Cannot declare an array with a size of \"0\"
+  int m34[int(mat3(vec3(1, 2, 3), vec3(4, 5, 6), vec3(7, 8, 9)) != mat3(1, 2, 3, 4, 5, 6, 7, 8, 9))];
+          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+<stdin>:13:11: error: Cannot declare an array with a size of \"0\"
+  int m42[int(mat4(1) != mat4(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1))];
+          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+<stdin>:15:11: error: Cannot declare an array with a size of \"0\"
+  int m44[int(mat4(vec4(1, 2, 3, 4), vec4(5, 6, 7, 8), vec4(9, 10, 11, 12), vec4(13, 14, 15, 16)) != mat4(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16))];
+          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+<stdin>:18:13: error: Cannot declare an array with a size of \"0\"
+  int m3m22[int(mat3(mat2(1, 2, 3, 4)) != mat3(1, 2, 0, 3, 4, 0, 0, 0, 1))];
+            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+<stdin>:21:13: error: Cannot declare an array with a size of \"0\"
+  int m4m22[int(mat4(mat2(1, 2, 3, 4)) != mat4(1, 2, 0, 0, 3, 4, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1))];
+            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+<stdin>:24:13: error: Cannot declare an array with a size of \"0\"
+  int m4m32[int(mat4(mat3(1, 2, 3, 4, 5, 6, 7, 8, 9)) != mat4(1, 2, 3, 0, 4, 5, 6, 0, 7, 8, 9, 0, 0, 0, 0, 1))];
+            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+<stdin>:27:13: error: Cannot declare an array with a size of \"0\"
+  int m2m32[int(mat2(mat3(1, 2, 3, 4, 5, 6, 7, 8, 9)) != mat2(1, 2, 4, 5))];
+            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+<stdin>:30:13: error: Cannot declare an array with a size of \"0\"
+  int m2m42[int(mat2(mat4(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16)) != mat2(1, 2, 5, 6))];
+            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+<stdin>:33:13: error: Cannot declare an array with a size of \"0\"
+  int m3m42[int(mat3(mat4(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16)) != mat3(1, 2, 3, 5, 6, 7, 9, 10, 11))];
+            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+")
+
 # Compound constant vector expression tests
 test("
 void main() {
@@ -308,12 +377,6 @@ void main() {
 <stdin>:10:18: error: Cannot declare an array with a size of \"0\"
   int notEquals4[int(ivec4(ivec4(ivec4(1, 2, 3, 4))) != ivec4(1, 2, 3, 4))];
                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-<stdin>:12:24: warning: The constructor for type \"ivec2\" only takes 2 arguments, ignoring 1 extra argument
-  int extra1[int(ivec2(ivec3(1, 2, 3)) == ivec2(1, 2))];
-                       ~~~~~~~~~~~~~~
-<stdin>:13:24: warning: The constructor for type \"ivec2\" only takes 2 arguments, ignoring 1 extra argument
-  int extra2[int(ivec2(ivec3(1, 2, 3)) != ivec2(1, 2))];
-                       ~~~~~~~~~~~~~~
 <stdin>:13:14: error: Cannot declare an array with a size of \"0\"
   int extra2[int(ivec2(ivec3(1, 2, 3)) != ivec2(1, 2))];
              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

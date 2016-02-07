@@ -191,10 +191,13 @@ namespace GLSLX.Folder {
           return null
         }
 
-        # Make sure all arguments are constants
         var type = target.resolvedType
         var componentType = type.componentType
+        var matrixStride = 0
         var arguments List<Node> = []
+        var count = 0
+
+        # Make sure all arguments are constants
         for child = target.nextSibling; child != null; child = child.nextSibling {
           var folded = fold(child)
           if folded == null {
@@ -222,12 +225,26 @@ namespace GLSLX.Folder {
             }
             arguments.append(folded)
           }
+
+          if folded.resolvedType.isMatrix {
+            matrixStride = folded.resolvedType.indexCount
+          }
+
+          count++
         }
 
+        # If a matrix argument is given to a matrix constructor, it is an error
+        # to have any other arguments
+        if type.isMatrix && matrixStride != 0 && count != 1 {
+          return null
+        }
+
+        # Native component-based types
         if type.componentType != null {
-          return _foldComponentConstructor(arguments, type)
+          return _foldComponentConstructor(arguments, type, type.isMatrix ? matrixStride : 0)
         }
 
+        # User-defined struct types
         if type.symbol != null && type.symbol.isStruct {
           return _foldStruct(arguments, type)
         }
@@ -276,20 +293,45 @@ namespace GLSLX.Folder {
     return null
   }
 
-  def _foldComponentConstructor(arguments List<Node>, type Type) Node {
+  def _foldComponentConstructor(arguments List<Node>, type Type, matrixStride int) Node {
     var componentCount = type.componentCount
     var componentType = type.componentType
     var node = Node.createCall(Node.createType(type)).withType(type)
     assert(componentCount > 0)
 
-    # Passing a single argument always works
+    # Passing a single component as an argument always works
     if arguments.count == 1 {
       var argument = arguments.first
       if argument.resolvedType != componentType {
         return null
       }
+
+      # When doing this with a matrix, only the diagonal is filled
+      var isMatrix = type.isMatrix
+      var stride = type.indexCount
+
+      # Fill the target by repeating the single component
       for i in 0..componentCount {
-        node.appendChild(argument.clone)
+        var isOffMatrixDiagonal = isMatrix && i % (stride + 1) != 0
+        node.appendChild(isOffMatrixDiagonal ? Node.createFloat(0) : argument.clone)
+      }
+    }
+
+    # If a matrix is constructed from a matrix, then each component (column i,
+    # row j) in the result that has a corresponding component (column i, row j)
+    # in the argument will be initialized from there. All other components will
+    # be initialized to the identity matrix.
+    else if matrixStride != 0 {
+      var stride = type.indexCount
+      assert(type.isMatrix)
+      assert(stride * stride == componentCount)
+
+      for row in 0..stride {
+        for col in 0..stride {
+          node.appendChild(col < matrixStride && row < matrixStride
+            ? arguments[col + row * matrixStride]
+            : Node.createFloat(col == row ? 1 : 0))
+        }
       }
     }
 
@@ -302,11 +344,14 @@ namespace GLSLX.Folder {
 
       # The constructed value is represented as a constructor call
       for i in 0..componentCount {
-        if arguments[i].resolvedType != componentType {
+        var argument = arguments[i]
+
+        # All casts should be resolved by this point
+        if argument.resolvedType != componentType {
           return null
         }
 
-        node.appendChild(arguments[i])
+        node.appendChild(argument)
       }
     }
 

@@ -112,33 +112,12 @@ void main() {
   vec4 v4_5_error = vec4(v4, v1);
 }
 ", "
-<stdin>:9:20: warning: The constructor for type \"vec2\" only takes 2 arguments, ignoring 1 extra argument
-  vec2 v2_3 = vec2(v3);
-                   ~~
-<stdin>:10:20: warning: The constructor for type \"vec2\" only takes 2 arguments, ignoring 2 extra arguments
-  vec2 v2_4 = vec2(v4);
-                   ~~
-<stdin>:11:24: warning: The constructor for type \"vec2\" only takes 2 arguments, ignoring 3 extra arguments
-  vec2 v2_5 = vec2(v1, v4);
-                       ~~
-<stdin>:12:26: warning: The constructor for type \"vec2\" only takes 2 arguments, ignoring 2 extra arguments
-  vec2 v2_5_error = vec2(v4, v1);
-                         ~~
 <stdin>:12:30: error: The constructor for type \"vec2\" only takes 2 arguments and this argument would bring the total to 5
   vec2 v2_5_error = vec2(v4, v1);
                              ~~
 <stdin>:15:19: error: Cannot construct type \"vec3\" with 2 arguments
   vec3 v3_2 = vec3(v2);
                   ~~~~
-<stdin>:17:20: warning: The constructor for type \"vec3\" only takes 3 arguments, ignoring 1 extra argument
-  vec3 v3_4 = vec3(v4);
-                   ~~
-<stdin>:20:24: warning: The constructor for type \"vec3\" only takes 3 arguments, ignoring 2 extra arguments
-  vec3 v3_5 = vec3(v1, v4);
-                       ~~
-<stdin>:21:26: warning: The constructor for type \"vec3\" only takes 3 arguments, ignoring 1 extra argument
-  vec3 v3_5_error = vec3(v4, v1);
-                         ~~
 <stdin>:21:30: error: The constructor for type \"vec3\" only takes 3 arguments and this argument would bring the total to 5
   vec3 v3_5_error = vec3(v4, v1);
                              ~~
@@ -148,9 +127,6 @@ void main() {
 <stdin>:25:19: error: Cannot construct type \"vec4\" with 3 arguments
   vec4 v4_3 = vec4(v3);
                   ~~~~
-<stdin>:30:24: warning: The constructor for type \"vec4\" only takes 4 arguments, ignoring 1 extra argument
-  vec4 v4_5 = vec4(v1, v4);
-                       ~~
 <stdin>:31:30: error: The constructor for type \"vec4\" only takes 4 arguments and this argument would bring the total to 5
   vec4 v4_5_error = vec4(v4, v1);
                              ~~
@@ -185,7 +161,7 @@ void main() {
 }
 ")
 
-# Test matrix constructors, includes special diagonal constructor
+# Test matrix constructors
 test("
 void main() {
   mat2(0.0);
@@ -213,12 +189,18 @@ void main() {
     0.0, 0.0, 0.0, 0.0);
 }
 ", "
+<stdin>:3:7: error: Cannot construct type \"mat2\" with 2 arguments
+  mat2(0.0, 0.0);
+      ~~~~~~~~~~
 <stdin>:4:7: error: Cannot construct type \"mat2\" with 3 arguments
   mat2(0.0, 0.0, 0.0);
       ~~~~~~~~~~~~~~~
 <stdin>:8:7: error: Cannot construct type \"mat3\" with 2 arguments
   mat3(0.0, 0.0);
       ~~~~~~~~~~
+<stdin>:9:7: error: Cannot construct type \"mat3\" with 3 arguments
+  mat3(0.0, 0.0, 0.0);
+      ~~~~~~~~~~~~~~~
 <stdin>:10:7: error: Cannot construct type \"mat3\" with 4 arguments
   mat3(0.0, 0.0, 0.0, 0.0);
       ~~~~~~~~~~~~~~~~~~~~
@@ -228,6 +210,45 @@ void main() {
 <stdin>:18:7: error: Cannot construct type \"mat4\" with 3 arguments
   mat4(0.0, 0.0, 0.0);
       ~~~~~~~~~~~~~~~
+<stdin>:19:7: error: Cannot construct type \"mat4\" with 4 arguments
+  mat4(0.0, 0.0, 0.0, 0.0);
+      ~~~~~~~~~~~~~~~~~~~~
+")
+
+# Check special matrix constructor rule
+test("
+void main() {
+  mat3(mat2(1), mat2(1), 1);
+  mat3(1, mat2(1), mat2(1));
+  mat3(1, mat2(1), vec4(1));
+  mat3(mat2(1), vec4(1), 1);
+  mat3(vec4(1), mat2(1), 1);
+
+  mat2(mat3(1));
+  mat3(mat2(1));
+
+  mat2(mat4(1));
+  mat4(mat2(1));
+
+  mat3(mat4(1));
+  mat4(mat3(1));
+}
+", "
+<stdin>:2:7: error: If a matrix argument is given to a matrix constructor, it is an error to have any other arguments
+  mat3(mat2(1), mat2(1), 1);
+      ~~~~~~~~~~~~~~~~~~~~~
+<stdin>:3:7: error: If a matrix argument is given to a matrix constructor, it is an error to have any other arguments
+  mat3(1, mat2(1), mat2(1));
+      ~~~~~~~~~~~~~~~~~~~~~
+<stdin>:4:7: error: If a matrix argument is given to a matrix constructor, it is an error to have any other arguments
+  mat3(1, mat2(1), vec4(1));
+      ~~~~~~~~~~~~~~~~~~~~~
+<stdin>:5:7: error: If a matrix argument is given to a matrix constructor, it is an error to have any other arguments
+  mat3(mat2(1), vec4(1), 1);
+      ~~~~~~~~~~~~~~~~~~~~~
+<stdin>:6:7: error: If a matrix argument is given to a matrix constructor, it is an error to have any other arguments
+  mat3(vec4(1), mat2(1), 1);
+      ~~~~~~~~~~~~~~~~~~~~~
 ")
 
 # Empty constructors are not allowed

@@ -189,10 +189,6 @@ namespace GLSLX {
       error(range, "Cannot use value of type \"\(type)\" when constructing type \"\(constructor)\"")
     }
 
-    def semanticWarningExtraConstructorValues(range Range, type Type, count int, extra int) {
-      warning(range, "The constructor for type \"\(type)\" only takes \(count) argument\(plural(count)), ignoring \(extra) extra argument\(plural(extra))")
-    }
-
     def semanticErrorExtraConstructorValue(range Range, type Type, count int, total int) {
       error(range, "The constructor for type \"\(type)\" only takes \(count) argument\(plural(count)) and this argument would bring the total to \(total)")
     }
@@ -269,6 +265,10 @@ namespace GLSLX {
 
     def semanticErrorMissingReturn(range Range, name string, type Type) {
       error(range, "All control paths for \"\(name)\" must return a value of type \"\(type)\"")
+    }
+
+    def semanticErrorBadMatrixConstructor(range Range) {
+      error(range, "If a matrix argument is given to a matrix constructor, it is an error to have any other arguments")
     }
   }
 
