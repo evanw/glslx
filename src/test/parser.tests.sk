@@ -376,6 +376,9 @@ void main() {
 <stdin>:3:7: error: Unexpected type \"int\"
   x = int[2](1, 2);
       ~~~
+<stdin>:3:5: error: Cannot assign to array type \"int[2]\"
+  x = int[2](1, 2);
+    ^
 ")
 
 # Test invalid array syntax

@@ -602,6 +602,56 @@ void main(bool b) {
       ~~~~~~~~~
 ")
 
+# Conditional expressions involving arrays are not allowed
+test("
+struct S1 {
+  int x[2];
+};
+
+struct S2 {
+  sampler2D x;
+};
+
+void main(int a[2], bool b, S1 s1, S2 s2) {
+  b ? b : b;
+  b ? a : a;
+  b ? s1 : s1;
+  b ? s2 : s2;
+}
+", "
+<stdin>:11:7: error: Cannot use a conditional expression with array type \"int[2]\"
+  b ? a : a;
+      ~~~~~
+<stdin>:12:7: error: Cannot use a conditional expression with type \"S1\" because it contains an array
+  b ? s1 : s1;
+      ~~~~~~~
+")
+
+# Assignments involving arrays are not allowed
+test("
+struct S1 {
+  int x[2];
+};
+
+struct S2 {
+  sampler2D x;
+};
+
+void main(int a[2], bool b, S1 s1, S2 s2) {
+  a = a;
+  b = b;
+  s1 = s1;
+  s2 = s2;
+}
+", "
+<stdin>:10:5: error: Cannot assign to array type \"int[2]\"
+  a = a;
+    ^
+<stdin>:12:6: error: Cannot assign to type \"S1\" because it contains an array
+  s1 = s1;
+     ^
+")
+
 # Vector-matrix and matrix-vector addition
 test("
 void main() {

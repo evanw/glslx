@@ -223,6 +223,22 @@ namespace GLSLX {
       error(range, "Cannot merge type \"\(left)\" and type \"\(right)\"")
     }
 
+    def semanticErrorArrayHook(range Range, type Type) {
+      if type.isArrayOf != null {
+        error(range, "Cannot use a conditional expression with array type \"\(type)\"")
+      } else {
+        error(range, "Cannot use a conditional expression with type \"\(type)\" because it contains an array")
+      }
+    }
+
+    def semanticErrorArrayAssignment(range Range, type Type) {
+      if type.isArrayOf != null {
+        error(range, "Cannot assign to array type \"\(type)\"")
+      } else {
+        error(range, "Cannot assign to type \"\(type)\" because it contains an array")
+      }
+    }
+
     def semanticErrorBadUnaryOperator(range Range, operator string, type Type) {
       error(range, "No unary operator \"\(operator)\" for type \"\(type)\"")
     }

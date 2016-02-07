@@ -158,12 +158,12 @@ class GLSLX.Resolver {
         _resolveChildren(node)
 
         # A struct loses operator "==" and "!=" when it contains a type without those operators
+        var resolvedType = node.symbol.resolvedType
         for variables = node.firstChild; variables != null; variables = variables.nextSibling {
           for variable = variables.variablesType.nextSibling; variable != null; variable = variable.nextSibling {
-            if !variable.symbol.asVariable.type.resolvedType.canUseEqualityOperators {
-              node.symbol.resolvedType.canUseEqualityOperators = false
-              break
-            }
+            var type = variable.symbol.asVariable.type.resolvedType
+            if type.containsArray { resolvedType.containsArray = true }
+            if type.containsSampler { resolvedType.containsSampler = true }
           }
         }
       }
@@ -202,6 +202,8 @@ class GLSLX.Resolver {
 
         if yes.resolvedType != no.resolvedType {
           _log.semanticErrorBadHookTypes(Range.span(yes.range, no.range), yes.resolvedType, no.resolvedType)
+        } else if yes.resolvedType.containsArray {
+          _log.semanticErrorArrayHook(Range.span(yes.range, no.range), yes.resolvedType)
         } else {
           node.resolvedType = yes.resolvedType
         }
@@ -347,6 +349,9 @@ class GLSLX.Resolver {
 
       case .ASSIGN {
         node.resolvedType = leftType
+        if leftType.containsArray {
+          _log.semanticErrorArrayAssignment(node.internalRange, leftType)
+        }
         checkConversion(right, leftType)
         return
       }
