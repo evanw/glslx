@@ -68,13 +68,15 @@ class GLSLX.Resolver {
         # Constants must be initialized
         if symbol.isConst {
           if symbol.value != null {
-            var folded = Folder.fold(symbol.value)
-            if folded == null {
-              _log.syntaxErrorConstantRequired(symbol.value.range)
-            } else {
-              assert(folded.parent == null)
-              assert(folded.resolvedType != null)
-              symbol.constantValue = folded
+            if symbol.value.resolvedType != .ERROR {
+              var folded = Folder.fold(symbol.value)
+              if folded == null {
+                _log.syntaxErrorConstantRequired(symbol.value.range)
+              } else {
+                assert(folded.parent == null)
+                assert(folded.resolvedType != null)
+                symbol.constantValue = folded
+              }
             }
           } else if symbol.kind == .LOCAL {
             _log.semanticErrorUninitializedConstant(symbol.range)

@@ -646,5 +646,17 @@ void main() {
              ~~~~~~~~~~~~~~~~~~~~~~~
 ")
 
+# Test errors in constant expressions
+test("
+void main() {
+  const int x = 0.1;
+  int y[x];
+}
+", "
+<stdin>:2:17: error: Cannot convert from type \"float\" to type \"int\"
+  const int x = 0.1;
+                ~~~
+")
+
   }
 }

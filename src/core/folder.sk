@@ -67,6 +67,12 @@ namespace GLSLX.Folder {
   }
 
   def _fold(node Node) Node {
+    assert(node.resolvedType != null)
+
+    if node.resolvedType == .ERROR {
+      return null
+    }
+
     switch node.kind {
       case .INT, .FLOAT, .BOOL { return node.clone }
       case .NAME { return _foldName(node) }
