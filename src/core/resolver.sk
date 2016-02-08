@@ -477,8 +477,11 @@ class GLSLX.Resolver {
   def _resolveFunctionOverloads(overloaded FunctionSymbol, node Node, arguments List<Node>) {
     var overloads List<FunctionSymbol> = []
 
+    # Collect all relevant overloads but ignore forward-declared functions that also have an implementation
     for overload = overloaded; overload != null; overload = overload.previousOverload {
-      overloads.append(overload)
+      if !(overload.sibling in overloads) {
+        overloads.append(overload)
+      }
     }
 
     # Narrow down by argument count

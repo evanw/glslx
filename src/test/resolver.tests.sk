@@ -2614,5 +2614,40 @@ struct S1 {
        ~~
 ")
 
+# Check that forward-declared functions can be used
+test("
+void foo();
+
+void foo() {
+}
+
+void bar();
+
+void baz() {
+}
+
+void main() {
+  foo();
+  bar();
+  baz();
+}
+", "
+void foo();
+
+void foo() {
+}
+
+void bar();
+
+void baz() {
+}
+
+void main() {
+  foo();
+  bar();
+  baz();
+}
+")
+
   }
 }
