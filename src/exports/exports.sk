@@ -210,10 +210,10 @@ Advanced:
               if tooltip == null && result != null {
                 var query = IDE.SymbolQuery.new(source, index)
                 query.run(result)
-                if query.symbol != null {
-                  tooltip = query.generateTooltip
+                tooltip = query.generateTooltip
+                if tooltip != null {
                   range = query.range
-                  symbol = query.symbol.name
+                  symbol = query.symbol?.name
                 }
               }
             }

@@ -30,8 +30,14 @@ namespace GLSLX.IDE {
     var resolvedType Type = null
     var symbol Symbol = null
     var range Range = null
+    var swizzleName string = null
+    var swizzleType Type = null
 
     def generateTooltip string {
+      if swizzleName != null {
+        return "\(swizzleType) \(swizzleName);"
+      }
+
       if symbol != null {
         if symbol.isStruct {
           var struct = symbol.asStruct
@@ -156,7 +162,12 @@ namespace GLSLX.IDE {
         case .DOT {
           if _touches(node.internalRange) {
             resolvedType = node.resolvedType
-            symbol = node.symbol
+            if node.dotTarget.resolvedType.isVector {
+              swizzleName = node.asString
+              swizzleType = node.resolvedType
+            } else {
+              symbol = node.symbol
+            }
             range = node.internalRange
             return true
           }

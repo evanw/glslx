@@ -68,10 +68,7 @@ namespace GLSLX.Tests {
     def tooltipQuery(line int, column int) string {
       var query = IDE.SymbolQuery.new(_source, _source.lineColumnToIndex(line, column))
       query.run(_global)
-      if query.symbol != null {
-        return query.generateTooltip
-      }
-      return ""
+      return query.generateTooltip ?? ""
     }
   }
 

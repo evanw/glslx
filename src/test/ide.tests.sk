@@ -69,5 +69,12 @@ int x[N];
   expect("", ide.tooltipQuery(1, 8))
 })
 
+# Check swizzles
+testIDE("
+ivec3 x = ivec2(1, 2).sst;
+", (ide, expect) => {
+  expect("ivec3 sst;", ide.tooltipQuery(0, 22))
+})
+
   }
 }

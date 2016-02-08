@@ -192,7 +192,7 @@ class GLSLX.Emitter {
       }
 
       case .FUNCTION {
-        var function = node.symbol as FunctionSymbol
+        var function = node.symbol.asFunction
         _emit(function.flags.toString)
         _emit(function.returnType, .LOWEST)
         _emit(" ")
