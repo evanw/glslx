@@ -132,7 +132,7 @@ Advanced:
     return [Source.new(input.name, input.contents)]
   }
 
-  def rangeToJSON(range Range) dynamic {
+  const rangeToJSON = (range Range) dynamic => {
     if range == null {
       return null
     }
@@ -303,6 +303,39 @@ Advanced:
       }
     }
 
+    var handleRenameQuery = (message dynamic) dynamic => {
+      var name string = message.source + ""
+      var line int = message.line | 0
+      var column int = message.column | 0
+      var ranges List<dynamic> = null
+      var symbol string = null
+
+      if sources != null {
+        for source in sources {
+          if source.name == name {
+            var index = source.lineColumnToIndex(line, column)
+            if index != -1 && result != null {
+              var renameQuery = IDE.RenameQuery.new(source, index)
+              renameQuery.run(result)
+              if renameQuery.symbol != null {
+                ranges = renameQuery.ranges.map<dynamic>(rangeToJSON)
+                symbol = renameQuery.symbol.name
+              }
+            }
+            break
+          }
+        }
+      }
+
+      return {
+        "type": "rename-query",
+        "id": message.id,
+        "source": name,
+        "ranges": ranges,
+        "symbol": symbol,
+      }
+    }
+
     return {
       "diagnostics": log.diagnostics.map<dynamic>(diagnostic => ({
         "kind": diagnostic.kind.toString.toLowerCase,
@@ -312,6 +345,7 @@ Advanced:
       "tooltipQuery": handleTooltipQuery,
       "definitionQuery": handleDefinitionQuery,
       "symbolsQuery": handleSymbolsQuery,
+      "renameQuery": handleRenameQuery,
     }
   }
 

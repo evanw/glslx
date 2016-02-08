@@ -18,6 +18,10 @@ namespace GLSLX {
       return "\(source.name):\(location.line + 1):\(location.column + 1)"
     }
 
+    def overlaps(range Range) bool {
+      return source == range.source && start < range.end && range.start < end
+    }
+
     def touches(index int) bool {
       return start <= index && index <= end
     }

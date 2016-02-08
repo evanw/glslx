@@ -153,6 +153,15 @@ namespace GLSLX.IDE {
           }
         }
 
+        case .DOT {
+          if _touches(node.internalRange) {
+            resolvedType = node.resolvedType
+            symbol = node.symbol
+            range = node.internalRange
+            return true
+          }
+        }
+
         case .VARIABLE {
           return _visitVariable(node.symbol.asVariable)
         }
@@ -213,6 +222,84 @@ namespace GLSLX.IDE {
     def _collectSymbol(symbol Symbol) {
       if symbol.range != null && symbol.range.source == source {
         symbols.append(symbol)
+      }
+    }
+  }
+
+  class RenameQuery {
+    const source Source
+    const index int
+    const ranges List<Range> = []
+    var symbol Symbol = null
+
+    def run(global Node) {
+      var query = SymbolQuery.new(source, index)
+      query.run(global)
+      symbol = query.symbol
+
+      if symbol != null {
+        _visit(global)
+
+        # Remove overlapping ranges just in case
+        var current Range = null
+        ranges.sort((a, b) => a.source == b.source
+          ? a.start <=> b.start
+          : a.source.name <=> b.source.name)
+        ranges.removeIf(range => {
+          var previous = current
+          current = range
+          return previous != null && current.overlaps(previous)
+        })
+      }
+    }
+
+    def _appendRange(range Range, check Symbol) {
+      # Sanity check the range to make sure it contains the target name
+      if check == symbol && range != null && range.toString == symbol.name {
+        ranges.append(range)
+      }
+    }
+
+    def _visitVariable(variable VariableSymbol) {
+      _appendRange(variable.range, variable)
+      _visit(variable.type)
+      _visit(variable.arrayCount)
+      _visit(variable.value)
+    }
+
+    def _visitFunction(function FunctionSymbol) {
+      _appendRange(function.range, function)
+      _appendRange(function.range, function.sibling)
+      _visit(function.returnType)
+      _visit(function.block)
+
+      for argument in function.arguments {
+        _visitVariable(argument)
+      }
+    }
+
+    def _visitStruct(struct StructSymbol) {
+      _appendRange(struct.range, struct)
+
+      for variable in struct.variables {
+        _visitVariable(variable)
+      }
+    }
+
+    def _visit(node Node) {
+      if node != null {
+        for child = node.firstChild; child != null; child = child.nextSibling {
+          _visit(child)
+        }
+
+        switch node.kind {
+          case .NAME { _appendRange(node.range, node.symbol) }
+          case .DOT { _appendRange(node.internalRange, node.symbol) }
+          case .TYPE { _appendRange(node.range, node.resolvedType.symbol) }
+          case .VARIABLE { _visitVariable(node.symbol.asVariable) }
+          case .FUNCTION { _visitFunction(node.symbol.asFunction) }
+          case .STRUCT { _visitStruct(node.symbol.asStruct) }
+        }
       }
     }
   }
