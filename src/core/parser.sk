@@ -114,7 +114,7 @@ namespace GLSLX.Parser {
       var symbol = context.scope.find(name)
       if symbol == null {
         context.log.syntaxErrorBadSymbolReference(token.range)
-        return null
+        return Node.createParseError.withRange(token.range)
       }
 
       # Check extension usage
@@ -167,6 +167,14 @@ namespace GLSLX.Parser {
     # Index
     pratt.parselet(.LEFT_BRACKET, .MEMBER).infix = (context, left) => {
       var token = context.next
+
+      # The "[]" syntax isn't valid but skip over it and recover
+      if context.peek(.RIGHT_BRACKET) {
+        context.unexpectedToken
+        context.next
+        return Node.createParseError.withRange(context.spanSince(token.range))
+      }
+
       var value = pratt.parse(context, .LOWEST)
       if value == null || !context.expect(.RIGHT_BRACKET) {
         return null
@@ -218,11 +226,11 @@ namespace GLSLX.Parser {
     if test == null {
       return null
     }
-    if !context.expect(.RIGHT_PARENTHESIS) || !context.expect(.SEMICOLON) {
+    if !context.expect(.RIGHT_PARENTHESIS) {
       return null
     }
     context.popScope
-    return Node.createDoWhile(body, test).withRange(context.spanSince(token.range))
+    return checkForSemicolon(context, token.range, Node.createDoWhile(body, test))
   }
 
   def parseExportOrImport(context ParserContext) Node {
@@ -451,9 +459,7 @@ namespace GLSLX.Parser {
       if value == null {
         return null
       }
-      if !context.expect(.SEMICOLON) {
-        return null
-      }
+      context.expect(.SEMICOLON)
     }
     return Node.createReturn(value).withRange(context.spanSince(token.range))
   }
@@ -507,7 +513,7 @@ namespace GLSLX.Parser {
 
       if statement.kind != .VARIABLES {
         context.log.syntaxErrorInsideStruct(statement.range)
-        return null
+        continue
       }
 
       block.appendChild(statement)
@@ -518,7 +524,6 @@ namespace GLSLX.Parser {
 
         if variable.value != null {
           context.log.syntaxErrorStructVariableInitializer(variable.value.range)
-          return null
         }
       }
     }
@@ -541,8 +546,8 @@ namespace GLSLX.Parser {
       }
     }
 
-    else if !context.expect(.SEMICOLON) {
-      return null
+    else {
+      context.expect(.SEMICOLON)
     }
 
     return Node.createStruct(symbol, block, variables)
@@ -563,9 +568,7 @@ namespace GLSLX.Parser {
   }
 
   def checkForSemicolon(context ParserContext, range Range, node Node) Node {
-    if !context.expect(.SEMICOLON) {
-      return null
-    }
+    context.expect(.SEMICOLON)
     return node.withRange(context.spanSince(range))
   }
 
@@ -797,9 +800,7 @@ namespace GLSLX.Parser {
         argument.flags |= argumentFlags
         argument.type = argumentType
         function.arguments.append(argument)
-        if !tryToDefineUniquelyInScope(context, argument) {
-          return null
-        }
+        tryToDefineUniquelyInScope(context, argument)
 
         # Array size
         if !parseArraySize(context, argument) {
@@ -875,7 +876,15 @@ namespace GLSLX.Parser {
   }
 
   def parseArraySize(context ParserContext, variable VariableSymbol) bool {
+    var token = context.current
+
     if context.eat(.LEFT_BRACKET) {
+      # The "[]" syntax isn't valid but skip over it and recover
+      if context.eat(.RIGHT_BRACKET) {
+        context.log.syntaxErrorMissingArraySize(context.spanSince(token.range))
+        return true
+      }
+
       variable.arrayCount = pratt.parse(context, .LOWEST)
       if variable.arrayCount == null || !context.expect(.RIGHT_BRACKET) {
         return false
@@ -899,8 +908,18 @@ namespace GLSLX.Parser {
         }
       }
 
+      # Multidimensional arrays are not supported
+      while context.peek(.LEFT_BRACKET) {
+        token = context.next
+        if !context.peek(.RIGHT_BRACKET) && pratt.parse(context, .LOWEST) == null || !context.expect(.RIGHT_BRACKET) {
+          return false
+        }
+        context.log.syntaxErrorMultidimensionalArray(context.spanSince(token.range))
+      }
+
       variable.type = Node.createType(variable.type.resolvedType.arrayType(count)).withRange(variable.type.range)
     }
+
     return true
   }
 
@@ -914,6 +933,11 @@ namespace GLSLX.Parser {
       symbol.flags |= context.flags | flags
       symbol.type = type
 
+      # Array size
+      if !parseArraySize(context, symbol) {
+        return null
+      }
+
       # Initial value
       var assign = context.current.range
       if context.eat(.ASSIGN) {
@@ -925,11 +949,6 @@ namespace GLSLX.Parser {
         assign = null
       }
 
-      # Array size
-      if !parseArraySize(context, symbol) {
-        return null
-      }
-
       # Constants must be resolved immediately
       var variable = Node.createVariable(symbol).withRange(context.spanSince(symbol.range)).withInternalRange(assign)
       if symbol.isConst {
@@ -938,10 +957,9 @@ namespace GLSLX.Parser {
       variables.appendChild(variable)
       tryToDefineUniquelyInScope(context, symbol)
 
+      # Are there more variables in this statement?
       if !context.eat(.COMMA) {
-        if !context.expect(.SEMICOLON) {
-          return null
-        }
+        context.expect(.SEMICOLON)
         return variables
       }
 

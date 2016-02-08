@@ -29,6 +29,7 @@ namespace GLSLX {
     DOT
     HOOK
     NAME
+    PARSE_ERROR
     SEQUENCE
     TYPE
     UNKNOWN_CONSTANT
@@ -655,6 +656,10 @@ namespace GLSLX {
 
     def createName(symbol Symbol) Node {
       return new(.NAME).withSymbol(symbol)
+    }
+
+    def createParseError Node {
+      return new(.PARSE_ERROR).withType(.ERROR)
     }
 
     def createSequence Node {

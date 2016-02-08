@@ -445,7 +445,10 @@ void main() {
   }
 }
 ", "
-<stdin>:9:7: error: Expected SEMICOLON but found IDENTIFIER
+<stdin>:9:6: error: Expected SEMICOLON
+    S y; // The type 'S' is hidden and cannot be used
+     ^
+<stdin>:9:7: error: There is no symbol called \"y\" in the current scope
     S y; // The type 'S' is hidden and cannot be used
       ^
 ")
@@ -557,7 +560,10 @@ void main() {
   int x[2] = int[](1, 2);
 }
 ", "
-<stdin>:2:12: error: Expected SEMICOLON but found ASSIGN
+<stdin>:2:18: error: Unexpected RIGHT_BRACKET
+  int x[2] = int[](1, 2);
+                 ^
+<stdin>:2:12: error: Cannot assign to array type \"int[2]\"
   int x[2] = int[](1, 2);
            ^
 ")
@@ -568,7 +574,10 @@ void main() {
   int x[2] = int[2](1, 2);
 }
 ", "
-<stdin>:2:12: error: Expected SEMICOLON but found ASSIGN
+<stdin>:2:14: error: Unexpected type \"int\"
+  int x[2] = int[2](1, 2);
+             ~~~
+<stdin>:2:12: error: Cannot assign to array type \"int[2]\"
   int x[2] = int[2](1, 2);
            ^
 ")
@@ -583,6 +592,9 @@ void main() {
 <stdin>:3:11: error: Unexpected RIGHT_BRACKET
   x = int[](1, 2);
           ^
+<stdin>:3:5: error: Cannot assign to array type \"int[2]\"
+  x = int[](1, 2);
+    ^
 ")
 
 # Test invalid array syntax
@@ -606,9 +618,119 @@ void main() {
   int x[2][2];
 }
 ", "
-<stdin>:2:11: error: Expected SEMICOLON but found LEFT_BRACKET
+<stdin>:2:11: error: Multidimensional arrays are not a part of the language
   int x[2][2];
+          ~~~
+")
+
+# Test invalid array syntax
+test("
+void main(int x[], int y[]) {
+}
+", "
+<stdin>:1:16: error: All array sizes must be specified
+void main(int x[], int y[]) {
+               ~~
+<stdin>:1:25: error: All array sizes must be specified
+void main(int x[], int y[]) {
+                        ~~
+")
+
+# Test a special case for a void argument list
+test("
+void foo(void) {
+}
+
+void main() {
+  foo();
+}
+", "
+void foo() {
+}
+
+void main() {
+  foo();
+}
+")
+
+# Check that duplicate symbol errors don't halt compilation
+test("
+void main(int x, float x) {
+  x = false;
+  int y = 0;
+  float y = 0;
+  x = !y;
+}
+", "
+<stdin>:1:24: error: There is already a symbol called \"x\" in the current scope
+void main(int x, float x) {
+                       ^
+<stdin>:1:15: note: The previous definition of \"x\" is here
+void main(int x, float x) {
+              ^
+<stdin>:4:9: error: There is already a symbol called \"y\" in the current scope
+  float y = 0;
+        ^
+<stdin>:3:7: note: The previous definition of \"y\" is here
+  int y = 0;
+      ^
+<stdin>:2:7: error: Cannot convert from type \"bool\" to type \"int\"
+  x = false;
+      ~~~~~
+<stdin>:4:13: error: Cannot convert from type \"int\" to type \"float\"
+  float y = 0;
+            ^
+<stdin>:5:7: error: No unary operator \"!\" for type \"int\"
+  x = !y;
+      ^
+")
+
+# Check that missing symbol errors don't halt compilation
+test("
+void main() {
+  foo = bar();
+  bar = foo();
+  return 0;
+}
+", "
+<stdin>:2:3: error: There is no symbol called \"foo\" in the current scope
+  foo = bar();
+  ~~~
+<stdin>:2:9: error: There is no symbol called \"bar\" in the current scope
+  foo = bar();
+        ~~~
+<stdin>:3:3: error: There is no symbol called \"bar\" in the current scope
+  bar = foo();
+  ~~~
+<stdin>:3:9: error: There is no symbol called \"foo\" in the current scope
+  bar = foo();
+        ~~~
+<stdin>:4:10: error: Cannot convert from type \"int\" to type \"void\"
+  return 0;
+         ^
+")
+
+# Recover if a semicolon is omitted in certain places
+test("
+int main() {
+  return 0
+  if (0) {}
+  struct Foo {}
+  if (0) {}
+}
+", "
+<stdin>:2:11: error: Expected SEMICOLON
+  return 0
           ^
+<stdin>:4:16: error: Expected SEMICOLON
+  struct Foo {}
+               ^
+<stdin>:3:7: error: Cannot convert from type \"int\" to type \"bool\"
+  if (0) {}
+      ^
+<stdin>:5:7: error: Cannot convert from type \"int\" to type \"bool\"
+  if (0) {}
+      ^
 ")
 
   }

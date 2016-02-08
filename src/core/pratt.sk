@@ -72,11 +72,12 @@ namespace GLSLX {
       var range = token.range
       var previous = (_index > 0 ? _tokens[_index - 1] : token).range
 
-      # Don't put tokens on the next line in the error message
-      if previous.lineColumn.line == range.lineColumn.line {
-        log.syntaxErrorExpectedToken(range, token.kind, kind)
-      } else {
+      # Put errors about missing semicolons and about tokens on the next line
+      # after the previous token instead of at the next token
+      if kind == .SEMICOLON || previous.lineColumn.line != range.lineColumn.line {
         log.syntaxErrorExpectedToken(previous.rangeAtEnd, kind)
+      } else {
+        log.syntaxErrorExpectedToken(range, token.kind, kind)
       }
 
       return false

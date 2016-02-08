@@ -669,6 +669,10 @@ class GLSLX.Resolver {
     assert(node.kind.isExpression)
 
     while true {
+      if n.resolvedType == .ERROR {
+        break
+      }
+
       switch n.kind {
         case .NAME {
           if n.symbol.isConst {

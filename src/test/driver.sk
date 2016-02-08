@@ -17,7 +17,7 @@ namespace GLSLX.Tests {
           return source.contents
         }))
       }
-      expectString(trimNewlines(_expected), trimNewlines(output))
+      expectString(_expected, trimNewlines(output))
     }
 
     def reset CompilerTest {
@@ -51,6 +51,7 @@ namespace GLSLX.Tests {
 
   class IDETest : Unit.Test {
     var _input string
+    var _expected string
     var _options = CompilerOptions.new
     var _callback fn(IDETest, fn(string, string))
     var _source Source = null
@@ -61,7 +62,7 @@ namespace GLSLX.Tests {
       var log = Log.new
       _source = Source.new("<stdin>", _input)
       _global = Compiler.typeCheck(log, [_source], _options)
-      expectString("", log.toString)
+      expectString(_expected, trimNewlines(log.toString))
       _callback(self, (a, b) => expectString(a, b))
     }
 
@@ -102,11 +103,11 @@ namespace GLSLX.Tests {
   }
 
   def test(input string, expected string) CompilerTest {
-    return CompilerTest.new(trimNewlines(input), expected).reset
+    return CompilerTest.new(trimNewlines(input), trimNewlines(expected)).reset
   }
 
-  def testIDE(input string, callback fn(IDETest, fn(string, string))) IDETest {
-    return IDETest.new(trimNewlines(input), callback)
+  def testIDE(input string, expected string, callback fn(IDETest, fn(string, string))) IDETest {
+    return IDETest.new(trimNewlines(input), trimNewlines(expected), callback)
   }
 
   @entry

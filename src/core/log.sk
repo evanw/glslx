@@ -147,6 +147,14 @@ namespace GLSLX {
       error(range, "Cannot declare an array with a size of \"\(count)\"")
     }
 
+    def syntaxErrorMissingArraySize(range Range) {
+      error(range, "All array sizes must be specified")
+    }
+
+    def syntaxErrorMultidimensionalArray(range Range) {
+      error(range, "Multidimensional arrays are not a part of the language")
+    }
+
     def syntaxErrorInvalidOperator(range Range) {
       error(range, "The operator \"\(range)\" is reserved and cannot be used")
     }

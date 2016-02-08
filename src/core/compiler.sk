@@ -108,9 +108,6 @@ namespace GLSLX.Compiler {
     for source in sources {
       source.tokens = Tokenizer.tokenize(log, source)
     }
-    if log.hasErrors {
-      return null
-    }
 
     var global = Node.createGlobal
     var scope = Scope.new(.GLOBAL, null)
@@ -121,16 +118,11 @@ namespace GLSLX.Compiler {
     for source in sources {
       Parser.parse(log, source.tokens, global, data, scope, resolver)
     }
-    if log.hasErrors {
-      return null
-    }
 
     # Then run type checking
     resolver.resolveGlobal(global)
-    if log.hasErrors {
-      return null
-    }
 
+    # Always return even when there were errors since the partial result is still useful
     return global
   }
 
@@ -144,9 +136,6 @@ namespace GLSLX.Compiler {
     for source in sources {
       source.tokens = Tokenizer.tokenize(log, source)
     }
-    if log.hasErrors {
-      return null
-    }
 
     var global = Node.createGlobal
     var scope = Scope.new(.GLOBAL, null)
@@ -157,12 +146,10 @@ namespace GLSLX.Compiler {
     for source in sources {
       Parser.parse(log, source.tokens, global, data, scope, resolver)
     }
-    if log.hasErrors {
-      return null
-    }
 
     # Then run type checking
     resolver.resolveGlobal(global)
+
     if log.hasErrors {
       return null
     }

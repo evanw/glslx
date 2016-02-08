@@ -6,6 +6,7 @@ testIDE("
 int globalFunction ( int x ) { return x; }
 int globalVariable = 0;
 struct GlobalStruct { int x; };
+", "
 ", (ide, expect) => {
   expect("struct int;", ide.tooltipQuery(0, 0))
   expect("struct int;", ide.tooltipQuery(0, 3))
@@ -49,6 +50,7 @@ struct Foo { int i; vec2 v2; };
 const float foo = (vec2(2, 3) / 2.0).y;
 const vec2 bar = vec2(1, 2) + vec2(3, 4);
 const Foo baz = Foo(7 / 3, 0.25 - vec2(2, 3) / 2.0);
+", "
 ", (ide, expect) => {
   expect("const float foo = 1.5;", ide.tooltipQuery(1, 12))
   expect("const vec2 bar = vec2(4.0, 6.0);", ide.tooltipQuery(2, 11))
@@ -59,6 +61,7 @@ const Foo baz = Foo(7 / 3, 0.25 - vec2(2, 3) / 2.0);
 testIDE("
 const int N = 2;
 int x[N];
+", "
 ", (ide, expect) => {
   expect("struct int;", ide.tooltipQuery(1, 0))
   expect("struct int;", ide.tooltipQuery(1, 3))
@@ -72,8 +75,44 @@ int x[N];
 # Check swizzles
 testIDE("
 ivec3 x = ivec2(1, 2).sst;
+", "
 ", (ide, expect) => {
   expect("ivec3 sst;", ide.tooltipQuery(0, 22))
+})
+
+# Check tooltips in the presence of errors
+testIDE("
+void foo() {
+  bar()
+  baz()
+  int x = 0
+  foo()
+}
+", "
+<stdin>:2:3: error: There is no symbol called \"bar\" in the current scope
+  bar()
+  ~~~
+<stdin>:2:8: error: Expected SEMICOLON
+  bar()
+       ^
+<stdin>:3:3: error: There is no symbol called \"baz\" in the current scope
+  baz()
+  ~~~
+<stdin>:3:8: error: Expected SEMICOLON
+  baz()
+       ^
+<stdin>:4:12: error: Expected SEMICOLON
+  int x = 0
+           ^
+<stdin>:5:8: error: Expected SEMICOLON
+  foo()
+       ^
+", (ide, expect) => {
+  expect("void foo();", ide.tooltipQuery(0, 5))
+  expect("", ide.tooltipQuery(1, 2))
+  expect("", ide.tooltipQuery(2, 2))
+  expect("int x;", ide.tooltipQuery(3, 6))
+  expect("void foo();", ide.tooltipQuery(4, 2))
 })
 
   }
