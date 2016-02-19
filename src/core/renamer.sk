@@ -1,9 +1,6 @@
 namespace GLSLX.Renamer {
   def rename(globals List<Node>, options CompilerOptions) StringMap<string> {
-    if options.renameSymbols != .NONE {
-      return Renamer.new(options.renameSymbols)._rename(globals)
-    }
-    return null
+    return Renamer.new(options.renameSymbols)._rename(globals)
   }
 
   class SymbolInfo {
@@ -51,24 +48,22 @@ class GLSLX.Renamer {
     _aliasArgumentAndLocalVariablesFromDifferentFunctions
 
     # Do the renaming
-    var renaming StringMap<string> = null
+    var renaming StringMap<string> = {}
     var groups = _extractGroups(_namingGroupsUnionFind, null)
     groups.sort((a, b) => _countUses(b) <=> _countUses(a))
     for group in groups {
       var name string = null
       for info in group {
         for symbol in info.symbols.values {
-          if !symbol.isImportedOrExported && (_renameSymbols != .INTERNAL_ONLY || !symbol.isAttributeOrUniform) {
+          var old = symbol.name
+          if !symbol.isImportedOrExported && (_renameSymbols == .ALL || _renameSymbols == .INTERNAL_ONLY && !symbol.isAttributeOrUniform) {
             if name == null {
               name = _generateSymbolName
             }
-            if symbol.isAttributeOrUniform {
-              if renaming == null {
-                renaming = {}
-              }
-              renaming[symbol.name] = name
-            }
             symbol.name = name
+          }
+          if symbol.isAttributeOrUniform {
+            renaming[old] = symbol.name
           }
         }
       }

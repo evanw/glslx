@@ -3,20 +3,29 @@ namespace GLSLX.Tests {
     var _input string
     var _expected string
     var _options = CompilerOptions.new
+    var _outputFormat Box<OutputFormat> = null
 
     over run {
       rename(compactWhitespace(_input))
       var log = Log.new
       var result = Compiler.compile(log, [Source.new("<stdin>", _input)], _options)
       var output = log.toString
-      if result != null && !result.shaders.isEmpty {
-        output = "\n".join(result.shaders.map<string>(source => {
-          if result.shaders.count != 1 {
-            return "[\(source.name)]\n\(source.contents)"
-          }
-          return source.contents
-        }))
+
+      if result != null {
+        if _outputFormat != null {
+          output = result.output(_outputFormat.value)
+        }
+
+        else if !result.shaders.isEmpty {
+          output = "\n".join(result.shaders.map<string>(source => {
+            if result.shaders.count != 1 {
+              return "[\(source.name)]\n\(source.contents)"
+            }
+            return source.contents
+          }))
+        }
       }
+
       expectString(_expected, trimNewlines(output))
     }
 
@@ -45,6 +54,11 @@ namespace GLSLX.Tests {
 
     def trimSymbols CompilerTest {
       _options.trimSymbols = true
+      return self
+    }
+
+    def generateOutput(format OutputFormat) CompilerTest {
+      _outputFormat = Box<OutputFormat>.new(format)
       return self
     }
   }

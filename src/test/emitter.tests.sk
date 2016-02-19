@@ -79,5 +79,111 @@ void main() {
 }
 ")
 
+# Test JSON generation
+test("
+uniform float global;
+varying float internal;
+
+export void foo() { float local = global; gl_FragColor = vec4(local + internal); }
+export void bar() { float local = global; gl_FragColor = vec4(local + internal); }
+", "
+{
+  \"shaders\": [
+    {
+      \"name\": \"foo\",
+      \"contents\": \"uniform float global;varying float internal;void main(){float local=global;gl_FragColor=vec4(local+internal);}\"
+    },
+    {
+      \"name\": \"bar\",
+      \"contents\": \"uniform float global;varying float internal;void main(){float local=global;gl_FragColor=vec4(local+internal);}\"
+    }
+  ],
+  \"renaming\": {
+    \"global\": \"global\"
+  }
+}
+").removeWhitespace.trimSymbols.generateOutput(.JSON)
+
+# Test JSON generation with renaming
+test("
+uniform float global;
+varying float internal;
+
+export void foo() { float local = global; gl_FragColor = vec4(local + internal); }
+export void bar() { float local = global; gl_FragColor = vec4(local + internal); }
+", "
+{
+  \"shaders\": [
+    {
+      \"name\": \"foo\",
+      \"contents\": \"uniform float a;varying float b;void main(){float c=a;gl_FragColor=vec4(c+b);}\"
+    },
+    {
+      \"name\": \"bar\",
+      \"contents\": \"uniform float a;varying float b;void main(){float c=a;gl_FragColor=vec4(c+b);}\"
+    }
+  ],
+  \"renaming\": {
+    \"global\": \"a\"
+  }
+}
+").removeWhitespace.trimSymbols.renameAll.generateOutput(.JSON)
+
+# Test C++ code generation
+test("
+uniform float global;
+varying float internal;
+
+export void foo() { float local = global; gl_FragColor = vec4(local + internal); }
+export void bar() { float local = global; gl_FragColor = vec4(local + internal); }
+", "
+static const char GLSLX_SOURCE_FOO[] = \"uniform float global;varying float internal;void main(){float local=global;gl_FragColor=vec4(local+internal);}\";
+static const char GLSLX_SOURCE_BAR[] = \"uniform float global;varying float internal;void main(){float local=global;gl_FragColor=vec4(local+internal);}\";
+
+static const char GLSLX_NAME_GLOBAL[] = \"global\";
+").removeWhitespace.trimSymbols.generateOutput(.CPP)
+
+# Test C++ code generation with renaming
+test("
+uniform float global;
+varying float internal;
+
+export void foo() { float local = global; gl_FragColor = vec4(local + internal); }
+export void bar() { float local = global; gl_FragColor = vec4(local + internal); }
+", "
+static const char GLSLX_SOURCE_FOO[] = \"uniform float a;varying float b;void main(){float c=a;gl_FragColor=vec4(c+b);}\";
+static const char GLSLX_SOURCE_BAR[] = \"uniform float a;varying float b;void main(){float c=a;gl_FragColor=vec4(c+b);}\";
+
+static const char GLSLX_NAME_GLOBAL[] = \"a\";
+").removeWhitespace.trimSymbols.renameAll.generateOutput(.CPP)
+
+# Test C++ code generation
+test("
+uniform float global;
+varying float internal;
+
+export void foo() { float local = global; gl_FragColor = vec4(local + internal); }
+export void bar() { float local = global; gl_FragColor = vec4(local + internal); }
+", "
+const GLSLX_SOURCE_FOO = \"uniform float global;varying float internal;void main(){float local=global;gl_FragColor=vec4(local+internal);}\"
+const GLSLX_SOURCE_BAR = \"uniform float global;varying float internal;void main(){float local=global;gl_FragColor=vec4(local+internal);}\"
+
+const GLSLX_NAME_GLOBAL = \"global\"
+").removeWhitespace.trimSymbols.generateOutput(.SKEW)
+
+# Test C++ code generation with renaming
+test("
+uniform float global;
+varying float internal;
+
+export void foo() { float local = global; gl_FragColor = vec4(local + internal); }
+export void bar() { float local = global; gl_FragColor = vec4(local + internal); }
+", "
+const GLSLX_SOURCE_FOO = \"uniform float a;varying float b;void main(){float c=a;gl_FragColor=vec4(c+b);}\"
+const GLSLX_SOURCE_BAR = \"uniform float a;varying float b;void main(){float c=a;gl_FragColor=vec4(c+b);}\"
+
+const GLSLX_NAME_GLOBAL = \"a\"
+").removeWhitespace.trimSymbols.renameAll.generateOutput(.SKEW)
+
   }
 }
