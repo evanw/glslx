@@ -138,7 +138,7 @@ namespace GLSLX.Folder {
     var foldedTrue = fold(node.hookTrue)
     var foldedFalse = fold(node.hookFalse)
 
-    if foldedTest.kind == .BOOL && foldedTrue != null && foldedFalse != null {
+    if foldedTest != null && foldedTest.kind == .BOOL && foldedTrue != null && foldedFalse != null {
       return foldedTest.asBool ? foldedTrue : foldedFalse
     }
 

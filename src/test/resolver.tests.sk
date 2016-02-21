@@ -2649,5 +2649,16 @@ void main() {
 }
 ")
 
+# Check for a crash when attempting to fold a non-constant conditional expression
+test("
+export void main(vec4 foo) {
+  foo[foo.x < 1.0 ? 0 : 1];
+}
+", "
+void main(vec4 foo) {
+  foo[foo.x < 1.0 ? 0 : 1];
+}
+")
+
   }
 }
