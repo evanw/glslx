@@ -165,7 +165,7 @@ namespace GLSLX.Folder {
             var swizzleType = Swizzle.type(resolvedType.componentType, count)
             var result = Node.createConstructorCall(swizzleType)
             for i in 0..count {
-              result.appendChild(folded.childAt(1 + set.indexOf(name.get(i))).remove)
+              result.appendChild(folded.childAt(1 + set.indexOf(name.get(i))).clone)
             }
             return result
           }

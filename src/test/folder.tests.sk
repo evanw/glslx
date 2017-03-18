@@ -658,5 +658,20 @@ void main() {
                 ~~~
 ")
 
+# Test swizzle folding
+test("
+const vec4 thing = vec4(1);
+
+export void vertex() {
+  const vec3 thing2 = thing.xyz;
+}
+", "
+const vec4 thing = vec4(1);
+
+void main() {
+  const vec3 thing2 = thing.xyz;
+}
+")
+
   }
 }
