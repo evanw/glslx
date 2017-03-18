@@ -683,5 +683,16 @@ int main() {
 }
 ").compactSyntaxTree.renameAll.trimSymbols
 
+# Test collapsing hook expressions
+test("
+export float main(bool b, float f[2]) {
+  return b ? f[0] : f[1];
+}
+", "
+float main(bool b, float f[2]) {
+  return b ? f[0] : f[1];
+}
+").compactSyntaxTree
+
   }
 }

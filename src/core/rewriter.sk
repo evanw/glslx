@@ -481,8 +481,10 @@ class GLSLX.Rewriter {
           return
         }
 
-        # Special-case binary operators on both branches, likely assignments
-        if yes.kind == no.kind && yes.kind.isBinary && yes.binaryLeft.looksTheSameAs(no.binaryLeft) {
+        # Special-case binary operators on both branches, likely assignments.
+        # Ignore INDEX expressions because GLSL requires the index value to
+        # be a constant expression, and HOOK expressions aren't constant.
+        if yes.kind == no.kind && yes.kind.isBinary && yes.binaryLeft.looksTheSameAs(no.binaryLeft) && yes.kind != .INDEX {
           var common = yes.binaryLeft
           var left = yes.binaryRight
           var right = no.binaryRight
