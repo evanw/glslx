@@ -671,6 +671,47 @@ namespace GLSLX.Parser {
     }
   }
 
+  def parseInclude(context ParserContext, parent Node) bool {
+    # See if there is a string literal
+    var range = context.current.range
+    if !context.expect(.STRING_LITERAL) {
+      return false
+    }
+
+    # Decode the escapes
+    var path string
+    try {
+      path = dynamic.JSON.parse(range.toString)
+    } catch {
+      context.log.syntaxErrorInvalidString(range)
+      return false
+    }
+
+    # Must have access to the file system
+    var fileAccess = context.compilationData.fileAccess
+    if fileAccess == null {
+      context.log.semanticErrorIncludeWithoutFileAccess(range)
+      return false
+    }
+
+    # Must be able to read the file
+    var content = fileAccess(path)
+    if content == null {
+      context.log.semanticErrorIncludeBadPath(range, path)
+      return false
+    }
+
+    # Parse the file and insert it into the parent
+    var tokens = Tokenizer.tokenize(context.log, Source.new(path, content))
+    var nestedContext = ParserContext.new(context.log, tokens, context.compilationData, context.resolver)
+    nestedContext.pushScope(context.scope)
+    if !parseStatements(nestedContext, parent, .GLOBAL) || !nestedContext.expect(.END_OF_FILE) {
+      return false
+    }
+
+    return true
+  }
+
   def parseBlock(context ParserContext) Node {
     var token = context.current
     var block = Node.createBlock
@@ -982,6 +1023,13 @@ namespace GLSLX.Parser {
 
   def parseStatements(context ParserContext, parent Node, mode VariableKind) bool {
     while !context.peek(.END_OF_FILE) && !context.peek(.RIGHT_BRACE) {
+      if context.eat(.INCLUDE) {
+        if !parseInclude(context, parent) {
+          return false
+        }
+        continue
+      }
+
       var statement = parseStatement(context, mode)
       if statement == null {
         return false

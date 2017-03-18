@@ -30,8 +30,6 @@ Usage: glslx [sources] [flags]
   --format=FORMAT
     Set the output format, must be json, c++, or skew. Defaults to json.
 
-
-
 Advanced:
 
   --disable-rewriting
@@ -165,6 +163,7 @@ Advanced:
     if args.disableRewriting { options.compactSyntaxTree = false }
     if args.prettyPrint { options.removeWhitespace = false }
     if args.keepSymbols { options.trimSymbols = false }
+    if args.fileAccess { options.fileAccess = args.fileAccess }
 
     var result = Compiler.compile(log, sources, options)
     return {
@@ -180,6 +179,8 @@ Advanced:
     var log = Log.new
     var options = CompilerOptions.new
     var result = Compiler.typeCheck(log, sources, options)
+
+    if args.fileAccess { options.fileAccess = args.fileAccess }
 
     var handleTooltipQuery = (message dynamic) dynamic => {
       var name string = message.source + ""
@@ -356,6 +357,11 @@ Advanced:
     var outputFormat = OutputFormat.JSON
     var outputPath string = null
     var fs = require("fs")
+
+    options.fileAccess = path => {
+      try { return fs.readFileSync(path, "utf8") }
+      return null
+    }
 
     for arg in args {
       if !arg.startsWith("-") {

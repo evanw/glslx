@@ -733,5 +733,134 @@ int main() {
       ^
 ")
 
+# Check #include without file system access
+test("
+#include \"C:\\\\foo.glslx\"
+", "
+<stdin>:1:10: error: Cannot include files without access to a file system
+#include \"C:\\\\foo.glslx\"
+         ~~~~~~~~~~~~~~~
+")
+
+# Check #include with a bad file name
+test("
+#include \"C:\\\\foo.glslx\"
+", "
+<stdin>:1:10: error: Cannot read the file \"C:\\\\foo.glslx\"
+#include \"C:\\\\foo.glslx\"
+         ~~~~~~~~~~~~~~~
+").fileAccess(path => {
+  assert(path == "C:\\foo.glslx")
+  return null
+})
+
+# Check basic #include usage
+test("
+#include \"C:\\\\foo.glslx\"
+
+vec2 main() {
+  return foo;
+}
+", "
+<stdin>:4:10: error: Cannot convert from type \"int\" to type \"vec2\"
+  return foo;
+         ~~~
+").fileAccess(path => {
+  assert(path == "C:\\foo.glslx")
+  return "int foo;"
+})
+
+# Check errors in #include
+test("
+vec2 foo;
+#include \"C:\\\\foo.glslx\"
+", "
+C:\\foo.glslx:1:5: error: There is already a symbol called \"foo\" in the current scope
+int foo;
+    ~~~
+<stdin>:1:6: note: The previous definition of \"foo\" is here
+vec2 foo;
+     ~~~
+").fileAccess(path => {
+  assert(path == "C:\\foo.glslx")
+  return "int foo;"
+})
+
+# Check nested #include usage
+test("
+#include \"C:\\\\foo.glslx\"
+
+vec2 main() {
+  return foo;
+}
+", "
+<stdin>:4:10: error: Cannot convert from type \"int\" to type \"vec2\"
+  return foo;
+         ~~~
+").fileAccess(path => {
+  if path == "C:\\foo.glslx" {
+    return "#include \"C:\\\\bar.glslx\""
+  }
+
+  assert(path == "C:\\bar.glslx")
+  return "int foo;"
+})
+
+# Check errors in nested #include
+test("
+vec2 foo;
+#include \"C:\\\\foo.glslx\"
+", "
+C:\\bar.glslx:1:5: error: There is already a symbol called \"foo\" in the current scope
+int foo;
+    ~~~
+<stdin>:1:6: note: The previous definition of \"foo\" is here
+vec2 foo;
+     ~~~
+").fileAccess(path => {
+  if path == "C:\\foo.glslx" {
+    return "#include \"C:\\\\bar.glslx\""
+  }
+
+  assert(path == "C:\\bar.glslx")
+  return "int foo;"
+})
+
+# Check that #include works
+test("
+#include \"C:\\\\foo.glslx\"
+
+void main() {
+  _color = color;
+}
+", "
+attribute vec4 color;
+varying vec4 _color;
+
+void main() {
+  _color = color;
+}
+").fileAccess(path => {
+  assert(path == "C:\\foo.glslx")
+  return "
+attribute vec4 color;
+varying vec4 _color;
+"
+})
+
+# Don't allow syntax that spans files
+test("
+#include \"C:\\\\foo.glslx\"
+) {
+}
+", "
+C:\\foo.glslx:1:11: error: Unexpected END_OF_FILE
+void main(
+          ^
+").fileAccess(path => {
+  assert(path == "C:\\foo.glslx")
+  return "void main("
+})
+
   }
 }

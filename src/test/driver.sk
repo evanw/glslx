@@ -57,6 +57,11 @@ namespace GLSLX.Tests {
       return self
     }
 
+    def fileAccess(callback fn(string) string) CompilerTest {
+      _options.fileAccess = callback
+      return self
+    }
+
     def generateOutput(format OutputFormat) CompilerTest {
       _outputFormat = Box<OutputFormat>.new(format)
       return self

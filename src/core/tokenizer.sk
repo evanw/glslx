@@ -104,11 +104,13 @@ namespace GLSLX {
     # Pragmas
     EXTENSION
     VERSION
+    INCLUDE
 
     # Literals
     FLOAT_LITERAL
     IDENTIFIER
     INT_LITERAL
+    STRING_LITERAL
 
     # This is always at the end of the token stream
     END_OF_FILE
@@ -161,7 +163,12 @@ namespace GLSLX.Tokenizer {
 
         # Pragma
         else if c == '#' {
-          tokens.append(Token.new(range, part[1] == 'v' ? .VERSION : .EXTENSION))
+          tokens.append(Token.new(range, part[1] == 'v' ? .VERSION : part[1] == 'e' ? .EXTENSION : .INCLUDE))
+        }
+
+        # String literal
+        else if c == '"' {
+          tokens.append(Token.new(range, .STRING_LITERAL))
         }
 
         # Operator
@@ -209,7 +216,8 @@ namespace GLSLX.Tokenizer {
     "//.*|" + # Single-line comment
     "&&|\\|\\||\\^\\^|\\+\\+|--|<<=?|>>=?|[()[\\]{}\\.,?:;]|[+\\-*/%=!<>&|^~]=?|" + # Operator
     "[A-Za-z_][A-Za-z0-9_]*\\b|" + # Identifier
-    "#(?:version|extension)\\b" + # Pragma
+    "#(?:version|extension|include)\\b|" + # Pragma
+    "\"(?:[^\"\\\\]|\\\\.)*\"" + # String literal
 
     ")"
   )

@@ -77,6 +77,10 @@ namespace GLSLX {
       warning(range, "The extension \"\(name)\" is not in the known list of valid WebGL extensions")
     }
 
+    def syntaxErrorInvalidString(range Range) {
+      error(range, "Invalid string literal")
+    }
+
     def syntaxErrorDisabledExtension(range Range, name string, extension string) {
       error(range, "Cannot use \"\(name)\" from disabled extension \"\(extension)\"")
     }
@@ -128,6 +132,14 @@ namespace GLSLX {
 
     def syntaxErrorOutsideFunction(range Range) {
       error(range, "This statement cannot be used outside a function")
+    }
+
+    def semanticErrorIncludeWithoutFileAccess(range Range) {
+      error(range, "Cannot include files without access to a file system")
+    }
+
+    def semanticErrorIncludeBadPath(range Range, path string) {
+      error(range, "Cannot read the file \(dynamic.JSON.stringify(path))")
     }
 
     def syntaxErrorDifferentReturnType(range Range, name string, type Type, expected Type, previous Range) {

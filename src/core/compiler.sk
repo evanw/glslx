@@ -16,6 +16,7 @@ namespace GLSLX {
     var removeWhitespace = true
     var renameSymbols = RenameSymbols.ALL
     var trimSymbols = true
+    var fileAccess fn(string) string = null
   }
 
   enum ExtensionBehavior {
@@ -28,6 +29,7 @@ namespace GLSLX {
 
   class CompilerData {
     const currentExtensions StringMap<ExtensionBehavior> = {}
+    var fileAccess fn(string) string
     var _nextSymbolID = 0
 
     def nextSymbolID int {
@@ -111,7 +113,7 @@ namespace GLSLX.Compiler {
 
     var global = Node.createGlobal
     var scope = Scope.new(.GLOBAL, null)
-    var data = CompilerData.new
+    var data = CompilerData.new(options.fileAccess)
     var resolver = Resolver.new(log, data)
 
     # Parse everything next
@@ -139,7 +141,7 @@ namespace GLSLX.Compiler {
 
     var global = Node.createGlobal
     var scope = Scope.new(.GLOBAL, null)
-    var data = CompilerData.new
+    var data = CompilerData.new(options.fileAccess)
     var resolver = Resolver.new(log, data)
 
     # Parse everything next
@@ -163,7 +165,7 @@ namespace GLSLX.Compiler {
     for root in _collectAllExportedFunctions(scope) {
       var shaderGlobal = Node.createGlobal
       var shaderScope = Scope.new(.GLOBAL, null)
-      var shaderData = CompilerData.new
+      var shaderData = CompilerData.new(options.fileAccess)
       var shaderLog = Log.new
       var shaderResolver = Resolver.new(shaderLog, shaderData)
 
