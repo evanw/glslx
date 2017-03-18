@@ -152,10 +152,10 @@ class GLSLX.Resolver {
       case .RETURN {
         if node.returnValue != null {
           resolveNode(node.returnValue)
-          checkConversion(node.returnValue, _returnType)
+          checkConversion(node.returnValue, _returnType ?? .ERROR)
         } else {
           node.resolvedType = .VOID
-          checkConversion(node, _returnType)
+          checkConversion(node, _returnType ?? .ERROR)
         }
       }
 

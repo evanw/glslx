@@ -2660,5 +2660,14 @@ void main(vec4 foo) {
 }
 ")
 
+# Check for a crash when attempting to check a return type without a function
+test("
+return 0;
+", "
+<stdin>:1:1: error: This statement cannot be used outside a function
+return 0;
+~~~~~~~~~
+")
+
   }
 }
