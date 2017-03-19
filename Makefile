@@ -10,9 +10,9 @@ release: | node_modules
 	$(BUILD) src/exports/*.sk --output-file=www/glslx.js --release
 
 test: | node_modules
-	$(BUILD) src/test/*.sk --output-file=test.js
+	$(BUILD) src/test/*.sk --output-file=test.js --js-source-map
 	node test.js
-	rm -f test.js
+	rm -f test.js test.js.map
 
 watch-debug:
 	$(WATCH) 'clear && make debug'

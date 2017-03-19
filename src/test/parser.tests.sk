@@ -749,8 +749,9 @@ test("
 <stdin>:1:10: error: Cannot read the file \"C:\\\\foo.glslx\"
 #include \"C:\\\\foo.glslx\"
          ~~~~~~~~~~~~~~~
-").fileAccess(path => {
+").fileAccess((path, relativeTo) => {
   assert(path == "C:\\foo.glslx")
+  assert(relativeTo == "<stdin>")
   return null
 })
 
@@ -765,8 +766,9 @@ vec2 main() {
 <stdin>:4:10: error: Cannot convert from type \"int\" to type \"vec2\"
   return foo;
          ~~~
-").fileAccess(path => {
+").fileAccess((path, relativeTo) => {
   assert(path == "C:\\foo.glslx")
+  assert(relativeTo == "<stdin>")
   return "int foo;"
 })
 
@@ -781,8 +783,9 @@ int foo;
 <stdin>:1:6: note: The previous definition of \"foo\" is here
 vec2 foo;
      ~~~
-").fileAccess(path => {
+").fileAccess((path, relativeTo) => {
   assert(path == "C:\\foo.glslx")
+  assert(relativeTo == "<stdin>")
   return "int foo;"
 })
 
@@ -797,11 +800,13 @@ vec2 main() {
 <stdin>:4:10: error: Cannot convert from type \"int\" to type \"vec2\"
   return foo;
          ~~~
-").fileAccess(path => {
+").fileAccess((path, relativeTo) => {
   if path == "C:\\foo.glslx" {
+    assert(relativeTo == "<stdin>")
     return "#include \"C:\\\\bar.glslx\""
   }
 
+  assert(relativeTo == "C:\\foo.glslx")
   assert(path == "C:\\bar.glslx")
   return "int foo;"
 })
@@ -817,11 +822,13 @@ int foo;
 <stdin>:1:6: note: The previous definition of \"foo\" is here
 vec2 foo;
      ~~~
-").fileAccess(path => {
+").fileAccess((path, relativeTo) => {
   if path == "C:\\foo.glslx" {
+    assert(relativeTo == "<stdin>")
     return "#include \"C:\\\\bar.glslx\""
   }
 
+  assert(relativeTo == "C:\\foo.glslx")
   assert(path == "C:\\bar.glslx")
   return "int foo;"
 })
@@ -840,8 +847,9 @@ varying vec4 _color;
 void main() {
   _color = color;
 }
-").fileAccess(path => {
+").fileAccess((path, relativeTo) => {
   assert(path == "C:\\foo.glslx")
+  assert(relativeTo == "<stdin>")
   return "
 attribute vec4 color;
 varying vec4 _color;
@@ -857,8 +865,9 @@ test("
 C:\\foo.glslx:1:11: error: Unexpected END_OF_FILE
 void main(
           ^
-").fileAccess(path => {
+").fileAccess((path, relativeTo) => {
   assert(path == "C:\\foo.glslx")
+  assert(relativeTo == "<stdin>")
   return "void main("
 })
 

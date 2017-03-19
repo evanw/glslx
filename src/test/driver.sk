@@ -57,7 +57,7 @@ namespace GLSLX.Tests {
       return self
     }
 
-    def fileAccess(callback fn(string) string) CompilerTest {
+    def fileAccess(callback fn(string, string) string) CompilerTest {
       _options.fileAccess = callback
       return self
     }
@@ -131,6 +131,9 @@ namespace GLSLX.Tests {
 
   @entry
   def main int {
+    dynamic.require("source-map-support").install()
+    dynamic.Error.stackTraceLimit = Math.INFINITY
+
     testEmitter
     testFolder
     testMinifier

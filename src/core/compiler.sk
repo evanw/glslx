@@ -16,7 +16,7 @@ namespace GLSLX {
     var removeWhitespace = true
     var renameSymbols = RenameSymbols.ALL
     var trimSymbols = true
-    var fileAccess fn(string) string = null
+    var fileAccess fn(string, string) string = null
   }
 
   enum ExtensionBehavior {
@@ -29,7 +29,7 @@ namespace GLSLX {
 
   class CompilerData {
     const currentExtensions StringMap<ExtensionBehavior> = {}
-    var fileAccess fn(string) string
+    var fileAccess fn(string, string) string
     var _nextSymbolID = 0
 
     def nextSymbolID int {

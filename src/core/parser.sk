@@ -695,7 +695,7 @@ namespace GLSLX.Parser {
     }
 
     # Must be able to read the file
-    var content = fileAccess(path)
+    var content = fileAccess(path, range.source.name)
     if content == null {
       context.log.semanticErrorIncludeBadPath(range, path)
       return false

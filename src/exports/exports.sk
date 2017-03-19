@@ -357,9 +357,10 @@ Advanced:
     var outputFormat = OutputFormat.JSON
     var outputPath string = null
     var fs = require("fs")
+    var path = require("path")
 
-    options.fileAccess = path => {
-      try { return fs.readFileSync(path, "utf8") }
+    options.fileAccess = (filePath, relativeTo) => {
+      try { return fs.readFileSync(path.resolve(relativeTo, filePath), "utf8") }
       return null
     }
 
