@@ -178,9 +178,8 @@ Advanced:
     var sources = sourcesFromInput(input)
     var log = Log.new
     var options = CompilerOptions.new
-    var result = Compiler.typeCheck(log, sources, options)
-
     if args.fileAccess { options.fileAccess = args.fileAccess }
+    var result = Compiler.typeCheck(log, sources, options)
 
     var handleTooltipQuery = (message dynamic) dynamic => {
       var name string = message.source + ""
