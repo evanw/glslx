@@ -163,7 +163,7 @@ Advanced:
     if args.disableRewriting { options.compactSyntaxTree = false }
     if args.prettyPrint { options.removeWhitespace = false }
     if args.keepSymbols { options.trimSymbols = false }
-    if args.fileAccess { options.fileAccess = args.fileAccess }
+    if args.fileAccess { options.fileAccess = wrapFileAccess(args.fileAccess) }
 
     var result = Compiler.compile(log, sources, options)
     return {
@@ -178,7 +178,7 @@ Advanced:
     var sources = sourcesFromInput(input)
     var log = Log.new
     var options = CompilerOptions.new
-    if args.fileAccess { options.fileAccess = args.fileAccess }
+    if args.fileAccess { options.fileAccess = wrapFileAccess(args.fileAccess) }
     var result = Compiler.typeCheck(log, sources, options)
 
     var handleTooltipQuery = (message dynamic) dynamic => {
@@ -349,6 +349,24 @@ Advanced:
     }
   }
 
+  def wrapFileAccess(callback dynamic) fn(string, string) Source {
+    return (filePath, relativeTo) => {
+      var result = callback(filePath, relativeTo)
+      var name = result.name
+      var contents = result.contents
+
+      if result is string {
+        return Source.new(filePath, result)
+      }
+
+      if name is string && contents is string {
+        return Source.new(name, contents)
+      }
+
+      throw dynamic.Error.new("Invalid file access result")
+    }
+  }
+
   def commandLineMain {
     var args List<string> = process.argv.slice(2)
     var options = CompilerOptions.new
@@ -359,13 +377,14 @@ Advanced:
     var path = require("path")
 
     options.fileAccess = (filePath, relativeTo) => {
-      try { return fs.readFileSync(path.resolve(relativeTo, filePath), "utf8") }
+      var name = path.resolve(path.dirname(relativeTo), filePath)
+      try { return Source.new(name, fs.readFileSync(name, "utf8")) }
       return null
     }
 
     for arg in args {
       if !arg.startsWith("-") {
-        sources.append(Source.new(arg, fs.readFileSync(arg, "utf8")))
+        sources.append(Source.new(path.resolve(arg), fs.readFileSync(arg, "utf8")))
         continue
       }
 

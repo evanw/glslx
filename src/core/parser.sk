@@ -695,14 +695,14 @@ namespace GLSLX.Parser {
     }
 
     # Must be able to read the file
-    var content = fileAccess(path, range.source.name)
-    if content == null {
+    var source = fileAccess(path, range.source.name)
+    if source == null {
       context.log.semanticErrorIncludeBadPath(range, path)
       return false
     }
 
     # Parse the file and insert it into the parent
-    var tokens = Tokenizer.tokenize(context.log, Source.new(path, content))
+    var tokens = Tokenizer.tokenize(context.log, source)
     var nestedContext = ParserContext.new(context.log, tokens, context.compilationData, context.resolver)
     nestedContext.pushScope(context.scope)
     if !parseStatements(nestedContext, parent, .GLOBAL) || !nestedContext.expect(.END_OF_FILE) {

@@ -57,7 +57,7 @@ namespace GLSLX.Tests {
       return self
     }
 
-    def fileAccess(callback fn(string, string) string) CompilerTest {
+    def fileAccess(callback fn(string, string) Source) CompilerTest {
       _options.fileAccess = callback
       return self
     }
