@@ -352,12 +352,17 @@ Advanced:
   def wrapFileAccess(callback dynamic) fn(string, string) Source {
     return (filePath, relativeTo) => {
       var result = callback(filePath, relativeTo)
-      var name = result.name
-      var contents = result.contents
 
       if result is string {
         return Source.new(filePath, result)
       }
+
+      if !result {
+        return null
+      }
+
+      var name = result.name
+      var contents = result.contents
 
       if name is string && contents is string {
         return Source.new(name, contents)
