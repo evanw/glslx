@@ -9,6 +9,7 @@
 
 namespace GLSLX.Exports {
   const outputFormats StringMap<OutputFormat> = {
+    "object": .OBJECT,
     "json": .JSON,
     "c++": .CPP,
     "skew": .SKEW,

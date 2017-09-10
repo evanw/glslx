@@ -1,5 +1,6 @@
 namespace GLSLX {
   enum OutputFormat {
+    OBJECT
     JSON
     CPP
     SKEW
@@ -48,14 +49,12 @@ namespace GLSLX {
 
     def output(format OutputFormat) string {
       switch format {
+        case .OBJECT {
+          return toJSON
+        }
+
         case .JSON {
-          return dynamic.JSON.stringify({
-            "shaders": shaders == null ? null : shaders.map<dynamic>(source => ({
-              "name": source.name,
-              "contents": source.contents,
-            })),
-            "renaming": renaming,
-          }, null, 2) + "\n"
+          return dynamic.JSON.stringify(toJSON, null, 2) + "\n"
         }
 
         case .CPP {
@@ -91,6 +90,16 @@ namespace GLSLX {
         }
       }
       return null
+    }
+
+    def toJSON dynamic {
+      return {
+        "shaders": shaders == null ? null : shaders.map<dynamic>(source => ({
+          "name": source.name,
+          "contents": source.contents,
+        })),
+        "renaming": renaming
+      }
     }
 
     def _transformName(name string) string {
