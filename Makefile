@@ -23,9 +23,11 @@ watch-release:
 watch-test:
 	$(WATCH) 'clear && make test'
 
-publish: test release
+package: test release
 	rm -f npm/index.js
 	cp www/glslx.js npm/index.js
+
+publish: package
 	sh -c 'cd npm && npm version patch && npm publish'
 
 node_modules:
