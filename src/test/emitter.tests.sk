@@ -137,10 +137,15 @@ varying float internal;
 export void foo() { float local = global; gl_FragColor = vec4(local + internal); }
 export void bar() { float local = global; gl_FragColor = vec4(local + internal); }
 ", "
-static const char GLSLX_SOURCE_FOO[] = \"uniform float global;varying float internal;void main(){float local=global;gl_FragColor=vec4(local+internal);}\";
-static const char GLSLX_SOURCE_BAR[] = \"uniform float global;varying float internal;void main(){float local=global;gl_FragColor=vec4(local+internal);}\";
+#ifndef GLSLX_STRINGS_H
+#define GLSLX_STRINGS_H
 
-static const char GLSLX_NAME_GLOBAL[] = \"global\";
+static const char *GLSLX_SOURCE_FOO = \"uniform float global;varying float internal;void main(){float local=global;gl_FragColor=vec4(local+internal);}\";
+static const char *GLSLX_SOURCE_BAR = \"uniform float global;varying float internal;void main(){float local=global;gl_FragColor=vec4(local+internal);}\";
+
+static const char *GLSLX_NAME_GLOBAL = \"global\";
+
+#endif
 ").removeWhitespace.trimSymbols.generateOutput(.CPP)
 
 # Test C++ code generation with renaming
@@ -151,10 +156,15 @@ varying float internal;
 export void foo() { float local = global; gl_FragColor = vec4(local + internal); }
 export void bar() { float local = global; gl_FragColor = vec4(local + internal); }
 ", "
-static const char GLSLX_SOURCE_FOO[] = \"uniform float a;varying float b;void main(){float c=a;gl_FragColor=vec4(c+b);}\";
-static const char GLSLX_SOURCE_BAR[] = \"uniform float a;varying float b;void main(){float c=a;gl_FragColor=vec4(c+b);}\";
+#ifndef GLSLX_STRINGS_H
+#define GLSLX_STRINGS_H
 
-static const char GLSLX_NAME_GLOBAL[] = \"a\";
+static const char *GLSLX_SOURCE_FOO = \"uniform float a;varying float b;void main(){float c=a;gl_FragColor=vec4(c+b);}\";
+static const char *GLSLX_SOURCE_BAR = \"uniform float a;varying float b;void main(){float c=a;gl_FragColor=vec4(c+b);}\";
+
+static const char *GLSLX_NAME_GLOBAL = \"a\";
+
+#endif
 ").removeWhitespace.trimSymbols.renameAll.generateOutput(.CPP)
 
 # Test C++ code generation

@@ -60,16 +60,21 @@ namespace GLSLX {
 
         case .CPP {
           if shaders != null {
-          var code = ""
+            var code = ""
+            code += "#ifndef GLSLX_STRINGS_H\n"
+            code += "#define GLSLX_STRINGS_H\n"
+            code += "\n"
             for shader in shaders {
-              code += "static const char GLSLX_SOURCE_\(_transformName(shader.name))[] = \(dynamic.JSON.stringify(shader.contents));\n"
+              code += "static const char *GLSLX_SOURCE_\(_transformName(shader.name)) = \(dynamic.JSON.stringify(shader.contents));\n"
             }
+            code += "\n"
             if renaming != null {
-              code += "\n"
               for name in renaming.keys {
-                code += "static const char GLSLX_NAME_\(_transformName(name))[] = \(dynamic.JSON.stringify(renaming[name]));\n"
+                code += "static const char *GLSLX_NAME_\(_transformName(name)) = \(dynamic.JSON.stringify(renaming[name]));\n"
               }
+              code += "\n"
             }
+            code += "#endif\n"
             return code
           }
         }
