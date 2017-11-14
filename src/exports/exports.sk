@@ -9,6 +9,7 @@
 
 namespace GLSLX.Exports {
   const outputFormats StringMap<OutputFormat> = {
+    "object": .OBJECT,
     "json": .JSON,
     "c++": .CPP,
     "skew": .SKEW,
@@ -473,8 +474,6 @@ Advanced:
     root.compileIDE = compileIDE
 
     # Also include a small command-line utility for when this is run in node
-    if dynamic.typeof(require) != "undefined" && dynamic.typeof(module) != "undefined" && require.main == module {
-      commandLineMain
-    }
+    root.cli = => commandLineMain
   }
 }

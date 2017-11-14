@@ -1,5 +1,6 @@
 namespace GLSLX {
   enum OutputFormat {
+    OBJECT
     JSON
     CPP
     SKEW
@@ -45,17 +46,17 @@ namespace GLSLX {
   class CompilerResult {
     const shaders List<Source>
     const renaming StringMap<string>
+    const uniforms StringMap<StringMap<string>>
+    const attributes StringMap<StringMap<string>>
 
     def output(format OutputFormat) string {
       switch format {
+        case .OBJECT {
+          return toJSON
+        }
+
         case .JSON {
-          return dynamic.JSON.stringify({
-            "shaders": shaders == null ? null : shaders.map<dynamic>(source => ({
-              "name": source.name,
-              "contents": source.contents,
-            })),
-            "renaming": renaming,
-          }, null, 2) + "\n"
+          return dynamic.JSON.stringify(toJSON, null, 2) + "\n"
         }
 
         case .CPP {
@@ -96,6 +97,18 @@ namespace GLSLX {
         }
       }
       return null
+    }
+
+    def toJSON dynamic {
+      return {
+        "shaders": shaders == null ? null : shaders.map<dynamic>(source => ({
+          "name": source.name,
+          "contents": source.contents,
+          "attributes": source.name in attributes ? attributes[source.name] : StringMap<string>.new,
+          "uniforms": source.name in uniforms ? uniforms[source.name] : StringMap<string>.new,
+        })),
+        "renaming": renaming
+      }
     }
 
     def _transformName(name string) string {
@@ -167,6 +180,9 @@ namespace GLSLX.Compiler {
     # per shader.
     var names List<string> = []
     var globals List<Node> = []
+    const uniforms = StringMap<StringMap<string>>.new
+    const attributes = StringMap<StringMap<string>>.new
+
     for root in _collectAllExportedFunctions(scope) {
       var shaderGlobal = Node.createGlobal
       var shaderScope = Scope.new(.GLOBAL, null)
@@ -187,6 +203,40 @@ namespace GLSLX.Compiler {
       Rewriter.rewrite(shaderGlobal, shaderData, options)
       globals.append(shaderGlobal)
       names.append(root.name)
+
+      for i in 0..shaderGlobal.childCount {
+        const child = shaderGlobal.childAt(i)
+
+        if child.kind != .VARIABLES {
+          continue
+        }
+
+        const node = child.childAt(0)
+        const variableType = node.resolvedType.symbol.name
+
+        if variableType == "<error>" {
+          continue
+        }
+
+        for variableIndex in 1..child.childCount {
+          const symbol = child.childAt(variableIndex).symbol
+
+          if symbol.isAttribute {
+            if !(root.name in attributes) {
+              attributes[root.name] = StringMap<string>.new
+            }
+
+            attributes[root.name][symbol.name] = variableType
+          }
+          else if symbol.isUniform {
+            if !(root.name in uniforms) {
+              uniforms[root.name] = StringMap<string>.new
+            }
+            
+            uniforms[root.name][symbol.name] = variableType
+          }
+        }
+      }
     }
 
     # Rename everything together
@@ -195,7 +245,7 @@ namespace GLSLX.Compiler {
     for i in 0..names.count {
       shaders.append(Source.new(names[i], Emitter.emit(globals[i], options)))
     }
-    return CompilerResult.new(shaders, renaming)
+    return CompilerResult.new(shaders, renaming, uniforms, attributes)
   }
 
   def _collectAllExportedFunctions(scope Scope) List<FunctionSymbol> {

@@ -7,6 +7,6 @@
   "bin": {
     "glslx": "glslx"
   },
-  "main": "glslx",
+  "main": "index.js",
   "author": "Evan Wallace"
 }

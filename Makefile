@@ -23,11 +23,11 @@ watch-release:
 watch-test:
 	$(WATCH) 'clear && make test'
 
-publish: test release
-	rm -f npm/glslx
-	echo '#!/usr/bin/env node' > npm/glslx
-	cat www/glslx.js >> npm/glslx
-	chmod +x npm/glslx
+package: test release
+	rm -f npm/index.js
+	cp www/glslx.js npm/index.js
+
+publish: package
 	sh -c 'cd npm && npm version patch && npm publish'
 
 node_modules:
