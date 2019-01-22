@@ -167,7 +167,7 @@ static const char *GLSLX_NAME_GLOBAL = \"a\";
 #endif
 ").removeWhitespace.trimSymbols.renameAll.generateOutput(.CPP)
 
-# Test C++ code generation
+# Test Skew code generation
 test("
 uniform float global;
 varying float internal;
@@ -181,7 +181,7 @@ const GLSLX_SOURCE_BAR = \"uniform float global;varying float internal;void main
 const GLSLX_NAME_GLOBAL = \"global\"
 ").removeWhitespace.trimSymbols.generateOutput(.SKEW)
 
-# Test C++ code generation with renaming
+# Test Skew code generation with renaming
 test("
 uniform float global;
 varying float internal;
@@ -195,5 +195,33 @@ const GLSLX_SOURCE_BAR = \"uniform float a;varying float b;void main(){float c=a
 const GLSLX_NAME_GLOBAL = \"a\"
 ").removeWhitespace.trimSymbols.renameAll.generateOutput(.SKEW)
 
+# Test Rust code generation
+test("
+uniform float global;
+varying float internal;
+
+export void foo() { float local = global; gl_FragColor = vec4(local + internal); }
+export void bar() { float local = global; gl_FragColor = vec4(local + internal); }
+", "
+pub static GLSLX_SOURCE_FOO: &str = \"uniform float global;varying float internal;void main(){float local=global;gl_FragColor=vec4(local+internal);}\";
+pub static GLSLX_SOURCE_BAR: &str = \"uniform float global;varying float internal;void main(){float local=global;gl_FragColor=vec4(local+internal);}\";
+
+pub static GLSLX_NAME_GLOBAL: &str = \"global\";
+").removeWhitespace.trimSymbols.generateOutput(.RUST)
+
+# Test Rust code generation with renaming
+test("
+uniform float global;
+varying float internal;
+
+export void foo() { float local = global; gl_FragColor = vec4(local + internal); }
+export void bar() { float local = global; gl_FragColor = vec4(local + internal); }
+", "
+pub static GLSLX_SOURCE_FOO: &str = \"uniform float a;varying float b;void main(){float c=a;gl_FragColor=vec4(c+b);}\";
+pub static GLSLX_SOURCE_BAR: &str = \"uniform float a;varying float b;void main(){float c=a;gl_FragColor=vec4(c+b);}\";
+
+pub static GLSLX_NAME_GLOBAL: &str = \"a\";
+
+").removeWhitespace.trimSymbols.renameAll.generateOutput(.RUST)
   }
 }

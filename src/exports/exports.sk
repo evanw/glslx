@@ -12,6 +12,7 @@ namespace GLSLX.Exports {
     "json": .JSON,
     "c++": .CPP,
     "skew": .SKEW,
+    "rust": .RUST,
   }
 
   const renameSymbols StringMap<RenameSymbols> = {
@@ -28,7 +29,7 @@ Usage: glslx [sources] [flags]
     Set the path to the output file. Defaults to standard out.
 
   --format=FORMAT
-    Set the output format, must be json, c++, or skew. Defaults to json.
+    Set the output format, must be json, c++, skew or rust. Defaults to json.
 
 Advanced:
 
