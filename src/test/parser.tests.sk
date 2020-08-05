@@ -907,5 +907,27 @@ void main(
   return Source.new(path, "void main(")
 })
 
+# Don't allow #include inside functions
+test("
+void main() {
+  #include \"foo.glslx\"
+}
+", "
+<stdin>:2:3: error: \"#include\" statements cannot be used here
+  #include \"foo.glslx\"
+  ~~~~~~~~
+")
+
+# Don't allow #include inside functions
+test("
+struct Foo {
+  #include \"foo.glslx\"
+};
+", "
+<stdin>:2:3: error: Unexpected INCLUDE
+  #include \"foo.glslx\"
+  ~~~~~~~~
+")
+
   }
 }

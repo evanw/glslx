@@ -1029,7 +1029,13 @@ namespace GLSLX.Parser {
 
   def parseStatements(context ParserContext, parent Node, mode VariableKind) bool {
     while !context.peek(.END_OF_FILE) && !context.peek(.RIGHT_BRACE) {
+      var includeRange = context.current.range
       if context.eat(.INCLUDE) {
+        if mode != .GLOBAL {
+          context.log.syntaxErrorIncludeOutsideGlobal(includeRange)
+          context.eat(.STRING_LITERAL)
+          return false
+        }
         if !parseInclude(context, parent) {
           return false
         }

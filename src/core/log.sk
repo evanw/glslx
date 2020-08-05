@@ -134,6 +134,10 @@ namespace GLSLX {
       error(range, "This statement cannot be used outside a function")
     }
 
+    def syntaxErrorIncludeOutsideGlobal(range Range) {
+      error(range, "\"#include\" statements cannot be used here")
+    }
+
     def semanticErrorIncludeWithoutFileAccess(range Range) {
       error(range, "Cannot include files without access to a file system")
     }
