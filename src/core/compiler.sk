@@ -3,6 +3,7 @@ namespace GLSLX {
     JSON
     CPP
     SKEW
+    RUST
   }
 
   enum RenameSymbols {
@@ -81,7 +82,7 @@ namespace GLSLX {
 
         case .SKEW {
           if shaders != null {
-          var code = ""
+            var code = ""
             for shader in shaders {
               code += "const GLSLX_SOURCE_\(_transformName(shader.name)) = \(dynamic.JSON.stringify(shader.contents))\n"
             }
@@ -89,6 +90,22 @@ namespace GLSLX {
               code += "\n"
               for name in renaming.keys {
                 code += "const GLSLX_NAME_\(_transformName(name)) = \(dynamic.JSON.stringify(renaming[name]))\n"
+              }
+            }
+            return code
+          }
+        }
+
+        case .RUST {
+          if shaders != null {
+            var code = ""
+            for shader in shaders {
+              code += "pub static GLSLX_SOURCE_\(_transformName(shader.name)): &str = \(dynamic.JSON.stringify(shader.contents));\n"
+            }
+            if renaming != null {
+              code += "\n"
+              for name in renaming.keys {
+                code += "pub static GLSLX_NAME_\(_transformName(name)): &str = \(dynamic.JSON.stringify(renaming[name]));\n"
               }
             }
             return code

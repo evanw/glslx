@@ -133,6 +133,7 @@ export void textureFragment() {
         <label><input id="formatJSON" type="radio" name="format" checked> JSON</label> &nbsp;
         <label><input id="formatCPP" type="radio" name="format"> C++</label> &nbsp;
         <label><input id="formatSkew" type="radio" name="format"> Skew</label> &nbsp;
+        <label><input id="formatRust" type="radio" name="format"> Rust</label> &nbsp;
       </p>
     </div>
   </div>
@@ -238,6 +239,7 @@ import {
   format('formatJSON', 'json');
   format('formatCPP', 'c++');
   format('formatSkew', 'skew');
+  format('formatRust', 'rust');
 
   function example(id, content) {
     document.getElementById(id).onclick = function() {
