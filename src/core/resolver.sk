@@ -129,7 +129,7 @@ class GLSLX.Resolver {
           _resolveBlockOrStatement(symbol.block)
 
           # Missing a return statement is an error
-          if _returnType != .VOID && symbol.block.hasControlFlowAtEnd {
+          if _returnType != null && _returnType != .VOID && symbol.block.hasControlFlowAtEnd {
             _log.semanticErrorMissingReturn(symbol.range, symbol.name, _returnType)
           }
 

@@ -453,6 +453,18 @@ void main() {
       ^
 ")
 
+# Nested functions are not allowed
+test("
+void main() {
+  void foo() {}
+  foo();
+}
+", "
+<stdin>:2:3: error: This statement cannot be used inside a function
+  void foo() {}
+  ~~~~~~~~~~~~~
+")
+
 # Nested struct definitions must be different types
 test("
 void main() {
