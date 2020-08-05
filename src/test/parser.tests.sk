@@ -856,6 +856,30 @@ varying vec4 _color;
 ")
 })
 
+# Don't include the same file multiple times
+test("
+#include \"C:\\\\foo.glslx\"
+#include \"C:\\\\foo.glslx\"
+
+void main() {
+  _color = color;
+}
+", "
+attribute vec4 color;
+varying vec4 _color;
+
+void main() {
+  _color = color;
+}
+").fileAccess((path, relativeTo) => {
+  assert(path == "C:\\foo.glslx")
+  assert(relativeTo == "<stdin>")
+  return Source.new(path, "
+attribute vec4 color;
+varying vec4 _color;
+")
+})
+
 # Don't allow syntax that spans files
 test("
 #include \"C:\\\\foo.glslx\"

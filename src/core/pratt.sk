@@ -25,6 +25,7 @@ namespace GLSLX {
     const _tokens List<Token>
     const compilationData CompilerData
     const resolver Resolver
+    const processedIncludes StringMap<bool>
     var flags SymbolFlags = 0
     var _index = 0
     var _scope Scope = null
