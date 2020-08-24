@@ -130,7 +130,11 @@ namespace GLSLX {
   class VariableSymbol : Symbol {
     var kind VariableKind
     var type Node = null
-    var value Node = null
+    var node Node = null
     var arrayCount Node = null
+
+    def value Node {
+      return node?.variableInitializer
+    }
   }
 }

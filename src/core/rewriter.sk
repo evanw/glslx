@@ -170,6 +170,8 @@ class GLSLX.Rewriter {
           var parentKind = node.parent.kind
           if parentKind == .BLOCK || parentKind == .GLOBAL || parentKind == .STRUCT {
             node.remove
+          } else if parentKind == .FOR {
+            node.become(Node.createSequence)
           } else {
             node.become(Node.createBlock)
           }

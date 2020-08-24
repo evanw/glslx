@@ -539,8 +539,8 @@ namespace GLSLX {
       return new(.STRUCT_BLOCK)
     }
 
-    def createVariable(symbol VariableSymbol) Node {
-      return new(.VARIABLE).withSymbol(symbol)
+    def createVariable(symbol VariableSymbol, value Node) Node {
+      return new(.VARIABLE).withSymbol(symbol).appendChild(value)
     }
 
     def createBlock Node {
@@ -700,8 +700,8 @@ namespace GLSLX {
   class Node {
     def variableInitializer Node {
       assert(kind == .VARIABLE)
-      assert(!hasChildren)
-      return symbol.asVariable.value
+      assert(childCount <= 1)
+      return _firstChild
     }
 
     def doWhileBody Node {

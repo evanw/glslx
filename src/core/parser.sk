@@ -987,9 +987,10 @@ namespace GLSLX.Parser {
 
       # Initial value
       var assign = context.current.range
+      var value Node
       if context.eat(.ASSIGN) {
-        symbol.value = pratt.parse(context, .COMMA)
-        if symbol.value == null {
+        value = pratt.parse(context, .COMMA)
+        if value == null {
           return null
         }
       } else {
@@ -997,7 +998,8 @@ namespace GLSLX.Parser {
       }
 
       # Constants must be resolved immediately
-      var variable = Node.createVariable(symbol).withRange(context.spanSince(symbol.range)).withInternalRange(assign)
+      var variable = Node.createVariable(symbol, value).withRange(context.spanSince(symbol.range)).withInternalRange(assign)
+      symbol.node = variable
       if symbol.isConst {
         context.resolver.resolveNode(variable)
       }

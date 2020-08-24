@@ -694,5 +694,32 @@ float main(bool b, float f[2]) {
 }
 ").compactSyntaxTree
 
+# Test inlining constants into variable definitions
+test("
+export int main() {
+  int a = 1;
+  int b = a;
+  return b;
+}
+", "
+int main() {
+  return 1;
+}
+").trimSymbols
+
+# Test removing for loop initializers
+test("
+export void main() {
+  int i = 0;
+  for (int n = 1; i < n; i++) {
+  }
+}
+", "
+void main() {
+  int i = 0;
+  for (; i < 1; i++) ;
+}
+").trimSymbols
+
   }
 }
