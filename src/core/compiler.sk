@@ -50,12 +50,14 @@ namespace GLSLX {
     def output(format OutputFormat) string {
       switch format {
         case .JSON {
+          var map dynamic = {}
+          renaming.keys.each(key => map[key] = renaming[key])
           return dynamic.JSON.stringify({
             "shaders": shaders == null ? null : shaders.map<dynamic>(source => ({
               "name": source.name,
               "contents": source.contents,
             })),
-            "renaming": renaming,
+            "renaming": map,
           }, null, 2) + "\n"
         }
 

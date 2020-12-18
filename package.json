@@ -3,7 +3,7 @@
     "test": "make test"
   },
   "dependencies": {
-    "skew": "0.7.22"
+    "skew": "0.9.19"
   },
   "devDependencies": {
     "fast-watch": "1.0.0",
