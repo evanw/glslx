@@ -158,8 +158,8 @@ namespace Unit {
 
   namespace TerminalReport {
     def _printDiff(indent string, expected List<string>, observed List<string>) {
-      var m = expected.count
-      var n = observed.count
+      var m = observed.count
+      var n = expected.count
       var matrix List<int> = []
 
       # Solve for the lowest common subsequence length
@@ -167,7 +167,7 @@ namespace Unit {
         var ij = 0
         for i in 0..m {
           for j in 0..n {
-            matrix.append(expected[i] == observed[j]
+            matrix.append(observed[i] == expected[j]
               ? i > 0 && j > 0 ? matrix[ij - n - 1] + 1 : 1
               : Math.max(i > 0 ? matrix[ij - n] : 0, j > 0 ? matrix[ij - 1] : 0))
             ij++
@@ -184,22 +184,22 @@ namespace Unit {
           var ij = i * n + j
 
           # Common
-          if i >= 0 && j >= 0 && expected[i] == observed[j] {
-            reversed.append(" " + expected[i])
+          if i >= 0 && j >= 0 && observed[i] == expected[j] {
+            reversed.append(" " + observed[i])
             i--
             j--
           }
 
           # Removal
           else if j >= 0 && (i < 0 || (j > 0 ? matrix[ij - 1] : 0) > (i > 0 ? matrix[ij - n] : 0)) {
-            reversed.append("-" + observed[j])
+            reversed.append("-" + expected[j])
             j--
           }
 
           # Insertion
           else {
             assert(i >= 0 && (j < 0 || (j > 0 ? matrix[ij - 1] : 0) <= (i > 0 ? matrix[ij - n] : 0)))
-            reversed.append("+" + expected[i])
+            reversed.append("+" + observed[i])
             i--
           }
         }
