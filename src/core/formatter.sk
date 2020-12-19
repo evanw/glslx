@@ -212,10 +212,8 @@ namespace GLSLX.Formatter {
         while consumeIf(kind => !isStatementEnd(kind, isFirst)) {
           isFirst = false
         }
+        consumeIf(kind => kind == .SEMICOLON)
         nesting--
-        if !consumeIf(kind => kind == .SEMICOLON) {
-          return
-        }
       }
     }
 
@@ -252,8 +250,16 @@ namespace GLSLX.Formatter {
 
         case .ELSE {
           consumeIf(kind => true)
-          if consumeIf(kind => kind == .IF) {
+          if tokens[tokenIndex].kind == .IF {
+            var isOnNewLine = hasNewlineBefore(tokenIndex)
+            if isOnNewLine {
+              nesting++
+            }
+            consumeIf(kind => true)
             handleBranch()
+            if isOnNewLine {
+              nesting--
+            }
           } else {
             handleBody()
           }
