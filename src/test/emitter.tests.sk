@@ -181,6 +181,20 @@ const GLSLX_SOURCE_BAR = \"uniform float global;varying float internal;void main
 const GLSLX_NAME_GLOBAL = \"global\"
 ").removeWhitespace.trimSymbols.generateOutput(.SKEW)
 
+# Test JavaScript code generation with renaming
+test("
+uniform float global;
+varying float internal;
+
+export void foo() { float local = global; gl_FragColor = vec4(local + internal); }
+export void bar() { float local = global; gl_FragColor = vec4(local + internal); }
+", "
+export const GLSLX_SOURCE_FOO = \"uniform float a;varying float b;void main(){float c=a;gl_FragColor=vec4(c+b);}\"
+export const GLSLX_SOURCE_BAR = \"uniform float a;varying float b;void main(){float c=a;gl_FragColor=vec4(c+b);}\"
+
+export const GLSLX_NAME_GLOBAL = \"a\"
+").removeWhitespace.trimSymbols.renameAll.generateOutput(.JS)
+
 # Test Skew code generation with renaming
 test("
 uniform float global;

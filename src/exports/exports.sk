@@ -10,6 +10,7 @@
 namespace GLSLX.Exports {
   const outputFormats StringMap<OutputFormat> = {
     "json": .JSON,
+    "js": .JS,
     "c++": .CPP,
     "skew": .SKEW,
     "rust": .RUST,
@@ -29,7 +30,7 @@ Usage: glslx [sources] [flags]
     Set the path to the output file. Defaults to standard out.
 
   --format=FORMAT
-    Set the output format, must be json, c++, skew or rust. Defaults to json.
+    Set the output format, must be json, js, c++, skew or rust. Defaults to json.
 
 Advanced:
 
@@ -85,14 +86,14 @@ Advanced:
       }
       if diagnostic.range != null {
         var formatted = diagnostic.range.format(terminalWidth)
-        Terminal.print(formatted.line)
+        printWithColor(.GRAY, formatted.line + "\n")
         printWithColor(.GREEN, formatted.range + "\n")
       }
       if diagnostic.noteRange != null {
         printWithColor(.BOLD, diagnostic.noteRange.locationString + ": ")
         printNote(diagnostic.noteText)
         var formatted = diagnostic.noteRange.format(terminalWidth)
-        Terminal.print(formatted.line)
+        printWithColor(.GRAY, formatted.line + "\n")
         printWithColor(.GREEN, formatted.range + "\n")
       }
     }

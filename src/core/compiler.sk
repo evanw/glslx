@@ -1,6 +1,7 @@
 namespace GLSLX {
   enum OutputFormat {
     JSON
+    JS
     CPP
     SKEW
     RUST
@@ -61,6 +62,22 @@ namespace GLSLX {
           }, null, 2) + "\n"
         }
 
+        case .JS {
+          if shaders != null {
+            var code = ""
+            for shader in shaders {
+              code += "export const GLSLX_SOURCE_\(_transformName(shader.name)) = \(dynamic.JSON.stringify(shader.contents))\n"
+            }
+            if renaming != null && !renaming.keys.isEmpty {
+              code += "\n"
+              for name in renaming.keys {
+                code += "export const GLSLX_NAME_\(_transformName(name)) = \(dynamic.JSON.stringify(renaming[name]))\n"
+              }
+            }
+            return code
+          }
+        }
+
         case .CPP {
           if shaders != null {
             var code = ""
@@ -88,7 +105,7 @@ namespace GLSLX {
             for shader in shaders {
               code += "const GLSLX_SOURCE_\(_transformName(shader.name)) = \(dynamic.JSON.stringify(shader.contents))\n"
             }
-            if renaming != null {
+            if renaming != null && !renaming.keys.isEmpty {
               code += "\n"
               for name in renaming.keys {
                 code += "const GLSLX_NAME_\(_transformName(name)) = \(dynamic.JSON.stringify(renaming[name]))\n"
@@ -104,7 +121,7 @@ namespace GLSLX {
             for shader in shaders {
               code += "pub static GLSLX_SOURCE_\(_transformName(shader.name)): &str = \(dynamic.JSON.stringify(shader.contents));\n"
             }
-            if renaming != null {
+            if renaming != null && !renaming.keys.isEmpty {
               code += "\n"
               for name in renaming.keys {
                 code += "pub static GLSLX_NAME_\(_transformName(name)): &str = \(dynamic.JSON.stringify(renaming[name]));\n"
