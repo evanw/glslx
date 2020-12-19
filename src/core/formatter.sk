@@ -238,6 +238,10 @@ namespace GLSLX.Formatter {
     }
 
     handleStatement = () => {
+      # Comments don't count as a statement
+      while consumeIf(kind => kind == .SINGLE_LINE_COMMENT || kind == .MULTI_LINE_COMMENT) {
+      }
+
       switch tokens[tokenIndex].kind {
         case .END_OF_FILE, .RIGHT_BRACE {
           return false
@@ -247,7 +251,19 @@ namespace GLSLX.Formatter {
           consumeIf(kind => true)
         }
 
-        case .IF, .FOR, .WHILE {
+        case .IF {
+          consumeIf(kind => true)
+          if handleBranch() {
+            handleBody()
+          }
+
+          # Consume an "else" after the if so it gets this statement's indentation level
+          if tokens[tokenIndex].kind == .ELSE {
+            handleStatement()
+          }
+        }
+
+        case .FOR, .WHILE {
           consumeIf(kind => true)
           if handleBranch() {
             handleBody()
@@ -282,7 +298,7 @@ namespace GLSLX.Formatter {
           }
         }
 
-        case .LEFT_BRACE, .SEMICOLON, .SINGLE_LINE_COMMENT, .MULTI_LINE_COMMENT {
+        case .LEFT_BRACE, .SEMICOLON {
           consumeIf(kind => true)
         }
 
