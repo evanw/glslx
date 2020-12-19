@@ -1,5 +1,8 @@
 namespace GLSLX {
   enum TokenKind {
+    SINGLE_LINE_COMMENT
+    MULTI_LINE_COMMENT
+
     # Standard keywords
     ATTRIBUTE
     BOOL
@@ -105,6 +108,7 @@ namespace GLSLX {
     EXTENSION
     VERSION
     INCLUDE
+    PRAGMA
 
     # Literals
     FLOAT_LITERAL
@@ -114,6 +118,23 @@ namespace GLSLX {
 
     # This is always at the end of the token stream
     END_OF_FILE
+
+    def isBinaryOperator bool {
+      return self >= TokenKind.BITWISE_AND && self <= TokenKind.ASSIGN_SUBTRACT
+    }
+
+    def isIdentifierOrType bool {
+      switch self {
+        case .IDENTIFIER, .VOID,
+          .FLOAT, .VEC2, .VEC3, .VEC4,
+          .INT, .IVEC2, .IVEC3, .IVEC4,
+          .BOOL, .BVEC2, .BVEC3, .BVEC4,
+          .MAT2, .MAT3, .MAT4 {
+          return true
+        }
+      }
+      return false
+    }
   }
 
   namespace TokenKind {
@@ -130,7 +151,12 @@ namespace GLSLX {
 }
 
 namespace GLSLX.Tokenizer {
-  def tokenize(log Log, source Source) List<Token> {
+  enum TokenPurpose {
+    COMPILE
+    FORMAT
+  }
+
+  def tokenize(log Log, source Source, purpose TokenPurpose) List<Token> {
     var parts List<string> = (source.contents as dynamic).split(_tokenRegex)
     var tokens List<Token> = []
     var start = 0
@@ -163,7 +189,13 @@ namespace GLSLX.Tokenizer {
 
         # Pragma
         else if c == '#' {
-          tokens.append(Token.new(range, part[1] == 'v' ? .VERSION : part[1] == 'e' ? .EXTENSION : .INCLUDE))
+          var kind = TokenKind.PRAGMA
+          switch part {
+            case "#version" { kind = .VERSION }
+            case "#extension" { kind = .EXTENSION }
+            case "#include" { kind = .INCLUDE }
+          }
+          tokens.append(Token.new(range, kind))
         }
 
         # String literal
@@ -174,6 +206,13 @@ namespace GLSLX.Tokenizer {
         # Operator
         else {
           var kind = operators.get(part, .END_OF_FILE)
+          if purpose == .FORMAT && kind == .END_OF_FILE {
+            if part.startsWith("//") {
+              kind = .SINGLE_LINE_COMMENT
+            } else if part.startsWith("/*") {
+              kind = .MULTI_LINE_COMMENT
+            }
+          }
           if kind != .END_OF_FILE {
             tokens.append(Token.new(range, kind))
           }
@@ -216,7 +255,7 @@ namespace GLSLX.Tokenizer {
     "//.*|" + # Single-line comment
     "&&|\\|\\||\\^\\^|\\+\\+|--|<<=?|>>=?|[()[\\]{}\\.,?:;]|[+\\-*/%=!<>&|^~]=?|" + # Operator
     "[A-Za-z_][A-Za-z0-9_]*\\b|" + # Identifier
-    "#(?:version|extension|include)\\b|" + # Pragma
+    "#\\w+\\b|" + # Pragma
     "\"(?:[^\"\\\\]|\\\\.)*\"" + # String literal
 
     ")"

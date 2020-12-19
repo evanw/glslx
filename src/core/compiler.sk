@@ -132,7 +132,7 @@ namespace GLSLX.Compiler {
     # Generate tokens once
     sources.prepend(Source.new("<api>", API))
     for source in sources {
-      source.tokens = Tokenizer.tokenize(log, source)
+      source.tokens = Tokenizer.tokenize(log, source, .COMPILE)
     }
 
     var global = Node.createGlobal
@@ -160,7 +160,7 @@ namespace GLSLX.Compiler {
     # Generate tokens once
     sources.prepend(Source.new("<api>", API))
     for source in sources {
-      source.tokens = Tokenizer.tokenize(log, source)
+      source.tokens = Tokenizer.tokenize(log, source, .COMPILE)
     }
 
     var global = Node.createGlobal

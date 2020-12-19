@@ -708,7 +708,7 @@ namespace GLSLX.Parser {
     context.processedIncludes[source.name] = true
 
     # Parse the file and insert it into the parent
-    var tokens = Tokenizer.tokenize(context.log, source)
+    var tokens = Tokenizer.tokenize(context.log, source, .COMPILE)
     var nestedContext = ParserContext.new(context.log, tokens, context.compilationData, context.resolver, context.processedIncludes)
     nestedContext.pushScope(context.scope)
     if !parseStatements(nestedContext, parent, .GLOBAL) || !nestedContext.expect(.END_OF_FILE) {

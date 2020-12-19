@@ -1,0 +1,392 @@
+namespace GLSLX.Formatter {
+  def _formatWhitespace(text string, indent string, newline string) string {
+    var lineCount = 0
+    var i = 0
+    var n = text.count
+    while i < n {
+      var c = text[i]
+      i++
+      if _isNewline(c) {
+        lineCount++
+        if c == '\r' && i < n && text[i] == '\n' {
+          i++
+        }
+      }
+    }
+    if lineCount > 2 {
+      lineCount = 2
+    }
+    return newline.repeat(lineCount)
+  }
+
+  def _keepSpaceBetween(prev TokenKind, left TokenKind, right TokenKind) bool {
+    switch right {
+      case .INCREMENT {
+        switch left {
+          case .PLUS { return true }
+          case .IDENTIFIER { return false }
+        }
+      }
+
+      case .DECREMENT {
+        switch left {
+          case .MINUS { return true }
+          case .IDENTIFIER { return false }
+        }
+      }
+
+      case .PLUS {
+        switch left {
+          case .PLUS { return true }
+        }
+      }
+
+      case .MINUS {
+        switch left {
+          case .MINUS { return true }
+        }
+      }
+
+      case .LEFT_PARENTHESIS, .LEFT_BRACKET {
+        if left.isIdentifierOrType {
+          return false
+        }
+      }
+
+      case .COMMA, .SEMICOLON, .RIGHT_PARENTHESIS, .RIGHT_BRACKET, .DOT {
+        return false
+      }
+    }
+
+    switch left {
+      case .LEFT_PARENTHESIS, .LEFT_BRACKET, .DOT, .NOT {
+        return false
+      }
+
+      case .PLUS, .MINUS {
+        switch prev {
+          case .END_OF_FILE, .LEFT_PARENTHESIS, .LEFT_BRACKET, .COMMA, .COLON  {
+            return false
+          }
+        }
+
+        if prev.isBinaryOperator {
+          return false
+        }
+      }
+
+      case .INCREMENT, .DECREMENT {
+        switch right {
+          case .IDENTIFIER {
+            return false
+          }
+        }
+      }
+    }
+
+    return true
+  }
+
+  def _isNewline(c int) bool {
+    return c == '\n' || c == '\r'
+  }
+
+  def _isWhitespace(c int) bool {
+    return c == ' ' || c == '\t'
+  }
+
+  def _isAllWhitespace(text string) bool {
+    for i = 0, n = text.count; i < n; i++ {
+      if !_isWhitespace(text[i]) {
+        return false
+      }
+    }
+    return true
+  }
+
+  def _trimSingleLineComment(text string) string {
+    var i = text.count
+    while _isWhitespace(text[i - 1]) {
+      i--
+    }
+    return text.slice(0, i)
+  }
+
+  def _trimMultiLineComment(comment string, beforeComment string, indent string, newline string) string {
+    # Split the comment contents into lines
+    var lines List<string> = []
+    var start = 0
+    for i = 0, n = comment.count; i < n; i++ {
+      var c = comment[i]
+      if _isNewline(c) {
+        lines.append(comment.slice(start, i))
+        if c == '\r' && i + 1 < n && comment[i + 1] == '\n' {
+          i++
+        }
+        start = i + 1
+      }
+    }
+    lines.append(comment.slice(start))
+
+    # Find the start of the line containing the start of the comment
+    var firstLine = beforeComment.count
+    while firstLine > 0 && !_isNewline(beforeComment[firstLine - 1]) {
+      firstLine--
+    }
+    var lineBeforeComment = beforeComment.slice(firstLine)
+
+    # Determine the common whitespace prefix
+    var commonPrefix = lineBeforeComment
+    for line in lines.slice(1) {
+      if _isAllWhitespace(line) {
+        continue
+      }
+      var i = 0
+      var n = line.count
+      while i < n && i < commonPrefix.count && line[i] == commonPrefix[i] {
+        i++
+      }
+      commonPrefix = commonPrefix.slice(0, i)
+    }
+
+    # Join the lines together
+    var result = ""
+    for line in lines {
+      if result == "" {
+        if _isAllWhitespace(lineBeforeComment) {
+          result += lineBeforeComment.slice(commonPrefix.count)
+        }
+        result += line
+      } else {
+        result += newline
+        if !_isAllWhitespace(line) {
+          result += indent + line.slice(commonPrefix.count)
+        }
+      }
+    }
+    return result
+  }
+
+  enum TrailingNewline {
+    PRESERVE
+    REMOVE
+    INSERT
+  }
+
+  def format(input string, indent string, newline string, trailingNewline TrailingNewline) string {
+    var log = Log.new
+    var source = Source.new("<stdin>", input)
+    var tokens = Tokenizer.tokenize(log, source, .FORMAT)
+    if log.hasErrors {
+      return input
+    }
+
+    var text = ""
+    var prevPrevKind = TokenKind.END_OF_FILE
+    var prevKind = TokenKind.END_OF_FILE
+    var prevEnd = 0
+    var nesting = 0
+    var isStartOfLine = true
+    var tokenIndex = 0
+    var consumeIf fn(fn(TokenKind) bool) bool
+
+    var hasNewlineBefore = (index int) bool => {
+      return !_isAllWhitespace(input.slice(tokens[index - 1].range.end, tokens[index].range.start))
+    }
+
+    var isStatementEnd = (kind TokenKind, isFirst bool) bool => {
+      switch kind {
+        case .SEMICOLON, .RIGHT_BRACE { return true }
+
+        # Recover when there's a missing semicolon
+        case .BREAK, .CONTINUE, .DISCARD, .DO, .ELSE, .FOR, .IF, .RETURN, .WHILE { return !isFirst }
+      }
+      return false
+    }
+
+    # Scan over non-block bodies until the ending ";"
+    var handleBody = () => {
+      if !consumeIf(kind => kind == .LEFT_BRACE) {
+        var isFirst = true
+        nesting++
+        while consumeIf(kind => !isStatementEnd(kind, isFirst)) {
+          isFirst = false
+        }
+        nesting--
+        if !consumeIf(kind => kind == .SEMICOLON) {
+          return
+        }
+      }
+    }
+
+    # "if" or "for" or "while"
+    var handleBranch = () => {
+      # Double-indent in parentheses unless they are followed by a newline
+      var doubleIndent = 1
+      if tokens[tokenIndex].kind == .LEFT_PARENTHESIS && hasNewlineBefore(tokenIndex + 1) {
+        doubleIndent = 0
+      }
+      nesting += doubleIndent
+      if !consumeIf(kind => kind == .LEFT_PARENTHESIS) {
+        nesting -= doubleIndent
+        return
+      }
+      nesting -= doubleIndent
+      handleBody()
+    }
+
+    var handleStatement = () bool => {
+      switch tokens[tokenIndex].kind {
+        case .END_OF_FILE, .RIGHT_BRACE {
+          return false
+        }
+
+        case .IMPORT, .EXPORT {
+          consumeIf(kind => true)
+        }
+
+        case .IF, .FOR, .WHILE {
+          consumeIf(kind => true)
+          handleBranch()
+        }
+
+        case .ELSE {
+          consumeIf(kind => true)
+          if consumeIf(kind => kind == .IF) {
+            handleBranch()
+          } else {
+            handleBody()
+          }
+        }
+
+        case .LEFT_BRACE, .SEMICOLON, .SINGLE_LINE_COMMENT, .MULTI_LINE_COMMENT {
+          consumeIf(kind => true)
+        }
+
+        case .EXTENSION, .VERSION, .INCLUDE, .PRAGMA {
+          consumeIf(kind => true)
+          while consumeIf(kind => !hasNewlineBefore(tokenIndex)) {
+          }
+        }
+
+        default {
+          var couldBeType = tokens[tokenIndex].kind.isIdentifierOrType
+          consumeIf(kind => true)
+
+          # Handle function declarations
+          if couldBeType &&
+              consumeIf(kind => kind == .IDENTIFIER) &&
+              consumeIf(kind => kind == .LEFT_PARENTHESIS) {
+            if !consumeIf(kind => kind == .LEFT_BRACE) {
+              consumeIf(kind => kind == .SEMICOLON)
+            }
+          }
+
+          else {
+            var isMultiLine = false
+            while true {
+              if !isMultiLine && hasNewlineBefore(tokenIndex) {
+                isMultiLine = true
+                nesting++
+              }
+              if !consumeIf(kind => !isStatementEnd(kind, false)) {
+                break
+              }
+            }
+            consumeIf(kind => kind == .SEMICOLON)
+            if isMultiLine {
+              nesting--
+            }
+          }
+        }
+      }
+
+      return true
+    }
+
+    var handleBraces = () => {
+      nesting++
+      while handleStatement() {
+      }
+      nesting--
+      consumeIf(kind => kind == .RIGHT_BRACE)
+    }
+
+    var handleParentheses = () => {
+      nesting++
+      while consumeIf(kind => kind != .RIGHT_PARENTHESIS) {
+      }
+      nesting--
+      consumeIf(kind => kind == .RIGHT_PARENTHESIS)
+    }
+
+    var handleBrackets = () => {
+      nesting++
+      while consumeIf(kind => kind != .RIGHT_BRACKET) {
+      }
+      nesting--
+      consumeIf(kind => kind == .RIGHT_BRACKET)
+    }
+
+    consumeIf = when => {
+      var token = tokens[tokenIndex]
+      if !when(token.kind) || token.kind == .END_OF_FILE {
+        return false
+      }
+      tokenIndex++
+
+      var newlines = prevKind == .END_OF_FILE ? "" : _formatWhitespace(input.slice(prevEnd, token.range.start), indent, newline)
+      text += newlines
+      if newlines != "" {
+        isStartOfLine = true
+      }
+      if isStartOfLine {
+        text += indent.repeat(nesting)
+      } else if _keepSpaceBetween(prevPrevKind, prevKind, token.kind) {
+        text += " "
+      }
+
+      var slice = token.range.toString
+      switch token.kind {
+        case .SINGLE_LINE_COMMENT {
+          slice = _trimSingleLineComment(slice)
+        }
+        case .MULTI_LINE_COMMENT {
+          slice = _trimMultiLineComment(slice, input.slice(0, token.range.start), indent.repeat(nesting), newline)
+        }
+      }
+      text += slice
+      prevPrevKind = prevKind
+      prevKind = token.kind
+      prevEnd = token.range.end
+      isStartOfLine = false
+
+      switch token.kind {
+        case .LEFT_BRACE { handleBraces() }
+        case .LEFT_PARENTHESIS { handleParentheses() }
+        case .LEFT_BRACKET { handleBrackets() }
+      }
+      return true
+    }
+
+    # Consume all tokens
+    while handleStatement() || consumeIf(kind => kind != .END_OF_FILE) {
+    }
+
+    var newlines = _formatWhitespace(input.slice(prevEnd), indent, newline)
+    switch trailingNewline {
+      case .PRESERVE {
+        if newlines != "" {
+          text += newline
+        }
+      }
+      case .INSERT {
+        if text != "" {
+          text += newline
+        }
+      }
+    }
+
+    return text
+  }
+}

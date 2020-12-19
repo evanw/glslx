@@ -92,6 +92,34 @@ namespace GLSLX.Tests {
     }
   }
 
+  class FormatterTest : Unit.Test {
+    var _input string
+    var _expected string
+    var _indent = "  "
+    var _newline = "\n"
+    var _trailingNewline = Formatter.TrailingNewline.PRESERVE
+
+    over run {
+      var output = Formatter.format(_input, _indent, _newline, _trailingNewline)
+      expectString(_expected, output)
+    }
+
+    def indent(value string) FormatterTest {
+      _indent = value
+      return self
+    }
+
+    def newline(value string) FormatterTest {
+      _newline = value
+      return self
+    }
+
+    def trailingNewline(value Formatter.TrailingNewline) FormatterTest {
+      _trailingNewline = value
+      return self
+    }
+  }
+
   def trimNewlines(text string) string {
     var length = text.count
     var start = 0
@@ -129,6 +157,10 @@ namespace GLSLX.Tests {
     return IDETest.new(trimNewlines(input), trimNewlines(expected), callback)
   }
 
+  def testFormatter(input string, expected string) FormatterTest {
+    return FormatterTest.new(input, expected)
+  }
+
   @entry
   def main int {
     dynamic.require("source-map-support").install()
@@ -141,6 +173,7 @@ namespace GLSLX.Tests {
     testResolver
     testRewriter
     testTooltips
+    testFormatter
 
     var report = Unit.TerminalReport.new
     Unit.Test.runAll(report)

@@ -350,6 +350,24 @@ Advanced:
     }
   }
 
+  # Source code formatting
+  const format = (input dynamic, options dynamic) string => {
+    options = options || ({} as dynamic)
+    var indent = "indent" in options ? options.indent as string : "  "
+    var newline = "newline" in options ? options.newline as string : "\n"
+    var trailingNewline = Formatter.TrailingNewline.INSERT
+    if "trailingNewline" in options {
+      var value = options.trailingNewline as string
+      switch value {
+        case "preserve" { trailingNewline = .PRESERVE }
+        case "remove" { trailingNewline = .REMOVE }
+        case "insert" { trailingNewline = .INSERT }
+        default { throw dynamic.Error.new("Invalid \"trailingNewline\" value: \(value)") }
+      }
+    }
+    return Formatter.format(input as string, indent, newline, trailingNewline)
+  }
+
   def wrapFileAccess(callback dynamic) fn(string, string) Source {
     return (filePath, relativeTo) => {
       var result = callback(filePath, relativeTo)
@@ -472,6 +490,7 @@ Advanced:
     # API exports
     root.compile = compile
     root.compileIDE = compileIDE
+    root.format = format
 
     # Also include a small command-line utility for when this is run in node
     if dynamic.typeof(require) != "undefined" && dynamic.typeof(module) != "undefined" && require.main == module {

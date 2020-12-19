@@ -1,0 +1,188 @@
+namespace GLSLX.Tests {
+  def testFormatter {
+    testFormatter("+1", "+1")
+    testFormatter("-1", "-1")
+    testFormatter("!1", "!1")
+
+    testFormatter("1+2", "1 + 2")
+    testFormatter("1-2", "1 - 2")
+    testFormatter("1+-2", "1 + -2")
+    testFormatter("1-+2", "1 - +2")
+
+    testFormatter("+ -x", "+-x")
+    testFormatter("- +x", "-+x")
+    testFormatter("+ --x", "+--x")
+    testFormatter("- ++x", "-++x")
+
+    testFormatter("- -x", "- -x")
+    testFormatter("+ +x", "+ +x")
+    testFormatter("- --x", "- --x")
+    testFormatter("+ ++x", "+ ++x")
+
+    testFormatter(":+1", ": +1")
+    testFormatter(",+1", ", +1")
+    testFormatter("(+1", "(+1")
+    testFormatter("[+1", "[+1")
+
+    testFormatter(":-1", ": -1")
+    testFormatter(",-1", ", -1")
+    testFormatter("(-1", "(-1")
+    testFormatter("[-1", "[-1")
+
+    testFormatter("--x", "--x")
+    testFormatter("++x", "++x")
+    testFormatter("x--", "x--")
+    testFormatter("x++", "x++")
+
+    testFormatter("x ( y )", "x(y)")
+    testFormatter("float ( x )", "float(x)")
+    testFormatter("vec2 ( x )", "vec2(x)")
+    testFormatter("ivec2 ( x )", "ivec2(x)")
+    testFormatter("bvec2 ( x )", "bvec2(x)")
+    testFormatter("mat2 ( x )", "mat2(x)")
+    testFormatter("if ( x )", "if (x)")
+    testFormatter("for ( x )", "for (x)")
+    testFormatter("while ( x )", "while (x)")
+
+    testFormatter("if(1)2;else 3;", "if (1) 2; else 3;")
+    testFormatter("if(1){2;}else{3;}", "if (1) { 2; } else { 3; }")
+
+    testFormatter(" #define f ( x,y ) ( (x) + (y) )", "#define f(x, y) ((x) + (y))")
+
+    testFormatter("\n\n\nx;", "x;")
+    testFormatter("x;\n\n\ny;", "x;\n\ny;")
+    testFormatter("x;", "x;").trailingNewline(.PRESERVE)
+    testFormatter("x;", "x;").trailingNewline(.REMOVE)
+    testFormatter("x;", "x;\n").trailingNewline(.INSERT)
+    testFormatter("x;\n\n\n", "x;\n").trailingNewline(.PRESERVE)
+    testFormatter("x;\n\n\n", "x;").trailingNewline(.REMOVE)
+    testFormatter("x;\n\n\n", "x;\n").trailingNewline(.INSERT)
+
+    testFormatter("x+\ny;", "x +\r\n  y;\r\n").newline("\r\n").trailingNewline(.INSERT)
+    testFormatter("x+\ny(\nz);", "x +\n\ty(\n\t\tz);").indent("\t")
+
+    testFormatter(" // a\n /* b */\n // c\n /* d */", "// a\n/* b */\n// c\n/* d */")
+    testFormatter("return 1 + // comment  \n  2;", "return 1 + // comment\n  2;")
+    testFormatter("return 1 + /* comment */2;", "return 1 + /* comment */ 2;")
+    testFormatter("return 1 + (/* comment */2);", "return 1 + (/* comment */ 2);")
+    testFormatter("return 1 + /* comment */\n  2;", "return 1 + /* comment */\n  2;")
+
+    testFormatter("#define x y\nz\n+1;", "#define x y\nz\n  + 1;")
+    testFormatter("#include x y\nz\n+1;", "#include x y\nz\n  + 1;")
+    testFormatter("#version x y\nz\n+1;", "#version x y\nz\n  + 1;")
+    testFormatter("#extension x y\nz\n+1;", "#extension x y\nz\n  + 1;")
+
+    testFormatter("for(;;)\nx;\nreturn;", "for (;;)\n  x;\nreturn;")
+    testFormatter("while(;;)\nx;\nreturn;", "while (;;)\n  x;\nreturn;")
+    testFormatter("if(x)\nx;\nreturn;", "if (x)\n  x;\nreturn;")
+    testFormatter("if(x)\n{x;}\nreturn;", "if (x)\n{ x; }\nreturn;")
+    testFormatter("if(x)\nx;\nelse\ny;\nreturn;", "if (x)\n  x;\nelse\n  y;\nreturn;")
+    testFormatter("if(x)\nx;\nelse\n{y;}\nreturn;", "if (x)\n  x;\nelse\n{ y; }\nreturn;")
+    testFormatter("if(x)\nx;\nelse if(y)\ny;\nreturn;", "if (x)\n  x;\nelse if (y)\n  y;\nreturn;")
+    testFormatter("if(x)\nx;\nelse if(y)\n{y;}\nreturn;", "if (x)\n  x;\nelse if (y)\n{ y; }\nreturn;")
+    testFormatter("if(x)\nx;\nelse if(y)\ny;\nelse\nz;\nreturn;", "if (x)\n  x;\nelse if (y)\n  y;\nelse\n  z;\nreturn;")
+    testFormatter("if(x)\nx;\nelse if(y)\ny;\nelse\n{z;}\nreturn;", "if (x)\n  x;\nelse if (y)\n  y;\nelse\n{ z; }\nreturn;")
+    testFormatter("if(x)x;\n// comment\nelse{y;}\n// comment\nz;", "if (x) x;\n// comment\nelse { y; }\n// comment\nz;")
+
+    testFormatter("return (\n(1 + 2) *\n(3 + 4));", "return (\n  (1 + 2) *\n  (3 + 4));")
+    testFormatter("if(x){\nif(y){\ny;\n}\nx;\n}", "if (x) {\n  if (y) {\n    y;\n  }\n  x;\n}")
+    testFormatter("if(x||\ny){\nz;\n}", "if (x ||\n    y) {\n  z;\n}")
+    testFormatter("if(\nx||\ny\n){\nz;\n}", "if (\n  x ||\n  y\n) {\n  z;\n}")
+
+    testFormatter("x(a\n?b\n:c);", "x(a\n  ? b\n  : c);")
+    testFormatter("x(\na?\nb:\nc);", "x(\n  a ?\n  b :\n  c);")
+    testFormatter("x=\na?\nb:\nc;", "x =\n  a ?\n  b :\n  c;")
+    testFormatter("x=\na+\nb(\nc);", "x =\n  a +\n  b(\n    c);")
+    testFormatter("x=a(\nb(\nc));", "x = a(\n  b(\n    c));")
+    testFormatter("x=1+\n(a\n?b\n:c);", "x = 1 +\n  (a\n    ? b\n    : c);")
+    testFormatter("x=1+\n(\na?\nb:\nc);", "x = 1 +\n  (\n    a ?\n    b :\n    c);")
+    testFormatter("int x=\na?\nb:\nc;", "int x =\n  a ?\n  b :\n  c;")
+    testFormatter("return\n(\n1+2\n);", "return\n  (\n    1 + 2\n  );")
+
+    testFormatter("int x();\nint y();", "int x();\nint y();")
+    testFormatter("int x()\n{x();}", "int x()\n{ x(); }")
+    testFormatter("int x(\nint y\n){\nx(y);\n}", "int x(\n  int y\n) {\n  x(y);\n}")
+    testFormatter("int x(\nint y\n)\n{\nx(y);\n}", "int x(\n  int y\n)\n{\n  x(y);\n}")
+    testFormatter("void x()\n{x();}\nvoid y()\n{y();}", "void x()\n{ x(); }\nvoid y()\n{ y(); }")
+
+    testFormatter("import void x();\nint y;", "import void x();\nint y;")
+    testFormatter("export void x();\nint y;", "export void x();\nint y;")
+    testFormatter("import void x()\n{x();}\nint y;", "import void x()\n{ x(); }\nint y;")
+    testFormatter("export void x()\n{x();}\nint y;", "export void x()\n{ x(); }\nint y;")
+    testFormatter("import{\nvoid x();\n}\nint y;", "import {\n  void x();\n}\nint y;")
+    testFormatter("export{\nvoid x();\n}\nint y;", "export {\n  void x();\n}\nint y;")
+    testFormatter("import{\nvoid x()\n{x();}\n}\nint y;", "import {\n  void x()\n  { x(); }\n}\nint y;")
+    testFormatter("export{\nvoid x()\n{x();}\n}\nint y;", "export {\n  void x()\n  { x(); }\n}\nint y;")
+    testFormatter("#extension foo{\nint x;\n}\nint y;", "#extension foo {\n  int x;\n}\nint y;")
+    testFormatter("#extension foo\n{\nint x;\n}\nint y;", "#extension foo\n{\n  int x;\n}\nint y;")
+
+    # Recover when there's a missing semicolon
+    testFormatter("if(x)x\nif(y)y\nreturn\nwhile(x) x", "if (x) x\nif (y) y\nreturn\nwhile (x) x")
+
+    testFormatter("
+    /*
+     test newline handling
+
+      in multi-line comments
+       */
+", "/*
+ test newline handling
+
+  in multi-line comments
+   */
+")
+
+    testFormatter("
+       /*
+      test newline handling
+
+     in multi-line comments
+    */
+", "   /*
+  test newline handling
+
+ in multi-line comments
+*/
+")
+
+    testFormatter("
+    x = /*
+      test newline handling
+
+      in multi-line comments
+      */
+", "x = /*
+  test newline handling
+
+  in multi-line comments
+  */
+")
+
+
+    testFormatter("
+\t\tif (x) {
+\t\t\t/*
+\t\t\t * stuff
+\t\t\t */
+\t\t}
+", "if (x) {
+  /*
+   * stuff
+   */
+}
+")
+
+    testFormatter("
+\t\tif (x) {
+\t\t\t  /*
+\t\t\t * stuff
+\t\t\t*/
+\t\t}
+", "if (x) {
+    /*
+   * stuff
+  */
+}
+")
+  }
+}

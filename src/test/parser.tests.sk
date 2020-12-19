@@ -929,5 +929,15 @@ struct Foo {
   ~~~~~~~~
 ")
 
+# Using "#define" should be an error
+test("
+#define N 1
+const int n = N;
+", "
+<stdin>:1:1: error: Unexpected PRAGMA
+#define N 1
+~~~~~~~
+")
+
   }
 }
