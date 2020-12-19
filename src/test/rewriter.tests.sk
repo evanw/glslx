@@ -762,5 +762,27 @@ vec2 main() {
 }
 ").trimSymbols
 
+# Test removing global constants in array count position
+test("
+const int COUNT = 100;
+uniform float data[COUNT];
+
+export void pixelShader() {
+  float sum;
+  for (int i = 0; i < COUNT; i++)
+    sum += data[i];
+  gl_FragColor = vec4(sum, data[0], 0.0, float(COUNT));
+}
+", "
+uniform float data[100];
+
+void main() {
+  float sum;
+  for (int i = 0; i < 100; i++)
+    sum += data[i];
+  gl_FragColor = vec4(sum, data[0], 0.0, float(100));
+}
+").trimSymbols
+
   }
 }

@@ -144,14 +144,26 @@ class GLSLX.Rewriter {
 
     switch node.kind {
       case .VARIABLE {
-        if _hasLiteralConstantValue(node.symbol) ||
-            _isNonMutatedLiteral(node.symbol) ||
-            _isUnused(node.symbol) && (node.variableInitializer == null ||
-            node.variableInitializer.hasNoSideEffects) {
+        if _hasLiteralConstantValue(node.symbol) || _isNonMutatedLiteral(node.symbol) ||
+            _isUnused(node.symbol) && (node.variableInitializer == null || node.variableInitializer.hasNoSideEffects) {
           node.remove
           _reportCodeChange
-        } else if node.variableInitializer != null {
-          _trimSymbols(node.variableInitializer)
+        } else {
+          if node.variableInitializer != null {
+            _trimSymbols(node.variableInitializer)
+          }
+
+          # The array count "int x[1]" is not in the AST and will not be
+          # visited during an AST traversal. Special-case it here so constants
+          # inside it are still replaced.
+          var arrayCount = node.symbol.asVariable.arrayCount
+          if arrayCount != null && arrayCount.kind == .NAME {
+            var clone = _literalConstantForSymbol(arrayCount.symbol)
+            if clone != null {
+              node.symbol.asVariable.arrayCount = clone
+              _reportCodeChange
+            }
+          }
         }
       }
 
@@ -183,15 +195,25 @@ class GLSLX.Rewriter {
       }
 
       case .NAME {
-        if _hasLiteralConstantValue(node.symbol) {
-          node.replaceWith(node.symbol.constantValue.clone)
-          _reportCodeChange
-        } else if _isNonMutatedLiteral(node.symbol) {
-          node.replaceWith(node.symbol.asVariable.value.clone)
+        var clone = _literalConstantForSymbol(node.symbol)
+        if clone != null {
+          node.replaceWith(clone)
           _reportCodeChange
         }
       }
     }
+  }
+
+  def _literalConstantForSymbol(symbol Symbol) Node {
+    if _hasLiteralConstantValue(symbol) {
+      return symbol.constantValue.clone
+    }
+
+    if _isNonMutatedLiteral(symbol) {
+      return symbol.asVariable.value.clone
+    }
+
+    return null
   }
 
   def _trimUnreferencedExtensions(node Node, data CompilerData) {
