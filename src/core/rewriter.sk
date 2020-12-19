@@ -145,7 +145,11 @@ class GLSLX.Rewriter {
     switch node.kind {
       case .VARIABLE {
         if _hasLiteralConstantValue(node.symbol) || _isNonMutatedLiteral(node.symbol) ||
-            _isUnused(node.symbol) && (node.variableInitializer == null || node.variableInitializer.hasNoSideEffects) {
+            _isUnused(node.symbol) && (
+              node.variableInitializer == null ||
+              node.variableInitializer.hasNoSideEffects ||
+              node.symbol.constantValue != null
+            ) {
           node.remove
           _reportCodeChange
         } else {

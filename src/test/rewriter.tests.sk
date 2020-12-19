@@ -784,5 +784,80 @@ void main() {
 }
 ").trimSymbols
 
+# Test keeping used global constants
+test("
+const vec4 someConst = vec4(3.0);
+
+export void vertex() {
+  gl_Position = someConst;
+}
+
+export void colorFragment() {
+  gl_FragColor = someConst;
+}
+", "
+[vertex]
+const vec4 someConst = vec4(3.0);
+
+void main() {
+  gl_Position = someConst;
+}
+
+[colorFragment]
+const vec4 someConst = vec4(3.0);
+
+void main() {
+  gl_FragColor = someConst;
+}
+").trimSymbols
+
+# Test used and unused global constants
+test("
+const vec4 someConst = vec4(3.0);
+
+export void vertex() {
+  gl_Position = someConst;
+}
+
+export void colorFragment() {
+  gl_FragColor = vec4(0.0);
+}
+", "
+[vertex]
+const vec4 someConst = vec4(3.0);
+
+void main() {
+  gl_Position = someConst;
+}
+
+[colorFragment]
+void main() {
+  gl_FragColor = vec4(0.0);
+}
+").trimSymbols
+
+# Test removing unused global constants
+test("
+const vec4 someConst = vec4(3.0);
+
+export void vertex() {
+  gl_Position = vec4(0.0);
+}
+
+export void colorFragment() {
+  gl_FragColor = vec4(0.0);
+}
+", "
+[vertex]
+void main() {
+  gl_Position = vec4(0.0);
+}
+
+[colorFragment]
+void main() {
+  gl_FragColor = vec4(0.0);
+}
+").trimSymbols
+
   }
 }
