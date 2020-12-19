@@ -85,11 +85,11 @@
   <div class="intro">
     <h1>GLSL type checker and minifier online demo</h1>
     <p>
-      GLSLX is a type checker and minifier/obfuscator for WebGL GLSL code. Straight-forward type checking makes it
-      possible to catch GLSL errors using continuous integration. Because it actually parses and understands the code,
-      the minification should be much more robust than other minifiers based on regular expressions. It doesn't include
-      a preprocessor because it's meant to be used after the preprocessing step. It also includes automatic insertion of
-      "#extension" statements so their absence can't mess stuff up.
+      GLSLX is a type checker, code formatter, and minifier/obfuscator for WebGL GLSL code. Straight-forward type
+      checking makes it possible to catch GLSL errors using continuous integration. Because it actually parses and
+      understands the code, the minification should be much more robust than other minifiers based on regular
+      expressions. It doesn't include a preprocessor because it's meant to be used after the preprocessing step. It also
+      includes automatic insertion of "#extension" statements so their absence can't mess stuff up.
     </p>
     <p>
       The compiler is <a href="https://www.npmjs.org/package/glslx">published on npm</a> and is also available as an <a
@@ -109,7 +109,7 @@ varying vec2 coord;
 
 export void vertex() {
   coord = position;
-  gl_Position = vec4(position * 2.0 - 1.0, 0.0, 1.0);
+  gl_Position = vec4( position*2.0 - 1.0, 0.0,1.0 );
 }
 
 export void colorFragment() {
@@ -125,6 +125,9 @@ export void textureFragment() {
         &nbsp; <a href="javascript:void 0" id="bugs">Bugs</a>
         &nbsp; <a href="javascript:void 0" id="protophore">Protophore</a>
         &nbsp; <a href="javascript:void 0" id="cyclic">Cyclic Redundancy Engine</a>
+      </p>
+      <p>
+        <button id="codeFormatter">Run code formatter</button>
       </p>
     </div>
     <div class="output">
@@ -196,6 +199,10 @@ import {
     var input = document.getElementById('input');
     var output = document.getElementById('output');
     var options = {};
+
+    codeFormatter.onclick = function () {
+      input.value = GLSLX.format(input.value);
+    };
 
     function option(id) {
       function update() {
