@@ -47,8 +47,14 @@ namespace GLSLX.Formatter {
         }
       }
 
-      case .LEFT_PARENTHESIS, .LEFT_BRACKET {
-        if left.isIdentifierOrType {
+      case .LEFT_PARENTHESIS {
+        if left.isIdentifierOrType || left == .RIGHT_BRACKET {
+          return false
+        }
+      }
+
+      case .LEFT_BRACKET {
+        if left.isIdentifierOrType || left == .RIGHT_BRACKET {
           return false
         }
       }
@@ -65,13 +71,13 @@ namespace GLSLX.Formatter {
     }
 
     switch left {
-      case .LEFT_PARENTHESIS, .LEFT_BRACKET, .DOT, .NOT {
+      case .LEFT_PARENTHESIS, .LEFT_BRACKET, .DOT, .NOT, .COMPLEMENT {
         return false
       }
 
       case .PLUS, .MINUS {
         switch prev {
-          case .END_OF_FILE, .LEFT_PARENTHESIS, .LEFT_BRACKET, .COMMA, .COLON  {
+          case .END_OF_FILE, .LEFT_PARENTHESIS, .LEFT_BRACKET, .COMMA, .COLON, .SEMICOLON, .NOT, .COMPLEMENT {
             return false
           }
         }
@@ -202,10 +208,17 @@ namespace GLSLX.Formatter {
 
     var isStatementEnd = (kind TokenKind, isFirst bool) bool => {
       switch kind {
-        case .SEMICOLON, .RIGHT_BRACE { return true }
+        case .SEMICOLON, .RIGHT_BRACE {
+          return true
+        }
 
-        # Recover when there's a missing semicolon
-        case .BREAK, .CONTINUE, .DISCARD, .DO, .ELSE, .FOR, .IF, .RETURN, .WHILE { return !isFirst }
+        # Recover when there's a missing semicolon. These tokens are always
+        # guaranteed to start a new statement. They must not be able to appear
+        # past the first token in a statement or the statement may incorrectly
+        # end early.
+        case .BREAK, .CONTINUE, .DISCARD, .DO, .ELSE, .FOR, .IF, .RETURN, .WHILE {
+          return !isFirst
+        }
       }
       return false
     }

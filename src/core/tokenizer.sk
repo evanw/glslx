@@ -126,6 +126,7 @@ namespace GLSLX {
     def isIdentifierOrType bool {
       switch self {
         case .IDENTIFIER, .VOID,
+          .SAMPLER2D, .SAMPLERCUBE,
           .FLOAT, .VEC2, .VEC3, .VEC4,
           .INT, .IVEC2, .IVEC3, .IVEC4,
           .BOOL, .BVEC2, .BVEC3, .BVEC4,

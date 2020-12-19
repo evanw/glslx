@@ -3,21 +3,36 @@ namespace GLSLX.Tests {
     testFormatter("+1", "+1")
     testFormatter("-1", "-1")
     testFormatter("!1", "!1")
+    testFormatter("~1", "~1")
 
     testFormatter("1+2", "1 + 2")
     testFormatter("1-2", "1 - 2")
     testFormatter("1+-2", "1 + -2")
     testFormatter("1-+2", "1 - +2")
 
-    testFormatter("+ -x", "+-x")
-    testFormatter("- +x", "-+x")
-    testFormatter("+ --x", "+--x")
-    testFormatter("- ++x", "-++x")
+    for t in ["", "(", "["] {
+      testFormatter(t+"+ -x", t+"+-x")
+      testFormatter(t+"- +x", t+"-+x")
+      testFormatter(t+"+--x", t+"+--x")
+      testFormatter(t+"-++x", t+"-++x")
+    }
+
+    for t in [",", ":", ";"] {
+      testFormatter(t+"+ -x", t+" +-x")
+      testFormatter(t+"- +x", t+" -+x")
+      testFormatter(t+"+--x", t+" +--x")
+      testFormatter(t+"-++x", t+" -++x")
+    }
 
     testFormatter("- -x", "- -x")
     testFormatter("+ +x", "+ +x")
     testFormatter("- --x", "- --x")
     testFormatter("+ ++x", "+ ++x")
+
+    testFormatter("! !x", "!!x")
+    testFormatter("~ ~x", "~~x")
+    testFormatter("~ +x", "~+x")
+    testFormatter("~ -x", "~-x")
 
     testFormatter(":+1", ": +1")
     testFormatter(",+1", ", +1")
@@ -34,12 +49,18 @@ namespace GLSLX.Tests {
     testFormatter("x--", "x--")
     testFormatter("x++", "x++")
 
+    testFormatter("m[1][2]", "m[1][2]")
+    testFormatter("int[3]i=int[](1,2,3)", "int[3] i = int[](1, 2, 3)")
+    testFormatter("if(x)(y);", "if (x) (y);")
+    testFormatter("if(x){y;}{z;}", "if (x) { y; } { z; }")
+
     testFormatter("x ( y )", "x(y)")
     testFormatter("float ( x )", "float(x)")
     testFormatter("vec2 ( x )", "vec2(x)")
     testFormatter("ivec2 ( x )", "ivec2(x)")
     testFormatter("bvec2 ( x )", "bvec2(x)")
     testFormatter("mat2 ( x )", "mat2(x)")
+    testFormatter("sampler2D ( x )", "sampler2D(x)")
     testFormatter("if ( x )", "if (x)")
     testFormatter("for ( x )", "for (x)")
     testFormatter("while ( x )", "while (x)")
