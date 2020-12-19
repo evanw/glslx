@@ -210,21 +210,19 @@ namespace GLSLX.Formatter {
       return false
     }
 
+    var handleStatement fn() bool
+
     # Scan over non-block bodies until the ending ";"
     var handleBody = () => {
       if !consumeIf(kind => kind == .LEFT_BRACE) {
-        var isFirst = true
         nesting++
-        while consumeIf(kind => !isStatementEnd(kind, isFirst)) {
-          isFirst = false
-        }
-        consumeIf(kind => kind == .SEMICOLON)
+        handleStatement()
         nesting--
       }
     }
 
     # "if" or "for" or "while"
-    var handleBranch = () => {
+    var handleBranch = () bool => {
       # Double-indent in parentheses unless they are followed by a newline
       var doubleIndent = 1
       if tokens[tokenIndex].kind == .LEFT_PARENTHESIS && hasNewlineBefore(tokenIndex + 1) {
@@ -233,13 +231,13 @@ namespace GLSLX.Formatter {
       nesting += doubleIndent
       if !consumeIf(kind => kind == .LEFT_PARENTHESIS) {
         nesting -= doubleIndent
-        return
+        return false
       }
       nesting -= doubleIndent
-      handleBody()
+      return true
     }
 
-    var handleStatement = () bool => {
+    handleStatement = () => {
       switch tokens[tokenIndex].kind {
         case .END_OF_FILE, .RIGHT_BRACE {
           return false
@@ -251,7 +249,18 @@ namespace GLSLX.Formatter {
 
         case .IF, .FOR, .WHILE {
           consumeIf(kind => true)
-          handleBranch()
+          if handleBranch() {
+            handleBody()
+          }
+        }
+
+        case .DO {
+          consumeIf(kind => true)
+          handleBody()
+          if consumeIf(kind => kind == .WHILE) {
+            handleBranch()
+            consumeIf(kind => kind == .SEMICOLON)
+          }
         }
 
         case .ELSE {
@@ -262,7 +271,9 @@ namespace GLSLX.Formatter {
               nesting++
             }
             consumeIf(kind => true)
-            handleBranch()
+            if handleBranch() {
+              handleBody()
+            }
             if isOnNewLine {
               nesting--
             }
