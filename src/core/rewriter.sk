@@ -144,7 +144,10 @@ class GLSLX.Rewriter {
 
     switch node.kind {
       case .VARIABLE {
-        if _isConstant(node.symbol) || _isUnused(node.symbol) && (node.variableInitializer == null || node.variableInitializer.hasNoSideEffects) {
+        if _hasLiteralConstantValue(node.symbol) ||
+            _isNonMutatedLiteral(node.symbol) ||
+            _isUnused(node.symbol) && (node.variableInitializer == null ||
+            node.variableInitializer.hasNoSideEffects) {
           node.remove
           _reportCodeChange
         } else if node.variableInitializer != null {
@@ -180,7 +183,10 @@ class GLSLX.Rewriter {
       }
 
       case .NAME {
-        if _isConstant(node.symbol) {
+        if _hasLiteralConstantValue(node.symbol) {
+          node.replaceWith(node.symbol.constantValue.clone)
+          _reportCodeChange
+        } else if _isNonMutatedLiteral(node.symbol) {
           node.replaceWith(node.symbol.asVariable.value.clone)
           _reportCodeChange
         }
@@ -204,7 +210,11 @@ class GLSLX.Rewriter {
       _useCounts.get(symbol.asFunction.sibling.id, -1) == 0)
   }
 
-  def _isConstant(symbol Symbol) bool {
+  def _hasLiteralConstantValue(symbol Symbol) bool {
+    return symbol.constantValue != null && symbol.constantValue.kind.isLiteral
+  }
+
+  def _isNonMutatedLiteral(symbol Symbol) bool {
     return _mutationCounts.get(symbol.id, -1) == 0 && symbol.asVariable.value != null && symbol.asVariable.value.kind.isLiteral
   }
 

@@ -721,5 +721,46 @@ void main() {
 }
 ").trimSymbols
 
+# Test folding casted primitive types
+test("
+export float vertex() {
+  const float g = 1.0 + 2.0;
+  const float f = float(3);
+  return f + g;
+}
+", "
+float main() {
+  return 3.0 + 3.0;
+}
+").trimSymbols
+
+# Test folding casted primitive types with compaction
+test("
+export float vertex() {
+  const float g = 1.0 + 2.0;
+  const float f = float(3);
+  return f + g;
+}
+", "
+float main() {
+  return 6.0;
+}
+").trimSymbols.compactSyntaxTree
+
+# Test folding casted non-primitive types
+test("
+export vec2 vertex() {
+  const vec2 g = vec2(1) + vec2(2);
+  const vec2 f = vec2(3);
+  return f + g;
+}
+", "
+vec2 main() {
+  const vec2 g = vec2(1) + vec2(2);
+  const vec2 f = vec2(3);
+  return f + g;
+}
+").trimSymbols
+
   }
 }
