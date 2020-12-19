@@ -56,6 +56,12 @@ namespace GLSLX.Formatter {
       case .COMMA, .SEMICOLON, .RIGHT_PARENTHESIS, .RIGHT_BRACKET, .DOT {
         return false
       }
+
+      case .RIGHT_BRACE {
+        if left == .LEFT_BRACE {
+          return false
+        }
+      }
     }
 
     switch left {

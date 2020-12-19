@@ -83,6 +83,7 @@ namespace GLSLX.Tests {
     testFormatter("if(x)\nx;\nelse if(y)\ny;\nelse\nz;\nreturn;", "if (x)\n  x;\nelse if (y)\n  y;\nelse\n  z;\nreturn;")
     testFormatter("if(x)\nx;\nelse if(y)\ny;\nelse\n{z;}\nreturn;", "if (x)\n  x;\nelse if (y)\n  y;\nelse\n{ z; }\nreturn;")
     testFormatter("if(x)x;\n// comment\nelse{y;}\n// comment\nz;", "if (x) x;\n// comment\nelse { y; }\n// comment\nz;")
+    testFormatter("if(x){}", "if (x) {}")
     testFormatter("if(x)\n;\nelse\n;", "if (x)\n  ;\nelse\n  ;")
     testFormatter("if(x)\nx;\nelse\ny;", "if (x)\n  x;\nelse\n  y;")
     testFormatter("if(x)\n;\nelse\nif(y)\n;", "if (x)\n  ;\nelse\n  if (y)\n    ;")
