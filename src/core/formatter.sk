@@ -77,7 +77,7 @@ namespace GLSLX.Formatter {
 
       case .PLUS, .MINUS {
         switch prev {
-          case .END_OF_FILE, .LEFT_PARENTHESIS, .LEFT_BRACKET, .COMMA, .COLON, .SEMICOLON, .NOT, .COMPLEMENT {
+          case .END_OF_FILE, .LEFT_PARENTHESIS, .LEFT_BRACKET, .COMMA, .COLON, .SEMICOLON, .NOT, .COMPLEMENT, .RETURN, .ELSE {
             return false
           }
         }

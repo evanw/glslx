@@ -49,6 +49,16 @@ namespace GLSLX.Tests {
     testFormatter("x--", "x--")
     testFormatter("x++", "x++")
 
+    testFormatter("return+1", "return +1")
+    testFormatter("return-1", "return -1")
+    testFormatter("return++x", "return ++x")
+    testFormatter("return--x", "return --x")
+
+    testFormatter("else+1", "else +1")
+    testFormatter("else-1", "else -1")
+    testFormatter("else++x", "else ++x")
+    testFormatter("else--x", "else --x")
+
     testFormatter("m[1][2]", "m[1][2]")
     testFormatter("int[3]i=int[](1,2,3)", "int[3] i = int[](1, 2, 3)")
     testFormatter("if(x)(y);", "if (x) (y);")
