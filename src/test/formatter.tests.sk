@@ -155,6 +155,17 @@ namespace GLSLX.Tests {
     testFormatter("#extension foo{\nint x;\n}\nint y;", "#extension foo {\n  int x;\n}\nint y;")
     testFormatter("#extension foo\n{\nint x;\n}\nint y;", "#extension foo\n{\n  int x;\n}\nint y;")
 
+    testFormatter("if(x){y}", "if (x) { y }")
+    testFormatter("if(x){\ny}", "if (x) {\n  y\n}")
+    testFormatter("if(x){y\n}", "if (x) {\n  y\n}")
+
+    testFormatter("if(x){if(y){z}}", "if (x) { if (y) { z } }")
+    testFormatter("if(x){if(y){z}\n}", "if (x) {\n  if (y) { z }\n}")
+    testFormatter("if(x){\nif(y){z}}", "if (x) {\n  if (y) { z }\n}")
+    testFormatter("if(x){if(y)\n{z}}", "if (x) {\n  if (y)\n  { z }\n}")
+    testFormatter("if(x){if(y){\nz}}", "if (x) {\n  if (y) {\n    z\n  }\n}")
+    testFormatter("if(x){if(y){z\n}}", "if (x) {\n  if (y) {\n    z\n  }\n}")
+
     # Recover when there's a missing semicolon
     testFormatter("if(x)x\nif(y)y\nreturn\nwhile(x) x", "if (x) x\nif (y) y\nreturn\nwhile (x) x")
 

@@ -103,6 +103,15 @@ namespace GLSLX.Formatter {
     return c == '\n' || c == '\r'
   }
 
+  def _hasNewline(text string) bool {
+    for i = 0, n = text.count; i < n; i++ {
+      if _isNewline(text[i]) {
+        return true
+      }
+    }
+    return false
+  }
+
   def _isWhitespace(c int) bool {
     return c == ' ' || c == '\t'
   }
@@ -356,11 +365,48 @@ namespace GLSLX.Formatter {
       return true
     }
 
+    var indexOfClosingBrace = () int => {
+      var stack List<TokenKind> = []
+      var i = tokenIndex
+      while i < tokens.count {
+        var kind = tokens[i].kind
+        switch kind {
+          case .LEFT_BRACE, .LEFT_BRACKET, .LEFT_PARENTHESIS {
+            stack.append(kind)
+          }
+          case .RIGHT_BRACE {
+            if stack.count == 0 { return i }
+            if stack.takeLast != .LEFT_BRACE { return -1 }
+          }
+          case .RIGHT_BRACKET {
+            if stack.count == 0 || stack.takeLast != .LEFT_BRACKET { return -1 }
+          }
+          case .RIGHT_PARENTHESIS {
+            if stack.count == 0 || stack.takeLast != .LEFT_PARENTHESIS { return -1 }
+          }
+        }
+        i++
+      }
+      return -1
+    }
+
+    var forceMultiLine = -1
+
     var handleBraces = () => {
+      var rightBrace = indexOfClosingBrace()
+      var isMultiLine = rightBrace != -1 && _hasNewline(input.slice(
+        tokens[tokenIndex - 1].range.end,
+        tokens[rightBrace].range.start))
+      if isMultiLine {
+        forceMultiLine = tokenIndex
+      }
       nesting++
       while handleStatement() {
       }
       nesting--
+      if isMultiLine {
+        forceMultiLine = tokenIndex
+      }
       consumeIf(kind => kind == .RIGHT_BRACE)
     }
 
@@ -385,9 +431,12 @@ namespace GLSLX.Formatter {
       if !when(token.kind) || token.kind == .END_OF_FILE {
         return false
       }
-      tokenIndex++
 
-      var newlines = prevKind == .END_OF_FILE ? "" : _formatWhitespace(input.slice(prevEnd, token.range.start), indent, newline)
+      var newlines =
+        forceMultiLine == tokenIndex ? "\n" :
+        prevKind == .END_OF_FILE ? "" :
+        _formatWhitespace(input.slice(prevEnd, token.range.start), indent, newline)
+      tokenIndex++
       text += newlines
       if newlines != "" {
         isStartOfLine = true
