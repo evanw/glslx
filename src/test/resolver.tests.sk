@@ -449,6 +449,9 @@ void main() {
 
 # Must assign to a location with storage
 test("
+uniform int a;
+uniform vec2 b;
+
 void main(int x, vec2 y) {
   // Bad
   0 = 0;
@@ -481,38 +484,56 @@ void main(int x, vec2 y) {
   // Good
   y[0]++;
   --y[0];
+
+  // Bad
+  a = 0;
+  a++;
+  b.x = 0.0;
+  b.x += 0.0;
 }
 ", "
-<stdin>:3:3: error: Cannot store to this location
+<stdin>:6:3: error: Cannot store to this location
   0 = 0;
   ^
-<stdin>:4:3: error: Cannot store to this location
+<stdin>:7:3: error: Cannot store to this location
   vec2(0.0) = vec2(0.0);
   ~~~~~~~~~
-<stdin>:5:3: error: Cannot store to this location
+<stdin>:8:3: error: Cannot store to this location
   vec2(0.0).y = 0.0;
   ~~~~~~~~~~~
-<stdin>:6:3: error: Cannot store to this location
+<stdin>:9:3: error: Cannot store to this location
   vec2(0.0)[0] = 0.0;
   ~~~~~~~~~~~~
-<stdin>:15:3: error: Cannot store to this location
+<stdin>:18:3: error: Cannot store to this location
   0 += 0;
   ^
-<stdin>:16:3: error: Cannot store to this location
+<stdin>:19:3: error: Cannot store to this location
   vec2(0.0) += vec2(0.0);
   ~~~~~~~~~
-<stdin>:17:3: error: Cannot store to this location
+<stdin>:20:3: error: Cannot store to this location
   vec2(0.0).y += 0.0;
   ~~~~~~~~~~~
-<stdin>:18:3: error: Cannot store to this location
+<stdin>:21:3: error: Cannot store to this location
   vec2(0.0)[0] += 0.0;
   ~~~~~~~~~~~~
-<stdin>:27:3: error: Cannot store to this location
+<stdin>:30:3: error: Cannot store to this location
   vec2(0.0)[0]++;
   ~~~~~~~~~~~~
-<stdin>:28:5: error: Cannot store to this location
+<stdin>:31:5: error: Cannot store to this location
   --vec2(0.0)[0];
     ~~~~~~~~~~~~
+<stdin>:38:3: error: Cannot store to this location
+  a = 0;
+  ^
+<stdin>:39:3: error: Cannot store to this location
+  a++;
+  ^
+<stdin>:40:3: error: Cannot store to this location
+  b.x = 0.0;
+  ~~~
+<stdin>:41:3: error: Cannot store to this location
+  b.x += 0.0;
+  ~~~
 ")
 
 # Cannot assign to a constant

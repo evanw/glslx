@@ -675,7 +675,7 @@ class GLSLX.Resolver {
 
       switch n.kind {
         case .NAME {
-          if n.symbol.isConst {
+          if n.symbol.isConst || n.symbol.isUniform {
             _log.semanticErrorBadStorage(node.range)
           }
           break
