@@ -8,5 +8,6 @@
     "glslx": "glslx"
   },
   "main": "glslx",
+  "types": "glslx.d.ts",
   "author": "Evan Wallace"
 }
