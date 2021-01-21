@@ -236,6 +236,12 @@ namespace GLSLX.Formatter {
 
     # Scan over non-block bodies until the ending ";"
     var handleBody = () => {
+      # A comment on the same line doesn't count as a body
+      while consumeIf(kind => (kind == .SINGLE_LINE_COMMENT || kind == .MULTI_LINE_COMMENT) && !_hasNewline(input.slice(
+        tokens[tokenIndex - 1].range.end,
+        tokens[tokenIndex].range.end))) {
+      }
+
       if !consumeIf(kind => kind == .LEFT_BRACE) {
         nesting++
         handleStatement()
