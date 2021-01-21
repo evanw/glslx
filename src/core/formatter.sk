@@ -236,17 +236,19 @@ namespace GLSLX.Formatter {
 
     # Scan over non-block bodies until the ending ";"
     var handleBody = () => {
-      # A comment on the same line doesn't count as a body
-      while consumeIf(kind => (kind == .SINGLE_LINE_COMMENT || kind == .MULTI_LINE_COMMENT) && !_hasNewline(input.slice(
-        tokens[tokenIndex - 1].range.end,
-        tokens[tokenIndex].range.end))) {
+      var intended = 1
+      for i = tokenIndex; i < tokens.count; i++ {
+        switch tokens[i].kind {
+          # A comment doesn't count as a body
+          case .SINGLE_LINE_COMMENT, .MULTI_LINE_COMMENT { continue }
+          case .LEFT_BRACE { intended = 0 }
+        }
+        break
       }
 
-      if !consumeIf(kind => kind == .LEFT_BRACE) {
-        nesting++
-        handleStatement()
-        nesting--
-      }
+      nesting += intended
+      handleStatement()
+      nesting -= intended
     }
 
     # "if" or "for" or "while"
