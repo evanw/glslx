@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  push:
+    branches: [ '*' ]
+  pull_request:
+    branches: [ '*' ]
+
+jobs:
+
+  glslx:
+    name: CI
+    runs-on: ubuntu-latest
+
+    steps:
+
+    - name: Setup Node.js environment
+      uses: actions/setup-node@v1.4.4
+      with:
+        node-version: 12
+
+    - name: Check out code
+      uses: actions/checkout@v2
+
+    - name: npm ci
+      run: npm ci
+
+    - name: make test
+      run: make test
