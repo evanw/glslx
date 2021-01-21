@@ -62,7 +62,7 @@ class GLSLX.Renamer {
             }
             symbol.name = name
           }
-          if symbol.isAttributeOrUniform {
+          if !symbol.isImported && symbol.isAttributeOrUniform {
             renaming[old] = symbol.name
           }
         }

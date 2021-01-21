@@ -104,6 +104,26 @@ export void bar() { float local = global; gl_FragColor = vec4(local + internal);
 }
 ").removeWhitespace.trimSymbols.generateOutput(.JSON)
 
+# Test JSON generation without trimming
+test("
+uniform float global;
+varying float internal;
+
+export void foo() {}
+", "
+{
+  \"shaders\": [
+    {
+      \"name\": \"foo\",
+      \"contents\": \"uniform float global;varying float internal;void main(){}\"
+    }
+  ],
+  \"renaming\": {
+    \"global\": \"global\"
+  }
+}
+").removeWhitespace.generateOutput(.JSON)
+
 # Test JSON generation with renaming
 test("
 uniform float global;
