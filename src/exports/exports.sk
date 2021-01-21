@@ -124,12 +124,13 @@ Advanced:
     if input is List<dynamic> {
       var sources List<Source> = []
       for i in 0..input.length {
-        sources.append(Source.new(input[i].name, input[i].contents))
+        const item = input[i]
+        sources.append(Source.new(item.name as string, item.contents as string))
       }
       return sources
     }
 
-    return [Source.new(input.name, input.contents)]
+    return [Source.new(input.name as string, input.contents as string)]
   }
 
   const rangeToJSON = (range Range) dynamic => {

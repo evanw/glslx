@@ -1,4 +1,4 @@
-// This is for '#include'
+type CompileInput = string | { name: string, contents: string } | { name: string, contents: string }[];
 type FileAccess = (filePath: string, relativeTo: string) => (null | string | { name: string, contents: string });
 
 interface CompileArgs {
@@ -7,16 +7,16 @@ interface CompileArgs {
   disableRewriting?: boolean; // Default: false
   prettyPrint?: boolean; // Default: false
   keepSymbols?: boolean; // Default: false
-  fileAccess?: FileAccess;
+  fileAccess?: FileAccess; // For '#include'
 }
 
-export function compile(input: string, args?: CompileArgs): {
+export function compile(input: CompileInput, args?: CompileArgs): {
   log: string;
   output: string | null;
 };
 
 interface CompileArgsIDE {
-  fileAccess?: FileAccess;
+  fileAccess?: FileAccess; // For '#include'
 }
 
 interface LineColumn {
@@ -30,7 +30,7 @@ interface Range {
   end: LineColumn;
 }
 
-export function compileIDE(input: string, args?: CompileArgsIDE): {
+export function compileIDE(input: CompileInput, args?: CompileArgsIDE): {
   diagnostics: {
     kind: 'error' | 'warning';
     text: string;
