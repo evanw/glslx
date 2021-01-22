@@ -136,10 +136,11 @@ namespace GLSLX.Parser {
 
     # Dot
     pratt.parselet(.DOT, .MEMBER).infix = (context, left) => {
+      var dot = context.current.range
       context.next
       var name = context.current.range
       if !context.expect(.IDENTIFIER) {
-        return null
+        return Node.createDot(left, "").withRange(context.spanSince(left.range)).withInternalRange(dot.rangeAtEnd)
       }
       return Node.createDot(left, name.toString).withRange(context.spanSince(left.range)).withInternalRange(name)
     }

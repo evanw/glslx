@@ -250,7 +250,7 @@ Advanced:
             if index != -1 && result != null {
               var query = IDE.SymbolQuery.new(source, index)
               query.run(result)
-              if query.symbol != null && query.symbol.range.source.name != API_NAME {
+              if query.symbol != null && query.symbol.range != null && query.symbol.range.source.name != API_NAME {
                 definition = query.symbol.range
                 range = query.range
                 symbol = query.symbol.name
@@ -339,6 +339,36 @@ Advanced:
       }
     }
 
+    var handleCompletionQuery = (message dynamic) dynamic => {
+      var name string = message.source + ""
+      var line int = message.line | 0
+      var column int = message.column | 0
+      var completions List<dynamic> = []
+
+      if sources != null {
+        for source in sources {
+          if source.name == name {
+            var index = source.lineColumnToIndex(line, column)
+            if index != -1 && result != null {
+              var completionQuery = IDE.CompletionQuery.new(source, index)
+              completionQuery.run(result)
+              completions = completionQuery.completions.map<dynamic>(completion => ({
+                "kind": completion.kind,
+                "name": completion.name,
+                "detail": completion.detail,
+              }))
+            }
+          }
+        }
+      }
+
+      return {
+        "type": "completion-query",
+        "id": message.id,
+        "completions": completions,
+      }
+    }
+
     return {
       "diagnostics": log.diagnostics.map<dynamic>(diagnostic => ({
         "kind": diagnostic.kind.toString.toLowerCase,
@@ -349,6 +379,7 @@ Advanced:
       "definitionQuery": handleDefinitionQuery,
       "symbolsQuery": handleSymbolsQuery,
       "renameQuery": handleRenameQuery,
+      "completionQuery": handleCompletionQuery,
     }
   }
 

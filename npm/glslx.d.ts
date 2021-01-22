@@ -104,12 +104,32 @@ export interface RenameResponse {
   symbol: string;
 }
 
+export interface CompletionRequest {
+  id?: any;
+  source: string;
+  line: number;
+  column: number;
+}
+
+export interface CompletionResponse {
+  type: 'completion-query';
+  id?: any;
+  completions: Completion[];
+}
+
+export interface Completion {
+  kind: 'variable' | 'function' | 'struct' | 'keyword';
+  name: string;
+  detail: string;
+}
+
 export interface CompileResultIDE {
   diagnostics: Diagnostic[];
   tooltipQuery(message: TooltipRequest): TooltipResponse;
   definitionQuery(message: DefinitionRequest): DefinitionResponse;
   symbolsQuery(message: SymbolsRequest): SymbolsResponse;
   renameQuery(message: RenameRequest): RenameResponse;
+  completionQuery(message: CompletionRequest): CompletionResponse;
 }
 
 export function compileIDE(input: CompileInput, args?: CompileArgsIDE): CompileResultIDE;

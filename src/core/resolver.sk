@@ -624,7 +624,7 @@ class GLSLX.Resolver {
 
   def _validateSwizzle(range Range, type Type, name string, isAssignTarget bool) Type {
     var count = name.count
-    if count > 4 {
+    if count < 1 || count > 4 {
       _log.semanticErrorBadSwizzle(range, type, name)
       return .ERROR
     }

@@ -23,6 +23,63 @@ namespace GLSLX.IDE {
     return null
   }
 
+  def _tooltipForSymbol(symbol Symbol) string {
+    if symbol.isStruct {
+      var struct = symbol.asStruct
+      var text = "\(struct.flags)struct \(symbol.name)"
+
+      if !struct.isNative {
+        text += " {\n"
+        for variable in struct.variables {
+          text += "  \(_variableTooltipText(variable));\n"
+        }
+        text += "}"
+      }
+
+      return text + ";"
+    }
+
+    if symbol.isVariable {
+      var variable = symbol.asVariable
+      var text = _variableTooltipText(variable)
+
+      if variable.constantValue != null {
+        var constantValue = constantValueToString(variable.constantValue)
+        if constantValue != null {
+          text += " = " + constantValue
+        }
+      }
+
+      return text + ";"
+    }
+
+    if symbol.isFunction {
+      var function = symbol.asFunction
+      var text = "\(function.flags)\(function.returnType.resolvedType) \(symbol.name)("
+
+      for argument in function.arguments {
+        if argument != function.arguments.first {
+          text += ", "
+        }
+        text += _variableTooltipText(argument)
+      }
+
+      return text + ");"
+    }
+
+    assert(false)
+    return null
+  }
+
+  def _variableTooltipText(variable VariableSymbol) string {
+    var type = variable.type.resolvedType
+    var text = "\(variable.flags)\(type.isArrayOf ?? type) \(variable.name)"
+    if type.isArrayOf != null {
+      text += type.arrayCount != 0 ? "[\(type.arrayCount)]" : "[]"
+    }
+    return text
+  }
+
   class SymbolQuery {
     const source Source
     const index int
@@ -39,50 +96,7 @@ namespace GLSLX.IDE {
       }
 
       if symbol != null {
-        if symbol.isStruct {
-          var struct = symbol.asStruct
-          var text = "\(struct.flags)struct \(symbol.name)"
-
-          if !struct.isNative {
-            text += " {\n"
-            for variable in struct.variables {
-              text += "  \(_variableText(variable));\n"
-            }
-            text += "}"
-          }
-
-          return text + ";"
-        }
-
-        if symbol.isVariable {
-          var variable = symbol.asVariable
-          var text = _variableText(variable)
-
-          if variable.constantValue != null {
-            var constantValue = constantValueToString(variable.constantValue)
-            if constantValue != null {
-              text += " = " + constantValue
-            }
-          }
-
-          return text + ";"
-        }
-
-        if symbol.isFunction {
-          var function = symbol.asFunction
-          var text = "\(function.flags)\(function.returnType.resolvedType) \(symbol.name)("
-
-          for argument in function.arguments {
-            if argument != function.arguments.first {
-              text += ", "
-            }
-            text += _variableText(argument)
-          }
-
-          return text + ");"
-        }
-
-        assert(false)
+        return _tooltipForSymbol(symbol)
       }
 
       return null
@@ -187,17 +201,6 @@ namespace GLSLX.IDE {
       }
 
       return false
-    }
-  }
-
-  namespace SymbolQuery {
-    def _variableText(variable VariableSymbol) string {
-      var type = variable.type.resolvedType
-      var text = "\(variable.flags)\(type.isArrayOf ?? type) \(variable.name)"
-      if type.isArrayOf != null {
-        text += type.arrayCount != 0 ? "[\(type.arrayCount)]" : "[]"
-      }
-      return text
     }
   }
 
@@ -312,6 +315,165 @@ namespace GLSLX.IDE {
           case .STRUCT { _visitStruct(node.symbol.asStruct) }
         }
       }
+    }
+  }
+
+  class Completion {
+    const kind string
+    const name string
+    var detail = ""
+  }
+
+  class CompletionQuery {
+    const source Source
+    const index int
+    const _map StringMap<Completion> = {}
+    var completions List<Completion> = []
+
+    def run(global Node) {
+      _addTextualCompletion("keyword", "false")
+      _addTextualCompletion("keyword", "true")
+      _addTextualCompletion("keyword", "void")
+
+      for type in Type.BUILT_INS {
+        _addTextualCompletion("struct", type.symbol.name).detail = _tooltipForSymbol(type.symbol)
+      }
+
+      _visit(global, true)
+    }
+
+    def _touches(range Range) bool {
+      return range != null && range.source == source && range.touches(index)
+    }
+
+    def _addTextualCompletion(kind string, name string) Completion {
+      var completion Completion
+      if name in _map {
+        completion = _map[name]
+      } else {
+        completion = Completion.new(kind, name)
+        completions.append(completion)
+        _map[name] = completion
+      }
+      return completion
+    }
+
+    def _addSymbolCompletion(symbol Symbol) {
+      const kind =
+        symbol.isFunction ? "function" :
+        symbol.isStruct ? "struct" :
+        "variable"
+      const completion = _addTextualCompletion(kind, symbol.name)
+      if completion.detail != "" {
+        completion.detail += "\n"
+      }
+      completion.detail += _tooltipForSymbol(symbol)
+    }
+
+    def _visit(node Node, isGlobal bool) bool {
+      if node == null {
+        return false
+      }
+
+      var touches = _touches(node.range)
+
+      switch node.kind {
+        case .FUNCTION {
+          _addSymbolCompletion(node.symbol)
+          if touches {
+            var function = node.symbol.asFunction
+            _addTextualCompletion("keyword", "discard")
+            _addTextualCompletion("keyword", "return")
+            for arg in function.arguments {
+              _addSymbolCompletion(arg)
+            }
+            _visit(function.block, false)
+          }
+        }
+
+        case .VARIABLE {
+          _addSymbolCompletion(node.symbol)
+        }
+
+        case .STRUCT {
+          _addSymbolCompletion(node.symbol)
+        }
+
+        case .FOR, .WHILE, .DO_WHILE {
+          if touches {
+            _addTextualCompletion("keyword", "break")
+            _addTextualCompletion("keyword", "continue")
+          }
+        }
+
+        case .DOT {
+          const dotTarget = node.dotTarget
+          if touches && !_touches(dotTarget.range) {
+            completions = []
+            const type = dotTarget.resolvedType
+
+            switch type {
+              case .BVEC2, .IVEC2, .VEC2, .BVEC3, .IVEC3, .VEC3, .BVEC4, .IVEC4, .VEC4 {
+                for set in Swizzle.strings(type.componentCount) {
+                  for count = 1; count <= 4; count++ {
+                    var counters List<int> = []
+                    for i = 0; i < count; i++ {
+                      counters.append(0)
+                    }
+
+                    # Generate all valid permutations
+                    while true {
+                      var name = ""
+                      for i = 0; i < count; i++ {
+                        name += set.get(counters[i])
+                      }
+                      const symbol = Swizzle.type(type.componentType, name.count).symbol
+                      _addTextualCompletion("variable", name).detail = "\(symbol.name) \(name);"
+
+                      # Increment and carry
+                      var i = 0
+                      while i < count {
+                        var counter = counters[i]
+                        if ++counter == set.count {
+                          counter = 0
+                        }
+                        counters[i] = counter
+                        if counter != 0 {
+                          break
+                        }
+                        i++
+                      }
+                      if i == count {
+                        break
+                      }
+                    }
+                  }
+                }
+              }
+
+              default {
+                if type.symbol != null && type.symbol.isStruct {
+                  for variable in type.symbol.asStruct.variables {
+                    _addSymbolCompletion(variable)
+                  }
+                }
+              }
+            }
+
+            return true
+          }
+        }
+      }
+
+      if isGlobal || touches || node.kind == .VARIABLES {
+        for child = node.firstChild; child != null; child = child.nextSibling {
+          if _visit(child, false) {
+            return true
+          }
+        }
+      }
+
+      return touches
     }
   }
 }

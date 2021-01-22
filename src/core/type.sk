@@ -144,5 +144,25 @@ namespace GLSLX {
     const VEC3 = StructSymbol.new(-17, null, "vec3", null).resolvedType
     const VEC4 = StructSymbol.new(-18, null, "vec4", null).resolvedType
     const VOID = StructSymbol.new(-19, null, "void", null).resolvedType
+
+    const BUILT_INS = [
+      BOOL,
+      BVEC2,
+      BVEC3,
+      BVEC4,
+      FLOAT,
+      INT,
+      IVEC2,
+      IVEC3,
+      IVEC4,
+      MAT2,
+      MAT3,
+      MAT4,
+      SAMPLER2D,
+      SAMPLERCUBE,
+      VEC2,
+      VEC3,
+      VEC4,
+    ]
   }
 }
