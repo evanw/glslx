@@ -147,7 +147,7 @@ namespace GLSLX.Compiler {
     }
 
     # Generate tokens once
-    sources.prepend(Source.new("<api>", API))
+    sources.prepend(Source.new(API_NAME, API))
     for source in sources {
       source.tokens = Tokenizer.tokenize(log, source, .COMPILE)
     }
@@ -175,7 +175,7 @@ namespace GLSLX.Compiler {
     }
 
     # Generate tokens once
-    sources.prepend(Source.new("<api>", API))
+    sources.prepend(Source.new(API_NAME, API))
     for source in sources {
       source.tokens = Tokenizer.tokenize(log, source, .COMPILE)
     }

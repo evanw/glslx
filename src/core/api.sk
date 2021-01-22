@@ -1,5 +1,6 @@
 namespace GLSLX {
   # This is from https://www.khronos.org/registry/gles/specs/2.0/GLSL_ES_Specification_1.0.17.pdf
+  const API_NAME = "<api>"
   const API = "
 import {
   highp vec4 gl_Position; // should be written to

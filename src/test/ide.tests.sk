@@ -115,5 +115,15 @@ void foo() {
   expect("void foo();", ide.tooltipQuery(4, 2))
 })
 
+# Check built-ins
+testIDE("
+void main() {
+  gl_Position = vec4(0);
+}
+", "
+", (ide, expect) => {
+  expect("highp vec4 gl_Position;", ide.tooltipQuery(1, 2))
+})
+
   }
 }

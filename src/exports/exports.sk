@@ -250,7 +250,7 @@ Advanced:
             if index != -1 && result != null {
               var query = IDE.SymbolQuery.new(source, index)
               query.run(result)
-              if query.symbol != null {
+              if query.symbol != null && query.symbol.range.source.name != API_NAME {
                 definition = query.symbol.range
                 range = query.range
                 symbol = query.symbol.name
@@ -320,7 +320,7 @@ Advanced:
             if index != -1 && result != null {
               var renameQuery = IDE.RenameQuery.new(source, index)
               renameQuery.run(result)
-              if renameQuery.symbol != null {
+              if renameQuery.symbol != null && renameQuery.symbol.range.source.name != API_NAME {
                 ranges = renameQuery.ranges.map<dynamic>(rangeToJSON)
                 symbol = renameQuery.symbol.name
               }
