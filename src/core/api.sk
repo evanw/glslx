@@ -120,34 +120,68 @@ import {
   ////////////////////////////////////////////////////////////////////////////////
   // Exponential Functions
 
-  float exp(float x);
-  float exp2(float x);
-  float inversesqrt(float x);
-  float log(float x);
-  float log2(float x);
+  // Returns `x` raised to the `y` power, i.e., `xʸ`. Results are undefined if `x < 0`. Results are undefined if `x = 0` and `y <= 0`.
   float pow(float x, float y);
-  float sqrt(float x);
-  vec2 exp(vec2 x);
-  vec2 exp2(vec2 x);
-  vec2 inversesqrt(vec2 x);
-  vec2 log(vec2 x);
-  vec2 log2(vec2 x);
+  // Returns `x` raised to the `y` power, i.e., `xʸ`. Results are undefined if `x < 0`. Results are undefined if `x = 0` and `y <= 0`.
   vec2 pow(vec2 x, vec2 y);
-  vec2 sqrt(vec2 x);
-  vec3 exp(vec3 x);
-  vec3 exp2(vec3 x);
-  vec3 inversesqrt(vec3 x);
-  vec3 log(vec3 x);
-  vec3 log2(vec3 x);
+  // Returns `x` raised to the `y` power, i.e., `xʸ`. Results are undefined if `x < 0`. Results are undefined if `x = 0` and `y <= 0`.
   vec3 pow(vec3 x, vec3 y);
-  vec3 sqrt(vec3 x);
-  vec4 exp(vec4 x);
-  vec4 exp2(vec4 x);
-  vec4 inversesqrt(vec4 x);
-  vec4 log(vec4 x);
-  vec4 log2(vec4 x);
+  // Returns `x` raised to the `y` power, i.e., `xʸ`. Results are undefined if `x < 0`. Results are undefined if `x = 0` and `y <= 0`.
   vec4 pow(vec4 x, vec4 y);
+
+  // Returns the natural exponentiation of `x`, i.e., `eˣ`
+  float exp(float x);
+  // Returns the natural exponentiation of `x`, i.e., `eˣ`
+  vec2 exp(vec2 x);
+  // Returns the natural exponentiation of `x`, i.e., `eˣ`
+  vec3 exp(vec3 x);
+  // Returns the natural exponentiation of `x`, i.e., `eˣ`
+  vec4 exp(vec4 x);
+
+  // Returns the natural logarithm of `x`, i.e., returns the value `y` which satisfies the equation `x = eʸ`. Results are undefined if `x <= 0`.
+  float log(float x);
+  // Returns the natural logarithm of `x`, i.e., returns the value `y` which satisfies the equation `x = eʸ`. Results are undefined if `x <= 0`.
+  vec2 log(vec2 x);
+  // Returns the natural logarithm of `x`, i.e., returns the value `y` which satisfies the equation `x = eʸ`. Results are undefined if `x <= 0`.
+  vec3 log(vec3 x);
+  // Returns the natural logarithm of `x`, i.e., returns the value `y` which satisfies the equation `x = eʸ`. Results are undefined if `x <= 0`.
+  vec4 log(vec4 x);
+
+  // Returns 2 raised to the `x` power, i.e., `2ˣ`.
+  float exp2(float x);
+  // Returns 2 raised to the `x` power, i.e., `2ˣ`.
+  vec2 exp2(vec2 x);
+  // Returns 2 raised to the `x` power, i.e., `2ˣ`.
+  vec3 exp2(vec3 x);
+  // Returns 2 raised to the `x` power, i.e., `2ˣ`.
+  vec4 exp2(vec4 x);
+
+  // Returns the base 2 logarithm of `x`, i.e., returns the value `y` which satisfies the equation `x = 2ʸ`. Results are undefined if `x <= 0`.
+  float log2(float x);
+  // Returns the base 2 logarithm of `x`, i.e., returns the value `y` which satisfies the equation `x = 2ʸ`. Results are undefined if `x <= 0`.
+  vec2 log2(vec2 x);
+  // Returns the base 2 logarithm of `x`, i.e., returns the value `y` which satisfies the equation `x = 2ʸ`. Results are undefined if `x <= 0`.
+  vec3 log2(vec3 x);
+  // Returns the base 2 logarithm of `x`, i.e., returns the value `y` which satisfies the equation `x = 2ʸ`. Results are undefined if `x <= 0`.
+  vec4 log2(vec4 x);
+
+  // Returns `√x`. Results are undefined if `x < 0`.
+  float sqrt(float x);
+  // Returns `√x`. Results are undefined if `x < 0`.
+  vec2 sqrt(vec2 x);
+  // Returns `√x`. Results are undefined if `x < 0`.
+  vec3 sqrt(vec3 x);
+  // Returns `√x`. Results are undefined if `x < 0`.
   vec4 sqrt(vec4 x);
+
+  // Returns `1 / √x`. Results are undefined if `x <= 0`.
+  float inversesqrt(float x);
+  // Returns `1 / √x`. Results are undefined if `x <= 0`.
+  vec2 inversesqrt(vec2 x);
+  // Returns `1 / √x`. Results are undefined if `x <= 0`.
+  vec3 inversesqrt(vec3 x);
+  // Returns `1 / √x`. Results are undefined if `x <= 0`.
+  vec4 inversesqrt(vec4 x);
 
   ////////////////////////////////////////////////////////////////////////////////
   // Common Functions
