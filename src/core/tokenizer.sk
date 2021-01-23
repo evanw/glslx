@@ -148,6 +148,7 @@ namespace GLSLX {
   class Token {
     var range Range
     var kind TokenKind
+    var comments List<Range>
   }
 }
 
@@ -160,6 +161,8 @@ namespace GLSLX.Tokenizer {
   def tokenize(log Log, source Source, purpose TokenPurpose) List<Token> {
     var parts List<string> = (source.contents as dynamic).split(_tokenRegex)
     var tokens List<Token> = []
+    var comments List<Range> = null
+    var prevCommentTokenCount = 0
     var start = 0
 
     for i in 0..parts.count {
@@ -175,17 +178,17 @@ namespace GLSLX.Tokenizer {
         if c >= 'A' && c <= 'Z' || c >= 'a' && c <= 'z' || c == '_' {
           var keyword = keywords.get(part, .END_OF_FILE)
           if keyword != .END_OF_FILE {
-            tokens.append(Token.new(range, keyword))
+            tokens.append(Token.new(range, keyword, comments))
           } else if part in reservedWords {
             log.syntaxErrorReservedWord(range)
           } else {
-            tokens.append(Token.new(range, .IDENTIFIER))
+            tokens.append(Token.new(range, .IDENTIFIER, comments))
           }
         }
 
         # Number
         else if c >= '0' && c <= '9' || c == '.' && count > 1 {
-          tokens.append(Token.new(range, _intRegex.test(part) ? .INT_LITERAL : .FLOAT_LITERAL))
+          tokens.append(Token.new(range, _intRegex.test(part) ? .INT_LITERAL : .FLOAT_LITERAL, comments))
         }
 
         # Pragma
@@ -196,26 +199,34 @@ namespace GLSLX.Tokenizer {
             case "#extension" { kind = .EXTENSION }
             case "#include" { kind = .INCLUDE }
           }
-          tokens.append(Token.new(range, kind))
+          tokens.append(Token.new(range, kind, comments))
         }
 
         # String literal
         else if c == '"' {
-          tokens.append(Token.new(range, .STRING_LITERAL))
+          tokens.append(Token.new(range, .STRING_LITERAL, comments))
         }
 
         # Operator
         else {
           var kind = operators.get(part, .END_OF_FILE)
-          if purpose == .FORMAT && kind == .END_OF_FILE {
+          if kind == .END_OF_FILE {
             if part.startsWith("//") {
-              kind = .SINGLE_LINE_COMMENT
+              if purpose == .FORMAT {
+                kind = .SINGLE_LINE_COMMENT
+              } else {
+                (comments ?= []).append(range)
+              }
             } else if part.startsWith("/*") {
-              kind = .MULTI_LINE_COMMENT
+              if purpose == .FORMAT {
+                kind = .MULTI_LINE_COMMENT
+              } else {
+                (comments ?= []).append(range)
+              }
             }
           }
           if kind != .END_OF_FILE {
-            tokens.append(Token.new(range, kind))
+            tokens.append(Token.new(range, kind, comments))
           }
         }
       }
@@ -225,10 +236,16 @@ namespace GLSLX.Tokenizer {
         break
       }
 
+      # Reset the comment list after every non-comment token
+      if tokens.count != prevCommentTokenCount {
+        comments = null
+        prevCommentTokenCount = tokens.count
+      }
+
       start = end
     }
 
-    tokens.append(Token.new(Range.new(source, start, start), .END_OF_FILE))
+    tokens.append(Token.new(Range.new(source, start, start), .END_OF_FILE, comments))
     return tokens
   }
 

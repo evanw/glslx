@@ -49,6 +49,7 @@ export interface TooltipResponse {
   tooltip: string | null;
   range: Range | null;
   symbol: string | null;
+  documentation: string | null;
 }
 
 export interface DefinitionRequest {
@@ -102,6 +103,7 @@ export interface Completion {
   kind: 'variable' | 'function' | 'struct' | 'keyword';
   name: string;
   detail: string;
+  documentation: string;
 }
 
 export interface SignatureRequest {
@@ -119,6 +121,7 @@ export interface SignatureResponse {
 export interface Signature {
   text: string;
   arguments: string[];
+  documentation: string;
 }
 
 export interface CompileResultIDE {

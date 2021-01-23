@@ -341,6 +341,7 @@ namespace GLSLX.Parser {
     var setup Node = null
     if !context.eat(.SEMICOLON) {
       # Check for a type
+      var comments = parseLeadingComments(context)
       var flags = parseFlags(context, .LOCAL)
       var type Node = null
       if flags != 0 {
@@ -354,7 +355,7 @@ namespace GLSLX.Parser {
 
       # Try to parse a variable
       if type != null {
-        setup = parseAfterType(context, token.range, flags, type, .AVOID_FUNCTIONS)
+        setup = parseAfterType(context, token.range, flags, type, .AVOID_FUNCTIONS, comments)
         if setup == null {
           return null
         }
@@ -494,7 +495,7 @@ namespace GLSLX.Parser {
     return checkForSemicolon(context, token.range, Node.createPrecision(flag, type))
   }
 
-  def parseStruct(context ParserContext, flags int) Node {
+  def parseStruct(context ParserContext, flags int, comments List<string>) Node {
     var name = context.current.range
     if !context.expect(.IDENTIFIER) {
       return null
@@ -502,6 +503,7 @@ namespace GLSLX.Parser {
 
     var symbol = StructSymbol.new(context.compilationData.nextSymbolID, name, name.toString, Scope.new(.STRUCT, context.scope))
     symbol.flags |= context.flags | flags
+    symbol.comments = comments
     if !tryToDefineUniquelyInScope(context, symbol) {
       return null
     }
@@ -550,7 +552,7 @@ namespace GLSLX.Parser {
     #   struct S { int x; } y, z[2];
     #
     if context.peek(.IDENTIFIER) {
-      variables = parseVariables(0, Node.createType(symbol.resolvedType), context.next.range, context)
+      variables = parseVariables(0, Node.createType(symbol.resolvedType), context.next.range, context, comments)
       if variables == null {
         return null
       }
@@ -587,7 +589,7 @@ namespace GLSLX.Parser {
     ALLOW_FUNCTIONS
   }
 
-  def parseAfterType(context ParserContext, range Range, flags SymbolFlags, type Node, allow Allow) Node {
+  def parseAfterType(context ParserContext, range Range, flags SymbolFlags, type Node, allow Allow, comments List<string>) Node {
     var name = context.current.range
     if flags == 0 && !context.peek(.IDENTIFIER) {
       var value = pratt.resume(context, .LOWEST, type)
@@ -600,13 +602,56 @@ namespace GLSLX.Parser {
       return null
     }
     if context.eat(.LEFT_PARENTHESIS) {
-      return parseFunction(flags, type, name, context)
+      return parseFunction(flags, type, name, context, comments)
     }
-    var variables = parseVariables(flags, type, name, context)
+    var variables = parseVariables(flags, type, name, context, comments)
     if variables == null {
       return null
     }
     return variables.withRange(context.spanSince(range))
+  }
+
+  def parseLeadingComments(context ParserContext) List<string> {
+    var firstToken = context.current
+    var comments = firstToken.comments
+    if comments == null {
+      return null
+    }
+
+    var nextRangeStart = firstToken.range.start
+    var leadingComments List<string> = null
+
+    # Scan the comments backwards
+    for i = comments.count - 1; i >= 0; i-- {
+      var comment = comments[i]
+
+      # Count the newlines in between this token and the next token
+      var whitespace = comment.source.contents.slice(comment.end, nextRangeStart)
+      var newlineCount = 0
+      for j = 0; j < whitespace.count; j++ {
+        var c = whitespace[j]
+        if c == '\r' || c == '\n' {
+          newlineCount++
+          if c == '\r' && j + 1 < whitespace.count && whitespace[j + 1] == '\n' {
+            j++
+          }
+        }
+      }
+
+      # Don't count comments if there's a blank line in between the comment and the statement
+      if newlineCount > 1 {
+        break
+      }
+
+      # Otherwise, count this comment
+      (leadingComments ?= []).append(comment.toString)
+      nextRangeStart = comment.start
+    }
+
+    if leadingComments != null {
+      leadingComments.reverse
+    }
+    return leadingComments
   }
 
   def parseStatement(context ParserContext, mode VariableKind) Node {
@@ -630,10 +675,11 @@ namespace GLSLX.Parser {
     }
 
     # Try to parse a variable or function
+    var comments = parseLeadingComments(context)
     var flags = parseFlags(context, mode)
     var type Node = null
     if context.eat(.STRUCT) {
-      var struct = parseStruct(context, flags)
+      var struct = parseStruct(context, flags, comments)
       if struct == null {
         return null
       }
@@ -648,7 +694,7 @@ namespace GLSLX.Parser {
       type = parseType(context, .IGNORE_ERRORS)
     }
     if type != null {
-      return parseAfterType(context, token.range, flags, type, .ALLOW_FUNCTIONS)
+      return parseAfterType(context, token.range, flags, type, .ALLOW_FUNCTIONS, comments)
     }
 
     # Parse an expression
@@ -823,10 +869,11 @@ namespace GLSLX.Parser {
     return Node.createType(type).withRange(context.spanSince(token.range))
   }
 
-  def parseFunction(flags SymbolFlags, type Node, name Range, context ParserContext) Node {
+  def parseFunction(flags SymbolFlags, type Node, name Range, context ParserContext, comments List<string>) Node {
     var originalScope = context.scope
     var function = FunctionSymbol.new(context.compilationData.nextSymbolID, name, name.toString, Scope.new(.FUNCTION, originalScope))
     function.flags |= context.flags | flags | (function.name == "main" ? .EXPORTED : 0)
+    function.comments = comments
     function.returnType = type
     context.pushScope(function.scope)
 
@@ -983,7 +1030,7 @@ namespace GLSLX.Parser {
     return true
   }
 
-  def parseVariables(flags int, type Node, name Range, context ParserContext) Node {
+  def parseVariables(flags int, type Node, name Range, context ParserContext, comments List<string>) Node {
     var variables = Node.createVariables(context.flags | flags, type)
     while true {
       var symbol = VariableSymbol.new(context.compilationData.nextSymbolID, name, name.toString, context.scope,
@@ -991,6 +1038,7 @@ namespace GLSLX.Parser {
         context.scope.kind == .STRUCT ? .STRUCT :
         .LOCAL)
       symbol.flags |= context.flags | flags
+      symbol.comments = comments
       symbol.type = type
 
       # Array size

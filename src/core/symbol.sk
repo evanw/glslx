@@ -42,6 +42,7 @@ namespace GLSLX {
     var name string
     var scope Scope
     var flags SymbolFlags = 0
+    var comments List<string> = null
     var constantValue Node = null
     var requiredExtension string = null
     var _resolvedType Type = null

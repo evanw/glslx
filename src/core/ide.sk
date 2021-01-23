@@ -80,6 +80,44 @@ namespace GLSLX.IDE {
     return text
   }
 
+  def _leadingCommentsToMarkdown(comments List<string>) string {
+    var markdown = ""
+    if comments != null {
+      for comment in comments {
+        var start = 0
+        var end = comment.count
+
+        # Remove the comment marker
+        if comment.startsWith("//") {
+          start += 2
+        } else if comment.startsWith("/*") {
+          start += 2
+          end -= 2
+        }
+
+        # Trim leading and trailing whitespace
+        while start < end && comment[start] == ' ' {
+          start++
+        }
+        while end > start && comment[end - 1] == ' ' {
+          end--
+        }
+
+        # Append the comment content
+        if markdown != "" {
+          markdown += "\n"
+        }
+        markdown += comment.slice(start, end)
+      }
+    }
+    return markdown
+  }
+
+  class Tooltip {
+    const code string
+    const documentation string
+  }
+
   class SymbolQuery {
     const source Source
     const index int
@@ -90,13 +128,13 @@ namespace GLSLX.IDE {
     var swizzleName string = null
     var swizzleType Type = null
 
-    def generateTooltip string {
+    def generateTooltip Tooltip {
       if swizzleName != null {
-        return "\(swizzleType) \(swizzleName);"
+        return Tooltip.new("\(swizzleType) \(swizzleName);", "")
       }
 
       if symbol != null {
-        return _tooltipForSymbol(symbol)
+        return Tooltip.new(_tooltipForSymbol(symbol), _leadingCommentsToMarkdown(symbol.comments))
       }
 
       return null
@@ -322,6 +360,7 @@ namespace GLSLX.IDE {
     const kind string
     const name string
     var detail = ""
+    var documentation = ""
   }
 
   class CompletionQuery {
@@ -366,6 +405,8 @@ namespace GLSLX.IDE {
       const completion = _addTextualCompletion(kind, symbol.name)
       if completion.detail != "" {
         completion.detail += "\n"
+      } else {
+        completion.documentation = _leadingCommentsToMarkdown(symbol.comments)
       }
       completion.detail += _tooltipForSymbol(symbol)
     }
@@ -480,6 +521,7 @@ namespace GLSLX.IDE {
   class Signature {
     const text string
     const arguments List<string>
+    const documentation string
   }
 
   class SignatureQuery {
@@ -547,7 +589,8 @@ namespace GLSLX.IDE {
               for overload in overloads {
                 signatures.append(Signature.new(
                   _tooltipForSymbol(overload),
-                  overload.arguments.map<string>(arg => _variableTooltipText(arg))
+                  overload.arguments.map<string>(arg => _variableTooltipText(arg)),
+                  _leadingCommentsToMarkdown(overload.comments)
                 ))
               }
 
@@ -624,7 +667,8 @@ namespace GLSLX.IDE {
               var fields = symbol.asStruct.variables.map<string>(arg => _variableTooltipText(arg))
               signatures.append(Signature.new(
                 "\(symbol.name)(\(", ".join(fields)));",
-                fields
+                fields,
+                _leadingCommentsToMarkdown(symbol.comments)
               ))
               activeSignature = 0
             }

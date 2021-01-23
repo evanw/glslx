@@ -190,7 +190,7 @@ Advanced:
       var column int = message.column | 0
       var ignoreDiagnostics bool = !!message.ignoreDiagnostics
       var range Range = null
-      var tooltip string = null
+      var tooltip IDE.Tooltip = null
       var symbol string = null
 
       for source in sources {
@@ -201,7 +201,7 @@ Advanced:
             if !ignoreDiagnostics && log != null {
               for diagnostic in log.diagnostics {
                 if diagnostic.range != null && diagnostic.range.source == source && diagnostic.range.touches(index) {
-                  tooltip = diagnostic.text
+                  tooltip = IDE.Tooltip.new(diagnostic.text, "")
                   range = diagnostic.range
                   break
                 }
@@ -224,9 +224,10 @@ Advanced:
       }
 
       return {
-        "tooltip": tooltip,
+        "tooltip": tooltip?.code,
         "range": rangeToJSON(range),
         "symbol": symbol,
+        "documentation": tooltip?.documentation,
       }
     }
 
@@ -349,6 +350,7 @@ Advanced:
               "kind": completion.kind,
               "name": completion.name,
               "detail": completion.detail,
+              "documentation": completion.documentation,
             }))
           }
         }
@@ -378,6 +380,7 @@ Advanced:
             signatures = signatureQuery.signatures.map<dynamic>(signature => ({
               "text": signature.text,
               "arguments": signature.arguments,
+              "documentation": signature.documentation,
             }))
           }
         }
