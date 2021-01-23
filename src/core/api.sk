@@ -3,8 +3,20 @@ namespace GLSLX {
   const API_NAME = "<api>"
   const API = "
 import {
-  highp vec4 gl_Position; // should be written to
-  mediump float gl_PointSize; // may be written to
+  // The variable `gl_Position` is available only in the vertex language and is intended for writing the
+  // homogeneous vertex position. This value will be used by primitive assembly, clipping, culling, and other
+  // fixed functionality operations that operate on primitives after vertex processing has occurred.
+  //
+  // All executions of a well-formed vertex shader should write a value into this variable. It can be
+  // written at any time during shader execution. It may also be read back by the shader after being written.
+  // Compilers may generate a diagnostic message if they detect `gl_Position` is not written, or read before
+  // being written, but not all such cases are detectable. The value of `gl_Position` is undefined if a vertex
+  // shader is executed and does not write `gl_Position`.
+  highp vec4 gl_Position;
+
+  // The variable `gl_PointSize` is available only in the vertex language and is intended for
+  // a vertex shader to write the size of the point to be rasterized. It is measured in pixels.
+  mediump float gl_PointSize;
 
   const int gl_MaxVertexAttribs;
   const int gl_MaxVertexUniformVectors;
@@ -15,16 +27,43 @@ import {
   const int gl_MaxFragmentUniformVectors;
   const int gl_MaxDrawBuffers;
 
+  // The fragment shader has access to the read-only built-in variable `gl_FrontFacing` whose value is `true` if
+  // the fragment belongs to a front-facing primitive. One use of this is to emulate two-sided lighting by
+  // selecting one of two colors calculated by the vertex shader.
   const bool gl_FrontFacing;
+
+  // The fragment shader has access to the read-only built-in variable `gl_PointCoord`. The values in
+  // `gl_PointCoord` are two-dimensional coordinates indicating where within a point primitive the current
+  // fragment is located. They range from 0.0 to 1.0 across the point. If the current primitive is not a
+  // point, then the values read from `gl_PointCoord` are undefined.
   const mediump vec2 gl_PointCoord;
+
+  // The variable `gl_FragCoord` is available as a read-only variable from within fragment shaders and it holds
+  // the window relative coordinates `x`, `y`, `z`, and `1/w` values for the fragment. This value is the result
+  // of the fixed functionality that interpolates primitives after vertex processing to generate fragments. The `z`
+  // component is the depth value that will be used for the fragment's depth.
   const mediump vec4 gl_FragCoord;
+
+  // Writing to `gl_FragColor` specifies the fragment color that will be used by the subsequent fixed
+  // functionality pipeline.
+  //
+  // If subsequent fixed functionality consumes fragment color and an execution of a fragment shader
+  // does not write a value to `gl_FragColor` then the fragment color consumed is undefined.
   mediump vec4 gl_FragColor;
+
+  // The variable `gl_FragData` is an array. Writing to `gl_FragData[n]` specifies the fragment data that will be
+  // used by the subsequent fixed functionality pipeline for data `n`.
+  //
+  // If subsequent fixed functionality consumes fragment data and an execution of a fragment shader does not write
+  // a value to it, then the fragment data consumed is undefined.
   mediump vec4 gl_FragData[gl_MaxDrawBuffers];
 
+  // Depth range in window coordinates
   struct gl_DepthRangeParameters {
-    float near; // n
-    float far; // f
-    float diff; // f - n
+    float near;
+    float far;
+    // Equal to `far - near`
+    float diff;
   };
 
   uniform gl_DepthRangeParameters gl_DepthRange;
