@@ -396,35 +396,118 @@ import {
   ////////////////////////////////////////////////////////////////////////////////
   // Geometric Functions
 
-  float distance(float p0, float p1);
-  float distance(vec2 p0, vec2 p1);
-  float distance(vec3 p0, vec3 p1);
-  float distance(vec4 p0, vec4 p1);
-  float dot(float x, float y);
-  float dot(vec2 x, vec2 y);
-  float dot(vec3 x, vec3 y);
-  float dot(vec4 x, vec4 y);
-  float faceforward(float normal, float incident, float referenceNormal);
+  // Returns the length of vector `x`, i.e. `√x²`
   float length(float x);
+  // Returns the length of vector `x`, i.e. `√x[0]² + x[1]²`
   float length(vec2 x);
+  // Returns the length of vector `x`, i.e. `√x[0]² + x[1]² + x[2]²`
   float length(vec3 x);
+  // Returns the length of vector `x`, i.e. `√x[0]² + x[1]² + x[2]² + x[3]²`
   float length(vec4 x);
-  float normalize(float x);
-  float reflect(float incident, float normal);
-  float refract(float incident, float normal, float eta);
-  vec2 faceforward(vec2 normal, vec2 incident, vec2 referenceNormal);
-  vec2 normalize(vec2 x);
-  vec2 reflect(vec2 incident, vec2 normal);
-  vec2 refract(vec2 incident, vec2 normal, float eta);
+
+  // Returns the distance between `p0` and `p1`, i.e. `length(p0 - p1)`
+  float distance(float p0, float p1);
+  // Returns the distance between `p0` and `p1`, i.e. `length(p0 - p1)`
+  float distance(vec2 p0, vec2 p1);
+  // Returns the distance between `p0` and `p1`, i.e. `length(p0 - p1)`
+  float distance(vec3 p0, vec3 p1);
+  // Returns the distance between `p0` and `p1`, i.e. `length(p0 - p1)`
+  float distance(vec4 p0, vec4 p1);
+
+  // Returns the dot product of `x` and `y`, i.e. `x*y`
+  float dot(float x, float y);
+  // Returns the dot product of `x` and `y`, i.e. `x[0]*y[0] + x[1]*y[1]`
+  float dot(vec2 x, vec2 y);
+  // Returns the dot product of `x` and `y`, i.e. `x[0]*y[0] + x[1]*y[1] + x[2]*y[2]`
+  float dot(vec3 x, vec3 y);
+  // Returns the dot product of `x` and `y`, i.e. `x[0]*y[0] + x[1]*y[1] + x[2]*y[2] + x[3]*y[3]`
+  float dot(vec4 x, vec4 y);
+
+  // Returns the cross product of `x` and `y`, i.e.
+  //
+  // ```glslx
+  // vec3(
+  //   x[1]*y[2] - y[1]*x[2],
+  //   x[2]*y[0] - y[2]*x[0],
+  //   x[0]*y[1] - y[0]*x[1])
+  // ```
   vec3 cross(vec3 x, vec3 y);
-  vec3 faceforward(vec3 normal, vec3 incident, vec3 referenceNormal);
+
+  // Returns a vector in the same direction as `x` but with a length of 1.
+  float normalize(float x);
+  // Returns a vector in the same direction as `x` but with a length of 1.
+  vec2 normalize(vec2 x);
+  // Returns a vector in the same direction as `x` but with a length of 1.
   vec3 normalize(vec3 x);
-  vec3 reflect(vec3 incident, vec3 normal);
-  vec3 refract(vec3 incident, vec3 normal, float eta);
-  vec4 faceforward(vec4 normal, vec4 incident, vec4 referenceNormal);
+  // Returns a vector in the same direction as `x` but with a length of 1.
   vec4 normalize(vec4 x);
-  vec4 reflect(vec4 incident, vec4 normal);
-  vec4 refract(vec4 incident, vec4 normal, float eta);
+
+  // If `dot(Nref, I) < 0` return `N`, otherwise return `-N`
+  float faceforward(float N, float I, float Nref);
+  // If `dot(Nref, I) < 0` return `N`, otherwise return `-N`
+  vec2 faceforward(vec2 N, vec2 I, vec2 Nref);
+  // If `dot(Nref, I) < 0` return `N`, otherwise return `-N`
+  vec3 faceforward(vec3 N, vec3 I, vec3 Nref);
+  // If `dot(Nref, I) < 0` return `N`, otherwise return `-N`
+  vec4 faceforward(vec4 N, vec4 I, vec4 Nref);
+
+  // For the incident vector `I` and surface orientation `N`, returns the reflection direction: `I - 2 * dot(N, I) * N`.
+  // `N` must already be normalized in order to achieve the desired result.
+  float reflect(float I, float N);
+  // For the incident vector `I` and surface orientation `N`, returns the reflection direction: `I - 2 * dot(N, I) * N`.
+  // `N` must already be normalized in order to achieve the desired result.
+  vec2 reflect(vec2 I, vec2 N);
+  // For the incident vector `I` and surface orientation `N`, returns the reflection direction: `I - 2 * dot(N, I) * N`.
+  // `N` must already be normalized in order to achieve the desired result.
+  vec3 reflect(vec3 I, vec3 N);
+  // For the incident vector `I` and surface orientation `N`, returns the reflection direction: `I - 2 * dot(N, I) * N`.
+  // `N` must already be normalized in order to achieve the desired result.
+  vec4 reflect(vec4 I, vec4 N);
+
+  // For the incident vector `I` and surface normal `N`, and the ratio of indices of refraction `eta`, return the refraction vector.
+  // The result is computed by:
+  //
+  // ```glslx
+  // float k = 1.0 - eta * eta * (1.0 - dot(N, I) * dot(N, I));
+  // if (k < 0.0) return float(0.0);
+  // else return eta * I - (eta * dot(N, I) + sqrt(k)) * N;
+  // ```
+  //
+  // The input parameters for the incident vector `I` and the surface normal `N`.
+  float refract(float I, float N, float eta);
+  // For the incident vector `I` and surface normal `N`, and the ratio of indices of refraction `eta`, return the refraction vector.
+  // The result is computed by:
+  //
+  // ```glslx
+  // float k = 1.0 - eta * eta * (1.0 - dot(N, I) * dot(N, I));
+  // if (k < 0.0) return vec2(0.0);
+  // else return eta * I - (eta * dot(N, I) + sqrt(k)) * N;
+  // ```
+  //
+  // The input parameters for the incident vector `I` and the surface normal `N`.
+  vec2 refract(vec2 I, vec2 N, float eta);
+  // For the incident vector `I` and surface normal `N`, and the ratio of indices of refraction `eta`, return the refraction vector.
+  // The result is computed by:
+  //
+  // ```glslx
+  // float k = 1.0 - eta * eta * (1.0 - dot(N, I) * dot(N, I));
+  // if (k < 0.0) return vec3(0.0);
+  // else return eta * I - (eta * dot(N, I) + sqrt(k)) * N;
+  // ```
+  //
+  // The input parameters for the incident vector `I` and the surface normal `N`.
+  vec3 refract(vec3 I, vec3 N, float eta);
+  // For the incident vector `I` and surface normal `N`, and the ratio of indices of refraction `eta`, return the refraction vector.
+  // The result is computed by:
+  //
+  // ```glslx
+  // float k = 1.0 - eta * eta * (1.0 - dot(N, I) * dot(N, I));
+  // if (k < 0.0) return vec4(0.0);
+  // else return eta * I - (eta * dot(N, I) + sqrt(k)) * N;
+  // ```
+  //
+  // The input parameters for the incident vector `I` and the surface normal `N`.
+  vec4 refract(vec4 I, vec4 N, float eta);
 
   ////////////////////////////////////////////////////////////////////////////////
   // Matrix Functions
