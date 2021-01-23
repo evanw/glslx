@@ -186,75 +186,212 @@ import {
   ////////////////////////////////////////////////////////////////////////////////
   // Common Functions
 
+  // Returns `x` if `x >= 0`, otherwise it returns `-x`.
   float abs(float x);
-  float ceil(float x);
-  float clamp(float x, float minVal, float maxVal);
-  float floor(float x);
-  float fract(float x);
-  float max(float x, float y);
-  float min(float x, float y);
-  float mix(float x, float y, float a);
-  float mod(float x, float y);
-  float sign(float x);
-  float smoothstep(float edge0, float edge1, float x);
-  float step(float edge, float x);
+  // Returns `x` if `x >= 0`, otherwise it returns `-x`.
   vec2 abs(vec2 x);
-  vec2 ceil(vec2 x);
-  vec2 clamp(vec2 x, float minVal, float maxVal);
-  vec2 clamp(vec2 x, vec2 minVal, vec2 maxVal);
-  vec2 floor(vec2 x);
-  vec2 fract(vec2 x);
-  vec2 max(vec2 x, float y);
-  vec2 max(vec2 x, vec2 y);
-  vec2 min(vec2 x, float y);
-  vec2 min(vec2 x, vec2 y);
-  vec2 mix(vec2 x, vec2 y, float a);
-  vec2 mix(vec2 x, vec2 y, vec2 a);
-  vec2 mod(vec2 x, float y);
-  vec2 mod(vec2 x, vec2 y);
-  vec2 sign(vec2 x);
-  vec2 smoothstep(float edge0, float edge1, vec2 x);
-  vec2 smoothstep(vec2 edge0, vec2 edge1, vec2 x);
-  vec2 step(float edge, vec2 x);
-  vec2 step(vec2 edge, vec2 x);
+  // Returns `x` if `x >= 0`, otherwise it returns `-x`.
   vec3 abs(vec3 x);
-  vec3 ceil(vec3 x);
-  vec3 clamp(vec3 x, float minVal, float maxVal);
-  vec3 clamp(vec3 x, vec3 minVal, vec3 maxVal);
-  vec3 floor(vec3 x);
-  vec3 fract(vec3 x);
-  vec3 max(vec3 x, float y);
-  vec3 max(vec3 x, vec3 y);
-  vec3 min(vec3 x, float y);
-  vec3 min(vec3 x, vec3 y);
-  vec3 mix(vec3 x, vec3 y, float a);
-  vec3 mix(vec3 x, vec3 y, vec3 a);
-  vec3 mod(vec3 x, float y);
-  vec3 mod(vec3 x, vec3 y);
-  vec3 sign(vec3 x);
-  vec3 smoothstep(float edge0, float edge1, vec3 x);
-  vec3 smoothstep(vec3 edge0, vec3 edge1, vec3 x);
-  vec3 step(float edge, vec3 x);
-  vec3 step(vec3 edge, vec3 x);
+  // Returns `x` if `x >= 0`, otherwise it returns `-x`.
   vec4 abs(vec4 x);
-  vec4 ceil(vec4 x);
-  vec4 clamp(vec4 x, float minVal, float maxVal);
-  vec4 clamp(vec4 x, vec4 minVal, vec4 maxVal);
-  vec4 floor(vec4 x);
-  vec4 fract(vec4 x);
-  vec4 max(vec4 x, float y);
-  vec4 max(vec4 x, vec4 y);
-  vec4 min(vec4 x, float y);
-  vec4 min(vec4 x, vec4 y);
-  vec4 mix(vec4 x, vec4 y, float a);
-  vec4 mix(vec4 x, vec4 y, vec4 a);
-  vec4 mod(vec4 x, float y);
-  vec4 mod(vec4 x, vec4 y);
+
+  // Returns `1.0` if `x > 0`, `0.0` if `x = 0`, or `-1.0` if `x < 0`
+  float sign(float x);
+  // Returns `1.0` if `x > 0`, `0.0` if `x = 0`, or `-1.0` if `x < 0`
+  vec2 sign(vec2 x);
+  // Returns `1.0` if `x > 0`, `0.0` if `x = 0`, or `-1.0` if `x < 0`
+  vec3 sign(vec3 x);
+  // Returns `1.0` if `x > 0`, `0.0` if `x = 0`, or `-1.0` if `x < 0`
   vec4 sign(vec4 x);
-  vec4 smoothstep(float edge0, float edge1, vec4 x);
-  vec4 smoothstep(vec4 edge0, vec4 edge1, vec4 x);
+
+  // Returns a value equal to the nearest integer that is less than or equal to `x`
+  float floor(float x);
+  // Returns a value equal to the nearest integer that is less than or equal to `x`
+  vec2 floor(vec2 x);
+  // Returns a value equal to the nearest integer that is less than or equal to `x`
+  vec3 floor(vec3 x);
+  // Returns a value equal to the nearest integer that is less than or equal to `x`
+  vec4 floor(vec4 x);
+
+  // Returns a value equal to the nearest integer that is greater than or equal to `x`
+  float ceil(float x);
+  // Returns a value equal to the nearest integer that is greater than or equal to `x`
+  vec2 ceil(vec2 x);
+  // Returns a value equal to the nearest integer that is greater than or equal to `x`
+  vec3 ceil(vec3 x);
+  // Returns a value equal to the nearest integer that is greater than or equal to `x`
+  vec4 ceil(vec4 x);
+
+  // Returns `x - floor(x)`
+  float fract(float x);
+  // Returns `x - floor(x)`
+  vec2 fract(vec2 x);
+  // Returns `x - floor(x)`
+  vec3 fract(vec3 x);
+  // Returns `x - floor(x)`
+  vec4 fract(vec4 x);
+
+  // Modulus (modulo). Returns `x - y * floor(x/y)`
+  float mod(float x, float y);
+  // Modulus (modulo). Returns `x - y * floor(x/y)`
+  vec2 mod(vec2 x, float y);
+  // Modulus (modulo). Returns `x - y * floor(x/y)`
+  vec3 mod(vec3 x, float y);
+  // Modulus (modulo). Returns `x - y * floor(x/y)`
+  vec4 mod(vec4 x, float y);
+
+  // Modulus. Returns `x - y * floor(x/y)`
+  vec2 mod(vec2 x, vec2 y);
+  // Modulus. Returns `x - y * floor(x/y)`
+  vec3 mod(vec3 x, vec3 y);
+  // Modulus. Returns `x - y * floor(x/y)`
+  vec4 mod(vec4 x, vec4 y);
+
+  // Returns `y` if `y < x`, otherwise it returns `x`
+  float min(float x, float y);
+  // Returns `y` if `y < x`, otherwise it returns `x`
+  vec2 min(vec2 x, float y);
+  // Returns `y` if `y < x`, otherwise it returns `x`
+  vec2 min(vec2 x, vec2 y);
+  // Returns `y` if `y < x`, otherwise it returns `x`
+  vec3 min(vec3 x, float y);
+  // Returns `y` if `y < x`, otherwise it returns `x`
+  vec3 min(vec3 x, vec3 y);
+  // Returns `y` if `y < x`, otherwise it returns `x`
+  vec4 min(vec4 x, float y);
+  // Returns `y` if `y < x`, otherwise it returns `x`
+  vec4 min(vec4 x, vec4 y);
+
+  // Returns `y` if `x < y`, otherwise it returns `x`
+  float max(float x, float y);
+  // Returns `y` if `x < y`, otherwise it returns `x`
+  vec2 max(vec2 x, float y);
+  // Returns `y` if `x < y`, otherwise it returns `x`
+  vec2 max(vec2 x, vec2 y);
+  // Returns `y` if `x < y`, otherwise it returns `x`
+  vec3 max(vec3 x, float y);
+  // Returns `y` if `x < y`, otherwise it returns `x`
+  vec3 max(vec3 x, vec3 y);
+  // Returns `y` if `x < y`, otherwise it returns `x`
+  vec4 max(vec4 x, float y);
+  // Returns `y` if `x < y`, otherwise it returns `x`
+  vec4 max(vec4 x, vec4 y);
+
+  // Returns `min(max(x, minVal), maxVal)`. Results are undefined if `minVal > maxVal`.
+  float clamp(float x, float minVal, float maxVal);
+  // Returns `min(max(x, minVal), maxVal)`. Results are undefined if `minVal > maxVal`.
+  vec2 clamp(vec2 x, float minVal, float maxVal);
+  // Returns `min(max(x, minVal), maxVal)`. Results are undefined if `minVal > maxVal`.
+  vec2 clamp(vec2 x, vec2 minVal, vec2 maxVal);
+  // Returns `min(max(x, minVal), maxVal)`. Results are undefined if `minVal > maxVal`.
+  vec3 clamp(vec3 x, float minVal, float maxVal);
+  // Returns `min(max(x, minVal), maxVal)`. Results are undefined if `minVal > maxVal`.
+  vec3 clamp(vec3 x, vec3 minVal, vec3 maxVal);
+  // Returns `min(max(x, minVal), maxVal)`. Results are undefined if `minVal > maxVal`.
+  vec4 clamp(vec4 x, float minVal, float maxVal);
+  // Returns `min(max(x, minVal), maxVal)`. Results are undefined if `minVal > maxVal`.
+  vec4 clamp(vec4 x, vec4 minVal, vec4 maxVal);
+
+  // Returns the linear blend of `x` and `y`, i.e. `x * (1-a) + y * a`
+  float mix(float x, float y, float a);
+  // Returns the linear blend of `x` and `y`, i.e. `x * (1-a) + y * a`
+  vec2 mix(vec2 x, vec2 y, float a);
+  // Returns the linear blend of `x` and `y`, i.e. `x * (1-a) + y * a`
+  vec2 mix(vec2 x, vec2 y, vec2 a);
+  // Returns the linear blend of `x` and `y`, i.e. `x * (1-a) + y * a`
+  vec3 mix(vec3 x, vec3 y, float a);
+  // Returns the linear blend of `x` and `y`, i.e. `x * (1-a) + y * a`
+  vec3 mix(vec3 x, vec3 y, vec3 a);
+  // Returns the linear blend of `x` and `y`, i.e. `x * (1-a) + y * a`
+  vec4 mix(vec4 x, vec4 y, float a);
+  // Returns the linear blend of `x` and `y`, i.e. `x * (1-a) + y * a`
+  vec4 mix(vec4 x, vec4 y, vec4 a);
+
+  // Returns `0.0` if `x < edge`, otherwise it returns `1.0`
+  float step(float edge, float x);
+  // Returns `0.0` if `x < edge`, otherwise it returns `1.0`
+  vec2 step(float edge, vec2 x);
+  // Returns `0.0` if `x < edge`, otherwise it returns `1.0`
+  vec2 step(vec2 edge, vec2 x);
+  // Returns `0.0` if `x < edge`, otherwise it returns `1.0`
+  vec3 step(float edge, vec3 x);
+  // Returns `0.0` if `x < edge`, otherwise it returns `1.0`
+  vec3 step(vec3 edge, vec3 x);
+  // Returns `0.0` if `x < edge`, otherwise it returns `1.0`
   vec4 step(float edge, vec4 x);
+  // Returns `0.0` if `x < edge`, otherwise it returns `1.0`
   vec4 step(vec4 edge, vec4 x);
+
+  // Returns `0.0` if `x <= edge0` and `1.0` if `x >= edge1` and performs smooth Hermite interpolation between 0 and 1 when `edge0 < x < edge1`.
+  // This is useful in cases where you would want a threshold function with a smooth transition. This is equivalent to:
+  //
+  // ```glslx
+  // float t = clamp((x - edge0) / (edge1 - edge0), 0.0, 1.0);
+  // return t * t * (3.0 - 2.0 * t);
+  // ```
+  //
+  // Results are undefined if `edge0 >= edge1`.
+  float smoothstep(float edge0, float edge1, float x);
+  // Returns `0.0` if `x <= edge0` and `1.0` if `x >= edge1` and performs smooth Hermite interpolation between 0 and 1 when `edge0 < x < edge1`.
+  // This is useful in cases where you would want a threshold function with a smooth transition. This is equivalent to:
+  //
+  // ```glslx
+  // vec2 t = clamp((x - edge0) / (edge1 - edge0), 0.0, 1.0);
+  // return t * t * (3.0 - 2.0 * t);
+  // ```
+  //
+  // Results are undefined if `edge0 >= edge1`.
+  vec2 smoothstep(float edge0, float edge1, vec2 x);
+  // Returns `0.0` if `x <= edge0` and `1.0` if `x >= edge1` and performs smooth Hermite interpolation between 0 and 1 when `edge0 < x < edge1`.
+  // This is useful in cases where you would want a threshold function with a smooth transition. This is equivalent to:
+  //
+  // ```glslx
+  // vec2 t = clamp((x - edge0) / (edge1 - edge0), 0.0, 1.0);
+  // return t * t * (3.0 - 2.0 * t);
+  // ```
+  //
+  // Results are undefined if `edge0 >= edge1`.
+  vec2 smoothstep(vec2 edge0, vec2 edge1, vec2 x);
+  // Returns `0.0` if `x <= edge0` and `1.0` if `x >= edge1` and performs smooth Hermite interpolation between 0 and 1 when `edge0 < x < edge1`.
+  // This is useful in cases where you would want a threshold function with a smooth transition. This is equivalent to:
+  //
+  // ```glslx
+  // vec3 t = clamp((x - edge0) / (edge1 - edge0), 0.0, 1.0);
+  // return t * t * (3.0 - 2.0 * t);
+  // ```
+  //
+  // Results are undefined if `edge0 >= edge1`.
+  vec3 smoothstep(float edge0, float edge1, vec3 x);
+  // Returns `0.0` if `x <= edge0` and `1.0` if `x >= edge1` and performs smooth Hermite interpolation between 0 and 1 when `edge0 < x < edge1`.
+  // This is useful in cases where you would want a threshold function with a smooth transition. This is equivalent to:
+  //
+  // ```glslx
+  // vec3 t = clamp((x - edge0) / (edge1 - edge0), 0.0, 1.0);
+  // return t * t * (3.0 - 2.0 * t);
+  // ```
+  //
+  // Results are undefined if `edge0 >= edge1`.
+  vec3 smoothstep(vec3 edge0, vec3 edge1, vec3 x);
+  // Returns `0.0` if `x <= edge0` and `1.0` if `x >= edge1` and performs smooth Hermite interpolation between 0 and 1 when `edge0 < x < edge1`.
+  // This is useful in cases where you would want a threshold function with a smooth transition. This is equivalent to:
+  //
+  // ```glslx
+  // vec4 t = clamp((x - edge0) / (edge1 - edge0), 0.0, 1.0);
+  // return t * t * (3.0 - 2.0 * t);
+  // ```
+  //
+  // Results are undefined if `edge0 >= edge1`.
+  vec4 smoothstep(float edge0, float edge1, vec4 x);
+  // Returns `0.0` if `x <= edge0` and `1.0` if `x >= edge1` and performs smooth Hermite interpolation between 0 and 1 when `edge0 < x < edge1`.
+  // This is useful in cases where you would want a threshold function with a smooth transition. This is equivalent to:
+  //
+  // ```glslx
+  // vec4 t = clamp((x - edge0) / (edge1 - edge0), 0.0, 1.0);
+  // return t * t * (3.0 - 2.0 * t);
+  // ```
+  //
+  // Results are undefined if `edge0 >= edge1`.
+  vec4 smoothstep(vec4 edge0, vec4 edge1, vec4 x);
 
   ////////////////////////////////////////////////////////////////////////////////
   // Geometric Functions
