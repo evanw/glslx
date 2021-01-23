@@ -193,42 +193,37 @@ Advanced:
       var tooltip string = null
       var symbol string = null
 
-      if sources != null {
-        for source in sources {
-          if source.name == name {
-            var index = source.lineColumnToIndex(line, column)
-            if index != -1 {
-              # Search diagnostics first
-              if !ignoreDiagnostics && log != null {
-                for diagnostic in log.diagnostics {
-                  if diagnostic.range != null && diagnostic.range.source == source && diagnostic.range.touches(index) {
-                    tooltip = diagnostic.text
-                    range = diagnostic.range
-                    break
-                  }
-                }
-              }
-
-              # Search the syntax tree next
-              if tooltip == null && result != null {
-                var query = IDE.SymbolQuery.new(source, index)
-                query.run(result)
-                tooltip = query.generateTooltip
-                if tooltip != null {
-                  range = query.range
-                  symbol = query.symbol?.name
+      for source in sources {
+        if source.name == name {
+          var index = source.lineColumnToIndex(line, column)
+          if index != -1 {
+            # Search diagnostics first
+            if !ignoreDiagnostics && log != null {
+              for diagnostic in log.diagnostics {
+                if diagnostic.range != null && diagnostic.range.source == source && diagnostic.range.touches(index) {
+                  tooltip = diagnostic.text
+                  range = diagnostic.range
+                  break
                 }
               }
             }
-            break
+
+            # Search the syntax tree next
+            if tooltip == null && result != null {
+              var query = IDE.SymbolQuery.new(source, index)
+              query.run(result.global)
+              tooltip = query.generateTooltip
+              if tooltip != null {
+                range = query.range
+                symbol = query.symbol?.name
+              }
+            }
           }
+          break
         }
       }
 
       return {
-        "type": "tooltip-query",
-        "id": message.id,
-        "source": name,
         "tooltip": tooltip,
         "range": rangeToJSON(range),
         "symbol": symbol,
@@ -243,28 +238,37 @@ Advanced:
       var definition Range = null
       var symbol string = null
 
-      if sources != null {
-        for source in sources {
-          if source.name == name {
-            var index = source.lineColumnToIndex(line, column)
-            if index != -1 && result != null {
-              var query = IDE.SymbolQuery.new(source, index)
-              query.run(result)
-              if query.symbol != null && query.symbol.range != null && query.symbol.range.source.name != API_NAME {
-                definition = query.symbol.range
-                range = query.range
-                symbol = query.symbol.name
-              }
+      # Allow go-to-definition on #include statements
+      for include in result.includes {
+        if include.originalRange.source.name == name {
+          var index = include.originalRange.source.lineColumnToIndex(line, column)
+          if index != -1 && include.originalRange.touches(index) {
+            return {
+              "definition": rangeToJSON(include.includedRange),
+              "range": rangeToJSON(include.originalRange),
+              "symbol": include.includedRange.source.name,
             }
-            break
           }
         }
       }
 
+      for source in sources {
+        if source.name == name {
+          var index = source.lineColumnToIndex(line, column)
+          if index != -1 && result != null {
+            var query = IDE.SymbolQuery.new(source, index)
+            query.run(result.global)
+            if query.symbol != null && query.symbol.range != null && query.symbol.range.source.name != API_NAME {
+              definition = query.symbol.range
+              range = query.range
+              symbol = query.symbol.name
+            }
+          }
+          break
+        }
+      }
+
       return {
-        "type": "definition-query",
-        "id": message.id,
-        "source": name,
         "definition": rangeToJSON(definition),
         "range": rangeToJSON(range),
         "symbol": symbol,
@@ -275,33 +279,28 @@ Advanced:
       var name string = message.source + ""
       var symbols List<dynamic> = null
 
-      if sources != null {
-        for source in sources {
-          if source.name == name {
-            if result != null {
-              var query = IDE.SymbolsQuery.new(source)
-              query.run(result)
-              symbols = query.symbols.map<dynamic>(symbol => {
-                return {
-                  "name": symbol.name,
-                  "kind":
-                    symbol.isVariable ? "variable" :
-                    symbol.isFunction ? "function" :
-                    symbol.isStruct ? "struct" :
-                    null,
-                  "range": rangeToJSON(symbol.range),
-                }
-              })
-            }
-            break
+      for source in sources {
+        if source.name == name {
+          if result != null {
+            var query = IDE.SymbolsQuery.new(source)
+            query.run(result.global)
+            symbols = query.symbols.map<dynamic>(symbol => {
+              return {
+                "name": symbol.name,
+                "kind":
+                  symbol.isVariable ? "variable" :
+                  symbol.isFunction ? "function" :
+                  symbol.isStruct ? "struct" :
+                  null,
+                "range": rangeToJSON(symbol.range),
+              }
+            })
           }
+          break
         }
       }
 
       return {
-        "type": "symbols-query",
-        "id": message.id,
-        "source": name,
         "symbols": symbols,
       }
     }
@@ -313,27 +312,22 @@ Advanced:
       var ranges List<dynamic> = null
       var symbol string = null
 
-      if sources != null {
-        for source in sources {
-          if source.name == name {
-            var index = source.lineColumnToIndex(line, column)
-            if index != -1 && result != null {
-              var renameQuery = IDE.RenameQuery.new(source, index)
-              renameQuery.run(result)
-              if renameQuery.symbol != null && renameQuery.symbol.range.source.name != API_NAME {
-                ranges = renameQuery.ranges.map<dynamic>(rangeToJSON)
-                symbol = renameQuery.symbol.name
-              }
+      for source in sources {
+        if source.name == name {
+          var index = source.lineColumnToIndex(line, column)
+          if index != -1 && result != null {
+            var renameQuery = IDE.RenameQuery.new(source, index)
+            renameQuery.run(result.global)
+            if renameQuery.symbol != null && renameQuery.symbol.range != null && renameQuery.symbol.range.source.name != API_NAME {
+              ranges = renameQuery.ranges.map<dynamic>(rangeToJSON)
+              symbol = renameQuery.symbol.name
             }
-            break
           }
+          break
         }
       }
 
       return {
-        "type": "rename-query",
-        "id": message.id,
-        "source": name,
         "ranges": ranges,
         "symbol": symbol,
       }
@@ -345,26 +339,22 @@ Advanced:
       var column int = message.column | 0
       var completions List<dynamic> = []
 
-      if sources != null {
-        for source in sources {
-          if source.name == name {
-            var index = source.lineColumnToIndex(line, column)
-            if index != -1 && result != null {
-              var completionQuery = IDE.CompletionQuery.new(source, index)
-              completionQuery.run(result)
-              completions = completionQuery.completions.map<dynamic>(completion => ({
-                "kind": completion.kind,
-                "name": completion.name,
-                "detail": completion.detail,
-              }))
-            }
+      for source in sources {
+        if source.name == name {
+          var index = source.lineColumnToIndex(line, column)
+          if index != -1 && result != null {
+            var completionQuery = IDE.CompletionQuery.new(source, index)
+            completionQuery.run(result.global)
+            completions = completionQuery.completions.map<dynamic>(completion => ({
+              "kind": completion.kind,
+              "name": completion.name,
+              "detail": completion.detail,
+            }))
           }
         }
       }
 
       return {
-        "type": "completion-query",
-        "id": message.id,
         "completions": completions,
       }
     }
@@ -377,27 +367,23 @@ Advanced:
       var activeArgument = -1
       var activeSignature = -1
 
-      if sources != null {
-        for source in sources {
-          if source.name == name {
-            var index = source.lineColumnToIndex(line, column)
-            if index != -1 && result != null {
-              var signatureQuery = IDE.SignatureQuery.new(source, index)
-              signatureQuery.run(result)
-              activeArgument = signatureQuery.activeArgument
-              activeSignature = signatureQuery.activeSignature
-              signatures = signatureQuery.signatures.map<dynamic>(signature => ({
-                "text": signature.text,
-                "arguments": signature.arguments,
-              }))
-            }
+      for source in sources {
+        if source.name == name {
+          var index = source.lineColumnToIndex(line, column)
+          if index != -1 && result != null {
+            var signatureQuery = IDE.SignatureQuery.new(source, index)
+            signatureQuery.run(result.global)
+            activeArgument = signatureQuery.activeArgument
+            activeSignature = signatureQuery.activeSignature
+            signatures = signatureQuery.signatures.map<dynamic>(signature => ({
+              "text": signature.text,
+              "arguments": signature.arguments,
+            }))
           }
         }
       }
 
       return {
-        "type": "signature-query",
-        "id": message.id,
         "signatures": signatures,
         "activeArgument": activeArgument,
         "activeSignature": activeSignature,

@@ -74,20 +74,20 @@ namespace GLSLX.Tests {
     var _options = CompilerOptions.new
     var _callback fn(IDETest, fn(string, string))
     var _source Source = null
-    var _global Node = null
+    var _result Compiler.TypeCheckResult = null
 
     over run {
       rename(compactWhitespace(_input))
       var log = Log.new
       _source = Source.new("<stdin>", _input)
-      _global = Compiler.typeCheck(log, [_source], _options)
+      _result = Compiler.typeCheck(log, [_source], _options)
       expectString(_expected, trimNewlines(log.toString))
       _callback(self, (a, b) => expectString(a, b))
     }
 
     def tooltipQuery(line int, column int) string {
       var query = IDE.SymbolQuery.new(_source, _source.lineColumnToIndex(line, column))
-      query.run(_global)
+      query.run(_result.global)
       return query.generateTooltip ?? ""
     }
   }

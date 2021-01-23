@@ -141,7 +141,12 @@ namespace GLSLX {
 }
 
 namespace GLSLX.Compiler {
-  def typeCheck(log Log, sources List<Source>, options CompilerOptions) Node {
+  class TypeCheckResult {
+    const global Node
+    const includes List<Include>
+  }
+
+  def typeCheck(log Log, sources List<Source>, options CompilerOptions) TypeCheckResult {
     if log.hasErrors {
       return null
     }
@@ -158,15 +163,17 @@ namespace GLSLX.Compiler {
     var resolver = Resolver.new(log, data)
 
     # Parse everything next
+    const includes List<Include> = []
     for source in sources {
-      Parser.parse(log, source.tokens, global, data, scope, resolver)
+      const result = Parser.parse(log, source.tokens, global, data, scope, resolver)
+      includes.append(result.includes)
     }
 
     # Then run type checking
     resolver.resolveGlobal(global)
 
     # Always return even when there were errors since the partial result is still useful
-    return global
+    return TypeCheckResult.new(global, includes)
   }
 
   def compile(log Log, sources List<Source>, options CompilerOptions) CompilerResult {

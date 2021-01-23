@@ -39,7 +39,6 @@ export interface Diagnostic {
 }
 
 export interface TooltipRequest {
-  id?: any;
   source: string;
   line: number;
   column: number;
@@ -47,40 +46,29 @@ export interface TooltipRequest {
 }
 
 export interface TooltipResponse {
-  type: 'tooltip-query';
-  id?: any;
-  source: string;
-  tooltip: string;
-  range: Range;
-  symbol: string;
+  tooltip: string | null;
+  range: Range | null;
+  symbol: string | null;
 }
 
 export interface DefinitionRequest {
-  id?: any;
   source: string;
   line: number;
   column: number;
 }
 
 export interface DefinitionResponse {
-  type: 'definition-query';
-  id?: any;
-  source: string;
-  definition: Range;
-  range: Range;
-  symbol: string;
+  definition: Range | null;
+  range: Range | null;
+  symbol: string | null;
 }
 
 export interface SymbolsRequest {
-  id?: any;
   source: string;
 }
 
 export interface SymbolsResponse {
-  type: 'symbols-query';
-  id?: any;
-  source: string;
-  symbols: Symbol[];
+  symbols: Symbol[] | null;
 }
 
 export interface Symbol {
@@ -90,30 +78,23 @@ export interface Symbol {
 }
 
 export interface RenameRequest {
-  id?: any;
   source: string;
   line: number;
   column: number;
 }
 
 export interface RenameResponse {
-  type: 'rename-query';
-  id?: any;
-  source: string;
-  ranges: Range[];
-  symbol: string;
+  ranges: Range[] | null;
+  symbol: string | null;
 }
 
 export interface CompletionRequest {
-  id?: any;
   source: string;
   line: number;
   column: number;
 }
 
 export interface CompletionResponse {
-  type: 'completion-query';
-  id?: any;
   completions: Completion[];
 }
 
@@ -124,15 +105,12 @@ export interface Completion {
 }
 
 export interface SignatureRequest {
-  id?: any;
   source: string;
   line: number;
   column: number;
 }
 
 export interface SignatureResponse {
-  type: 'signature-query';
-  id?: any;
   signatures: Signature[];
   activeArgument: number;
   activeSignature: number;

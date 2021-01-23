@@ -717,6 +717,9 @@ namespace GLSLX.Parser {
     }
     context.processedIncludes[source.name] = true
 
+    # Track the included file for jump-to-file in the IDE
+    context.includes.append(Include.new(range, source.entireRange))
+
     # Parse the file and insert it into the parent
     var tokens = Tokenizer.tokenize(context.log, source, .COMPILE)
     var nestedContext = ParserContext.new(context.log, tokens, context.compilationData, context.resolver, context.processedIncludes)
@@ -1076,7 +1079,11 @@ namespace GLSLX.Parser {
     return true
   }
 
-  def parse(log Log, tokens List<Token>, global Node, data CompilerData, scope Scope, resolver Resolver) {
+  class ParseResult {
+    const includes List<Include>
+  }
+
+  def parse(log Log, tokens List<Token>, global Node, data CompilerData, scope Scope, resolver Resolver) ParseResult {
     if pratt == null {
       pratt = createExpressionParser
     }
@@ -1087,5 +1094,7 @@ namespace GLSLX.Parser {
     if parseStatements(context, global, .GLOBAL) {
       context.expect(.END_OF_FILE)
     }
+
+    return ParseResult.new(context.includes)
   }
 }
