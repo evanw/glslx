@@ -714,17 +714,55 @@ import {
   vec4 textureCubeLod(samplerCube sampler, vec3 coord, float lod);
 
   #extension GL_OES_standard_derivatives {
+    // Available only in the fragment shader, this function returns the partial derivative of expression `p` with respect to the window `x` coordinate.
+    //
+    // Expressions that imply higher order derivatives such as `dFdx(dFdx(n))` have undefined results, as do mixed-order derivatives such as
+    // `dFdx(dFdy(n))`. It is assumed that the expression `p` is continuous and therefore, expressions evaluated via non-uniform control flow may be undefined.
     float dFdx(float v);
-    float dFdy(float v);
-    float fwidth(float v);
+    // Available only in the fragment shader, this function returns the partial derivative of expression `p` with respect to the window `x` coordinate.
+    //
+    // Expressions that imply higher order derivatives such as `dFdx(dFdx(n))` have undefined results, as do mixed-order derivatives such as
+    // `dFdx(dFdy(n))`. It is assumed that the expression `p` is continuous and therefore, expressions evaluated via non-uniform control flow may be undefined.
     vec2 dFdx(vec2 v);
-    vec2 dFdy(vec2 v);
-    vec2 fwidth(vec2 v);
+    // Available only in the fragment shader, this function returns the partial derivative of expression `p` with respect to the window `x` coordinate.
+    //
+    // Expressions that imply higher order derivatives such as `dFdx(dFdx(n))` have undefined results, as do mixed-order derivatives such as
+    // `dFdx(dFdy(n))`. It is assumed that the expression `p` is continuous and therefore, expressions evaluated via non-uniform control flow may be undefined.
     vec3 dFdx(vec3 v);
-    vec3 dFdy(vec3 v);
-    vec3 fwidth(vec3 v);
+    // Available only in the fragment shader, this function returns the partial derivative of expression `p` with respect to the window `x` coordinate.
+    //
+    // Expressions that imply higher order derivatives such as `dFdx(dFdx(n))` have undefined results, as do mixed-order derivatives such as
+    // `dFdx(dFdy(n))`. It is assumed that the expression `p` is continuous and therefore, expressions evaluated via non-uniform control flow may be undefined.
     vec4 dFdx(vec4 v);
+
+    // Available only in the fragment shader, this function returns the partial derivative of expression `p` with respect to the window `y` coordinate.
+    //
+    // Expressions that imply higher order derivatives such as `dFdy(dFdy(n))` have undefined results, as do mixed-order derivatives such as
+    // `dFdx(dFdy(n))`. It is assumed that the expression `p` is continuous and therefore, expressions evaluated via non-uniform control flow may be undefined.
+    float dFdy(float v);
+    // Available only in the fragment shader, this function returns the partial derivative of expression `p` with respect to the window `y` coordinate.
+    //
+    // Expressions that imply higher order derivatives such as `dFdy(dFdy(n))` have undefined results, as do mixed-order derivatives such as
+    // `dFdx(dFdy(n))`. It is assumed that the expression `p` is continuous and therefore, expressions evaluated via non-uniform control flow may be undefined.
+    vec2 dFdy(vec2 v);
+    // Available only in the fragment shader, this function returns the partial derivative of expression `p` with respect to the window `y` coordinate.
+    //
+    // Expressions that imply higher order derivatives such as `dFdy(dFdy(n))` have undefined results, as do mixed-order derivatives such as
+    // `dFdx(dFdy(n))`. It is assumed that the expression `p` is continuous and therefore, expressions evaluated via non-uniform control flow may be undefined.
+    vec3 dFdy(vec3 v);
+    // Available only in the fragment shader, this function returns the partial derivative of expression `p` with respect to the window `y` coordinate.
+    //
+    // Expressions that imply higher order derivatives such as `dFdy(dFdy(n))` have undefined results, as do mixed-order derivatives such as
+    // `dFdx(dFdy(n))`. It is assumed that the expression `p` is continuous and therefore, expressions evaluated via non-uniform control flow may be undefined.
     vec4 dFdy(vec4 v);
+
+    // Returns the sum of the absolute derivative in `x` and `y` using local differencing for the input argument `p`, i.e. `abs(dFdx(p)) + abs(dFdy(p))`
+    float fwidth(float v);
+    // Returns the sum of the absolute derivative in `x` and `y` using local differencing for the input argument `p`, i.e. `abs(dFdx(p)) + abs(dFdy(p))`
+    vec2 fwidth(vec2 v);
+    // Returns the sum of the absolute derivative in `x` and `y` using local differencing for the input argument `p`, i.e. `abs(dFdx(p)) + abs(dFdy(p))`
+    vec3 fwidth(vec3 v);
+    // Returns the sum of the absolute derivative in `x` and `y` using local differencing for the input argument `p`, i.e. `abs(dFdx(p)) + abs(dFdy(p))`
     vec4 fwidth(vec4 v);
   }
 
