@@ -639,17 +639,39 @@ import {
   ////////////////////////////////////////////////////////////////////////////////
   // Texture Lookup Functions
 
+  // Use the texture coordinate `coord` to do a texture lookup in the 2D texture currently bound to `sampler`.
   vec4 texture2D(sampler2D sampler, vec2 coord);
+  // Use the texture coordinate `coord` to do a texture lookup in the 2D texture currently bound to `sampler`.
   vec4 texture2D(sampler2D sampler, vec2 coord, float bias);
+  // Use the texture coordinate `coord` to do a texture lookup in the 2D texture currently bound to `sampler`.
   vec4 texture2DLod(sampler2D sampler, vec2 coord, float lod);
+  // Use the texture coordinate `coord` to do a texture lookup in the 2D texture currently bound to `sampler`.
+  // The texture coordinate `(coord.s, coord.t)` is divided by the last component of `coord`.
   vec4 texture2DProj(sampler2D sampler, vec3 coord);
+  // Use the texture coordinate `coord` to do a texture lookup in the 2D texture currently bound to `sampler`.
+  // The texture coordinate `(coord.s, coord.t)` is divided by the last component of `coord`.
   vec4 texture2DProj(sampler2D sampler, vec3 coord, float bias);
-  vec4 texture2DProj(sampler2D sampler, vec4 coord);
-  vec4 texture2DProj(sampler2D sampler, vec4 coord, float bias);
+  // Use the texture coordinate `coord` to do a texture lookup in the 2D texture currently bound to `sampler`.
+  // The texture coordinate `(coord.s, coord.t)` is divided by the last component of `coord`.
   vec4 texture2DProjLod(sampler2D sampler, vec3 coord, float lod);
+  // Use the texture coordinate `coord` to do a texture lookup in the 2D texture currently bound to `sampler`.
+  // The texture coordinate `(coord.s, coord.t)` is divided by the last component of `coord`. The third component of `coord` is ignored.
+  vec4 texture2DProj(sampler2D sampler, vec4 coord);
+  // Use the texture coordinate `coord` to do a texture lookup in the 2D texture currently bound to `sampler`.
+  // The texture coordinate `(coord.s, coord.t)` is divided by the last component of `coord`. The third component of `coord` is ignored.
+  vec4 texture2DProj(sampler2D sampler, vec4 coord, float bias);
+  // Use the texture coordinate `coord` to do a texture lookup in the 2D texture currently bound to `sampler`.
+  // The texture coordinate `(coord.s, coord.t)` is divided by the last component of `coord`. The third component of `coord` is ignored.
   vec4 texture2DProjLod(sampler2D sampler, vec4 coord, float lod);
+
+  // Use the texture coordinate `coord` to do a texture lookup in the cube map texture currently bound to `sampler`.
+  // The direction of `coord` is used to select which face to do a 2-dimensional texture lookup in.
   vec4 textureCube(samplerCube sampler, vec3 coord);
+  // Use the texture coordinate `coord` to do a texture lookup in the cube map texture currently bound to `sampler`.
+  // The direction of `coord` is used to select which face to do a 2-dimensional texture lookup in.
   vec4 textureCube(samplerCube sampler, vec3 coord, float bias);
+  // Use the texture coordinate `coord` to do a texture lookup in the cube map texture currently bound to `sampler`.
+  // The direction of `coord` is used to select which face to do a 2-dimensional texture lookup in.
   vec4 textureCubeLod(samplerCube sampler, vec3 coord, float lod);
 
   #extension GL_OES_standard_derivatives {
