@@ -450,11 +450,20 @@ class GLSLX.Resolver {
     var range = node.internalRange
     _resolveAsExpression(dotTarget)
 
+    if name == "" {
+      # Ignore this case since the error was already reported
+      return
+    }
+
     var type = dotTarget.resolvedType
     var isAssignTarget = node.isAssignTarget
     switch type {
       case .BVEC2, .IVEC2, .VEC2, .BVEC3, .IVEC3, .VEC3, .BVEC4, .IVEC4, .VEC4 {
         node.resolvedType = _validateSwizzle(range, type, name, isAssignTarget)
+      }
+
+      case .ERROR {
+        # Ignore this case since the error was already reported
       }
 
       default {

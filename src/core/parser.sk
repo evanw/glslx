@@ -150,7 +150,7 @@ namespace GLSLX.Parser {
       var token = context.next
       var value = pratt.parse(context, .LOWEST)
       if value == null || !context.expect(.RIGHT_PARENTHESIS) {
-        return null
+        return Node.createParseError.withRange(context.spanSince(token.range))
       }
       return value.withRange(context.spanSince(token.range))
     }
@@ -160,7 +160,7 @@ namespace GLSLX.Parser {
       var token = context.next
       var node = Node.createCall(left)
       if !parseCommaSeparatedList(context, node, .RIGHT_PARENTHESIS) {
-        return null
+        return Node.createParseError.withRange(context.spanSince(token.range))
       }
       return node.withRange(context.spanSince(left.range)).withInternalRange(context.spanSince(token.range))
     }
@@ -178,21 +178,21 @@ namespace GLSLX.Parser {
 
       var value = pratt.parse(context, .LOWEST)
       if value == null || !context.expect(.RIGHT_BRACKET) {
-        return null
+        return Node.createParseError.withRange(context.spanSince(token.range))
       }
       return Node.createBinary(.INDEX, left, value).withRange(context.spanSince(left.range)).withInternalRange(context.spanSince(token.range))
     }
 
     # Hook
     pratt.parselet(.QUESTION, .ASSIGN).infix = (context, left) => {
-      context.next
+      var token = context.next
       var middle = pratt.parse(context, .COMMA)
       if middle == null || !context.expect(.COLON) {
-        return null
+        return Node.createParseError.withRange(context.spanSince(token.range))
       }
       var right = pratt.parse(context, .COMMA)
       if right == null {
-        return null
+        return Node.createParseError.withRange(context.spanSince(token.range))
       }
       return Node.createHook(left, middle, right).withRange(context.spanSince(left.range))
     }
@@ -407,9 +407,10 @@ namespace GLSLX.Parser {
     if !context.expect(.LEFT_PARENTHESIS) {
       return null
     }
+    var firstToken = context.current
     var test = pratt.parse(context, .LOWEST)
     if test == null {
-      return null
+      test = Node.createParseError.withRange(context.spanSince(firstToken.range))
     }
     if !context.expect(.RIGHT_PARENTHESIS) {
       return null
@@ -443,9 +444,10 @@ namespace GLSLX.Parser {
     if !context.expect(.LEFT_PARENTHESIS) {
       return null
     }
+    var firstToken = context.current
     var test = pratt.parse(context, .LOWEST)
     if test == null {
-      return null
+      test = Node.createParseError.withRange(context.spanSince(firstToken.range))
     }
     if !context.expect(.RIGHT_PARENTHESIS) {
       return null
@@ -462,9 +464,10 @@ namespace GLSLX.Parser {
     var token = context.next
     var value Node = null
     if !context.eat(.SEMICOLON) {
+      var firstToken = context.current
       value = pratt.parse(context, .LOWEST)
       if value == null {
-        return null
+        value = Node.createParseError.withRange(context.spanSince(firstToken.range))
       }
       context.expect(.SEMICOLON)
     }
@@ -996,9 +999,10 @@ namespace GLSLX.Parser {
       var assign = context.current.range
       var value Node
       if context.eat(.ASSIGN) {
+        var firstToken = context.current
         value = pratt.parse(context, .COMMA)
         if value == null {
-          return null
+          value = Node.createParseError.withRange(context.spanSince(firstToken.range))
         }
       } else {
         assign = null

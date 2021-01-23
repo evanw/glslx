@@ -26,6 +26,7 @@ namespace GLSLX {
     var diagnostics List<Diagnostic> = []
     var warningCount = 0
     var errorCount = 0
+    var _prevErrorRange Range = null
 
     def toString string {
       var builder = StringBuilder.new
@@ -56,6 +57,10 @@ namespace GLSLX {
     }
 
     def error(range Range, text string) {
+      if _prevErrorRange != null && _prevErrorRange.start == range.start {
+        return # Don't double-report errors in the same spot
+      }
+      _prevErrorRange = range
       diagnostics.append(Diagnostic.new(.ERROR, range, text))
       errorCount++
     }
