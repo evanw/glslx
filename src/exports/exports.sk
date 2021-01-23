@@ -369,6 +369,41 @@ Advanced:
       }
     }
 
+    var handleSignatureQuery = (message dynamic) dynamic => {
+      var name string = message.source + ""
+      var line int = message.line | 0
+      var column int = message.column | 0
+      var signatures List<dynamic> = []
+      var activeArgument = -1
+      var activeSignature = -1
+
+      if sources != null {
+        for source in sources {
+          if source.name == name {
+            var index = source.lineColumnToIndex(line, column)
+            if index != -1 && result != null {
+              var signatureQuery = IDE.SignatureQuery.new(source, index)
+              signatureQuery.run(result)
+              activeArgument = signatureQuery.activeArgument
+              activeSignature = signatureQuery.activeSignature
+              signatures = signatureQuery.signatures.map<dynamic>(signature => ({
+                "text": signature.text,
+                "arguments": signature.arguments,
+              }))
+            }
+          }
+        }
+      }
+
+      return {
+        "type": "signature-query",
+        "id": message.id,
+        "signatures": signatures,
+        "activeArgument": activeArgument,
+        "activeSignature": activeSignature,
+      }
+    }
+
     return {
       "diagnostics": log.diagnostics.map<dynamic>(diagnostic => ({
         "kind": diagnostic.kind.toString.toLowerCase,
@@ -380,6 +415,7 @@ Advanced:
       "symbolsQuery": handleSymbolsQuery,
       "renameQuery": handleRenameQuery,
       "completionQuery": handleCompletionQuery,
+      "signatureQuery": handleSignatureQuery,
     }
   }
 

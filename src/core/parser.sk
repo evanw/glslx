@@ -203,14 +203,20 @@ namespace GLSLX.Parser {
   def parseCommaSeparatedList(context ParserContext, parent Node, stop TokenKind) bool {
     var isFirst = true
     while !context.eat(stop) {
-      if !isFirst && !context.expect(.COMMA) {
-        return false
+      if !isFirst  {
+        context.expect(.COMMA)
       }
+      var firstToken = context.current
       var value = pratt.parse(context, .COMMA)
-      if value == null {
-        return false
+      if value != null {
+        parent.appendChild(value)
+      } else {
+        # Recover from errors due to partially-typed calls
+        parent.appendChild(Node.createParseError.withRange(context.spanSince(firstToken.range)))
+        if context.current.kind != .COMMA && context.current.kind != stop {
+          return false
+        }
       }
-      parent.appendChild(value)
       isFirst = false
     }
     return true

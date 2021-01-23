@@ -123,6 +123,26 @@ export interface Completion {
   detail: string;
 }
 
+export interface SignatureRequest {
+  id?: any;
+  source: string;
+  line: number;
+  column: number;
+}
+
+export interface SignatureResponse {
+  type: 'signature-query';
+  id?: any;
+  signatures: Signature[];
+  activeArgument: number;
+  activeSignature: number;
+}
+
+export interface Signature {
+  text: string;
+  arguments: string[];
+}
+
 export interface CompileResultIDE {
   diagnostics: Diagnostic[];
   tooltipQuery(message: TooltipRequest): TooltipResponse;
@@ -130,6 +150,7 @@ export interface CompileResultIDE {
   symbolsQuery(message: SymbolsRequest): SymbolsResponse;
   renameQuery(message: RenameRequest): RenameResponse;
   completionQuery(message: CompletionRequest): CompletionResponse;
+  signatureQuery(message: SignatureRequest): SignatureResponse;
 }
 
 export function compileIDE(input: CompileInput, args?: CompileArgsIDE): CompileResultIDE;

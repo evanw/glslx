@@ -119,6 +119,10 @@ namespace GLSLX {
       return source.indexToLineColumn(start)
     }
 
+    def rangeAtStart Range {
+      return Range.new(source, start, start)
+    }
+
     def rangeAtEnd Range {
       return Range.new(source, end, end)
     }

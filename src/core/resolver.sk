@@ -700,7 +700,6 @@ class GLSLX.Resolver {
   def checkConversion(node Node, type Type) {
     if node.resolvedType != type && node.resolvedType != .ERROR && type != .ERROR {
       _log.semanticErrorBadConversion(node.range, node.resolvedType, type)
-      node.resolvedType = .ERROR
     }
   }
 }

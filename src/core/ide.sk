@@ -476,4 +476,176 @@ namespace GLSLX.IDE {
       return touches
     }
   }
+
+  class Signature {
+    const text string
+    const arguments List<string>
+  }
+
+  class SignatureQuery {
+    const source Source
+    const index int
+    const signatures List<Signature> = []
+    var activeArgument = -1
+    var activeSignature = -1
+
+    def run(global Node) {
+      _visit(global)
+    }
+
+    def _touches(range Range) bool {
+      return range != null && range.source == source && range.touches(index)
+    }
+
+    def _visit(node Node) bool {
+      if node == null {
+        return false
+      }
+
+      if node.kind != .GLOBAL && !_touches(node.range) {
+        return false
+      }
+
+      for child = node.firstChild; child != null; child = child.nextSibling {
+        if _visit(child) {
+          return true
+        }
+      }
+
+      switch node.kind {
+        case .FUNCTION {
+          _visit(node.symbol.asFunction.block)
+          return true
+        }
+
+        case .CALL {
+          var callTarget = node.callTarget
+
+          if !_touches(callTarget.range) {
+            var firstArgument = callTarget.nextSibling
+            var type = callTarget.resolvedType
+            var symbol = type.symbol
+            var arguments List<Node> = []
+
+            for arg = firstArgument; arg != null; arg = arg.nextSibling {
+              arguments.append(arg)
+            }
+
+            if symbol.isFunction {
+              var overloads List<FunctionSymbol> = []
+
+              # Collect all relevant overloads but ignore forward-declared functions that also have an implementation
+              for overload = symbol.asFunction; overload != null; overload = overload.previousOverload {
+                if !(overload.sibling in overloads) {
+                  overloads.append(overload)
+                }
+              }
+
+              # Show overloads in source order
+              overloads.reverse
+
+              for overload in overloads {
+                signatures.append(Signature.new(
+                  _tooltipForSymbol(overload),
+                  overload.arguments.map<string>(arg => _variableTooltipText(arg))
+                ))
+              }
+
+              # Pick an active overload
+              if !signatures.isEmpty {
+                activeSignature = 0
+
+                # Start off with all overloads
+                var filteredOverloads List<int> = []
+                for i = 0; i < overloads.count; i++ {
+                  filteredOverloads.append(i)
+                }
+
+                # Try filtering by argument count
+                for limit = arguments.count; limit > 0; limit-- {
+                  var nextFilteredOverloads List<int> = []
+                  for index in filteredOverloads {
+                    if overloads[index].arguments.count >= limit {
+                      nextFilteredOverloads.append(index)
+                    }
+                  }
+                  if !nextFilteredOverloads.isEmpty {
+                    filteredOverloads = nextFilteredOverloads
+                    break
+                  }
+                }
+
+                # Narrow down by argument types
+                if filteredOverloads.count > 1 {
+                  var nextFilteredOverloads = filteredOverloads.clone
+                  nextFilteredOverloads.removeIf(overloadIndex => {
+                    var fromArguments = overloads[overloadIndex].arguments
+                    for i in 0..Math.min(fromArguments.count, arguments.count) {
+                      var from = fromArguments[i].type.resolvedType
+                      var to = arguments[i].resolvedType
+                      if to != .ERROR && from != to {
+                        return true
+                      }
+                    }
+                    return false
+                  })
+
+                  # Narrow down by argument types with "conversions" to get better error messages
+                  if nextFilteredOverloads.isEmpty {
+                    nextFilteredOverloads = filteredOverloads.clone
+                    nextFilteredOverloads.removeIf(overloadIndex => {
+                      var fromArguments = overloads[overloadIndex].arguments
+                      for i in 0..Math.min(fromArguments.count, arguments.count) {
+                        var from = fromArguments[i].type.resolvedType
+                        var to = arguments[i].resolvedType
+                        var fromSize = from.componentCount
+                        var toSize = to.componentCount
+                        if to != .ERROR && from != to && (fromSize == 0 || toSize == 0 || fromSize != toSize) {
+                          return true
+                        }
+                      }
+                      return false
+                    })
+                  }
+
+                  if !nextFilteredOverloads.isEmpty {
+                    filteredOverloads = nextFilteredOverloads
+                  }
+                }
+
+                if !filteredOverloads.isEmpty {
+                  activeSignature = filteredOverloads[0]
+                }
+              }
+            }
+
+            if symbol.isStruct && type.componentType == null {
+              # Generate the constructor call signature
+              var fields = symbol.asStruct.variables.map<string>(arg => _variableTooltipText(arg))
+              signatures.append(Signature.new(
+                "\(symbol.name)(\(", ".join(fields)));",
+                fields
+              ))
+              activeSignature = 0
+            }
+
+            # Compute the active argument index
+            if !arguments.isEmpty {
+              activeArgument = 0
+              for arg in arguments {
+                if index <= arg.range.end || arg.nextSibling == null {
+                  break
+                }
+                activeArgument++
+              }
+            }
+
+            return true
+          }
+        }
+      }
+
+      return false
+    }
+  }
 }
