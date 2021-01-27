@@ -26,6 +26,12 @@ class GLSLX.Resolver {
     }
   }
 
+  def _maybeMarkAsUnused(symbol Symbol) {
+    if symbol.range.source.name != API_NAME && symbol.useCount == 0 && !symbol.isExported {
+      _log.unusedSymbols.append(symbol)
+    }
+  }
+
   def resolveNode(node Node) {
     if node.resolvedType != null {
       return
@@ -41,6 +47,7 @@ class GLSLX.Resolver {
 
       case .VARIABLE {
         var symbol = node.symbol.asVariable
+        _maybeMarkAsUnused(symbol)
         resolveNode(symbol.type)
 
         # Variables must have a type
@@ -120,6 +127,7 @@ class GLSLX.Resolver {
 
       case .FUNCTION {
         var symbol = node.symbol.asFunction
+        _maybeMarkAsUnused(symbol)
         for argument in symbol.arguments {
           resolveNode(argument.type)
         }
@@ -160,11 +168,13 @@ class GLSLX.Resolver {
       }
 
       case .STRUCT {
+        var symbol = node.symbol.asStruct
+        _maybeMarkAsUnused(symbol)
         _resolveChildren(node)
 
         # A struct loses operator "==" and "!=" when it contains a type without those operators
-        var resolvedType = node.symbol.resolvedType
-        for variable in node.symbol.asStruct.variables {
+        var resolvedType = symbol.resolvedType
+        for variable in symbol.asStruct.variables {
           var type = variable.type.resolvedType
           if type.containsArray { resolvedType.containsArray = true }
           if type.containsSampler { resolvedType.containsSampler = true }

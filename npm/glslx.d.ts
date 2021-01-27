@@ -38,6 +38,11 @@ export interface Diagnostic {
   range: Range | null;
 }
 
+export interface UnusedSymbol {
+  name: string;
+  range: Range | null;
+}
+
 export interface TooltipRequest {
   source: string;
   line: number;
@@ -125,6 +130,7 @@ export interface Signature {
 }
 
 export interface CompileResultIDE {
+  unusedSymbols: UnusedSymbol[];
   diagnostics: Diagnostic[];
   tooltipQuery(message: TooltipRequest): TooltipResponse;
   definitionQuery(message: DefinitionRequest): DefinitionResponse;

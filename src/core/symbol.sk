@@ -46,6 +46,7 @@ namespace GLSLX {
     var constantValue Node = null
     var requiredExtension string = null
     var _resolvedType Type = null
+    var useCount = 0
 
     # Keyword modifiers
     def isAttribute bool { return .ATTRIBUTE in flags }

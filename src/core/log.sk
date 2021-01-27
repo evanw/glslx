@@ -24,6 +24,7 @@ namespace GLSLX {
 
   class Log {
     var diagnostics List<Diagnostic> = []
+    var unusedSymbols List<Symbol> = []
     var warningCount = 0
     var errorCount = 0
     var _prevErrorRange Range = null

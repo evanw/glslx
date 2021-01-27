@@ -394,6 +394,10 @@ Advanced:
     }
 
     return {
+      "unusedSymbols": log.unusedSymbols.map<dynamic>(symbol => ({
+        "name": symbol.name,
+        "range": rangeToJSON(symbol.range),
+      })),
       "diagnostics": log.diagnostics.map<dynamic>(diagnostic => ({
         "kind": diagnostic.kind.toString.toLowerCase,
         "range": rangeToJSON(diagnostic.range),

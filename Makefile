@@ -31,4 +31,4 @@ publish: test release
 	sh -c 'cd npm && npm version patch && npm publish'
 
 node_modules:
-	npm install
+	npm ci

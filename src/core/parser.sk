@@ -122,6 +122,7 @@ namespace GLSLX.Parser {
         context.log.syntaxErrorDisabledExtension(token.range, name, symbol.requiredExtension)
       }
 
+      symbol.useCount++
       return (symbol.isStruct ? Node.createType(symbol.resolvedType) : Node.createName(symbol)).withRange(token.range)
     })
 
