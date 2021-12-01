@@ -1,6 +1,6 @@
 namespace GLSLX.Renamer {
   def rename(globals List<Node>, options CompilerOptions) StringMap<string> {
-    return Renamer.new(options.renameSymbols)._rename(globals)
+    return Renamer.new(options.renameSymbols, options.ignoredSymbols)._rename(globals)
   }
 
   class SymbolInfo {
@@ -28,6 +28,7 @@ namespace GLSLX.Renamer {
 
 class GLSLX.Renamer {
   var _renameSymbols RenameSymbols
+  var _ignoredSymbols List<string>
   var _functionList List<SymbolInfo> = []
   var _symbolInfoList List<SymbolInfo> = []
   var _symbolInfoMap IntMap<SymbolInfo> = {}
@@ -55,6 +56,9 @@ class GLSLX.Renamer {
       var name string = null
       for info in group {
         for symbol in info.symbols.values {
+          if symbol.name in _ignoredSymbols {
+            continue
+          }
           var old = symbol.name
           if !symbol.isImportedOrExported && (_renameSymbols == .ALL || _renameSymbols == .INTERNAL_ONLY && !symbol.isAttributeOrUniform) {
             if name == null {
@@ -136,7 +140,7 @@ class GLSLX.Renamer {
     while true {
       var name = _numberToName(_nextSymbolName)
       _nextSymbolName++
-      if name in Tokenizer.keywords || name in Tokenizer.reservedWords || name.startsWith("gl_") {
+      if name in Tokenizer.keywords || name in Tokenizer.reservedWords || name.startsWith("gl_") || name in _ignoredSymbols {
         continue
       }
       return name

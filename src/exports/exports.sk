@@ -43,6 +43,9 @@ Advanced:
   --renaming=MODE
     Valid modes are all, internal-only, or none. Defaults to all.
 
+  --ignored-symbols=SYMBOLS
+    A list of symbols to be ignored during renaming. Formatted as a JSON array. Defaults to an empty array.
+
   --keep-symbols
     Don't inline constants or remove unused symbols.
 ")
@@ -166,6 +169,7 @@ Advanced:
     if args.disableRewriting { options.compactSyntaxTree = false }
     if args.prettyPrint { options.removeWhitespace = false }
     if args.keepSymbols { options.trimSymbols = false }
+    if args.ignoredSymbols { options.ignoredSymbols = args.ignoredSymbols }
     if args.fileAccess { options.fileAccess = wrapFileAccess(args.fileAccess) }
 
     var result = Compiler.compile(log, sources, options)
@@ -513,6 +517,10 @@ Advanced:
               process.exit(1)
             }
             options.renameSymbols = renameSymbols[text]
+          }
+
+          else if arg.startsWith("--ignored-symbols=") {
+            options.ignoredSymbols = dynamic.JSON.parse(arg.slice("--ignored-symbols=".count))
           }
 
           else {

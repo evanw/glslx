@@ -1,0 +1,80 @@
+namespace GLSLX.Tests {
+  def testRenamer {
+test("
+uniform sampler2D texture;
+uniform vec4 color;
+attribute vec2 position;
+varying vec2 coord;
+
+export void vertex() {
+  coord = position;
+  gl_Position = vec4(position*2.0 - 1.0, 0.0,1.0);
+}
+
+export void colorFragment() {
+  gl_FragColor = color;
+}
+
+export void textureFragment() {
+  gl_FragColor = texture2D(texture, coord);
+}
+", "
+[vertex]
+uniform sampler2D f;
+uniform vec4 g;
+attribute vec2 position;
+varying vec2 e;
+
+void main() {
+  e = position;
+  gl_Position = vec4(position * 2.0 - 1.0, 0.0, 1.0);
+}
+
+void h() {
+  gl_FragColor = g;
+}
+
+void i() {
+  gl_FragColor = texture2D(f, e);
+}
+
+[colorFragment]
+uniform sampler2D f;
+uniform vec4 g;
+attribute vec2 position;
+varying vec2 e;
+
+void vertex() {
+  e = position;
+  gl_Position = vec4(position * 2.0 - 1.0, 0.0, 1.0);
+}
+
+void main() {
+  gl_FragColor = g;
+}
+
+void i() {
+  gl_FragColor = texture2D(f, e);
+}
+
+[textureFragment]
+uniform sampler2D f;
+uniform vec4 g;
+attribute vec2 position;
+varying vec2 e;
+
+void vertex() {
+  e = position;
+  gl_Position = vec4(position * 2.0 - 1.0, 0.0, 1.0);
+}
+
+void h() {
+  gl_FragColor = g;
+}
+
+void main() {
+  gl_FragColor = texture2D(f, e);
+}
+").ignoredSymbols(["position", "vertex"]).renameAll
+  }
+}
