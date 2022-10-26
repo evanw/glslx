@@ -1,4 +1,6 @@
 .DS_Store
-/npm/glslx
 /node_modules/
+/npm/glslx
+/test.js
+/test.js.map
 /www/glslx.js
