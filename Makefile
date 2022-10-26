@@ -11,7 +11,7 @@ release: | node_modules
 
 test: | node_modules
 	$(BUILD) src/test/*.sk --output-file=test.js --js-source-map
-	node test.js
+	node --enable-source-maps test.js
 	rm -f test.js test.js.map
 
 watch-debug:

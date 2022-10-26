@@ -6,7 +6,6 @@
     "skew": "0.9.19"
   },
   "devDependencies": {
-    "fast-watch": "1.0.0",
-    "source-map-support": "0.4.14"
+    "fast-watch": "1.0.0"
   }
 }

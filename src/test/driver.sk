@@ -164,7 +164,6 @@ namespace GLSLX.Tests {
 
   @entry
   def main int {
-    dynamic.require("source-map-support").install()
     dynamic.Error.stackTraceLimit = Math.INFINITY
 
     testEmitter
