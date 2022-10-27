@@ -226,8 +226,8 @@ vec4 main(int i) {
 }
 ", "
 vec4 main(int i) {
-  vec4 j = vec4(0.0);
-  j = i < 0 ? vec4(-1.0) : i > 0 ? vec4(1.0) : j;
+  vec4 j = vec4(0);
+  j = i < 0 ? vec4(-1) : i > 0 ? vec4(1) : j;
   return j;
 }
 ").compactSyntaxTree
@@ -886,6 +886,40 @@ void main() {
   gl_FragColor = vec4(before, after);
 }
 ").trimSymbols
+
+# Fold casts of integers to "float"
+test("
+export void vertex() {
+  gl_FragColor.x = 1.0 + 2.0 + float(3);
+}
+", "
+void main() {
+  gl_FragColor.x = 6.0;
+}
+").compactSyntaxTree
+
+# Convert floats to integers inside constructors
+test("
+vec2 test(float a, float b, float c, float d) {
+  return vec2(a + b, c - d);
+}
+
+export void vertex() {
+  vec4 a = vec4(-1.0, 2.0, 0.5, -3.00001);
+  mat2 b = mat2(-1.0, 2.0, 0.5, -3.00001);
+  vec2 c = test(-1.0, 2.0, 0.5, -3.00001);
+}
+", "
+vec2 test(float a, float b, float c, float d) {
+  return vec2(a + b, c - d);
+}
+
+void main() {
+  vec4 a = vec4(-1, 2, 0.5, -3.00001);
+  mat2 b = mat2(-1, 2, 0.5, -3.00001);
+  vec2 c = test(-1.0, 2.0, 0.5, -3.00001);
+}
+").compactSyntaxTree
 
   }
 }

@@ -620,6 +620,36 @@ class GLSLX.Rewriter {
         else if left.kind == .FLOAT && right.kind == .FLOAT { _changeToFloat(node, left.asFloat + right.asFloat) }
       }
 
+      case .CALL {
+        var target = node.callTarget
+
+        # Optimize constructor calls
+        if target.kind == .TYPE {
+          var type = target.resolvedType
+
+          # "float(123)" => "123.0"
+          if type == .FLOAT {
+            var child = target.nextSibling
+            if child != null && child.nextSibling == null && child.kind == .INT {
+              _changeToFloat(node, child.asInt)
+            }
+          }
+
+          # "vec2(1.0, 2.0)" => "vec2(1, 2)"
+          else if type.componentType == .FLOAT {
+            for child = target.nextSibling; child != null; child = child.nextSibling {
+              if child.kind == .FLOAT {
+                var floatValue = child.asFloat
+                var intValue = floatValue as int
+                if floatValue == intValue {
+                  _changeToInt(child, intValue)
+                }
+              }
+            }
+          }
+        }
+      }
+
       case .DIVIDE {
         var left = node.binaryLeft
         var right = node.binaryRight
