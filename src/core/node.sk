@@ -432,8 +432,9 @@ namespace GLSLX {
           return true
         }
 
-        # Check whether this node is an "inout" argument in a function call
-        if parent.kind == .CALL {
+        # Check whether this node is an "inout" argument in a function call.
+        # But only do this if the function call was resolved correctly.
+        if parent.kind == .CALL && parent.resolvedType != .ERROR {
           var callTarget = parent.callTarget
           var symbol = callTarget.symbol
           if symbol != null && symbol.isFunction {

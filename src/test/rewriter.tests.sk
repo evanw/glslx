@@ -887,6 +887,29 @@ void main() {
 }
 ").trimSymbols
 
+# Check "inout" inlining with overloaded functions (this used to crash)
+test("
+float bar(float a, float b) {
+  return a - b;
+}
+
+float bar(float ab) {
+  return -ab;
+}
+
+export void fragment() {
+  gl_FragColor.x = bar(gl_FragCoord.y, gl_FragCoord.x);
+}
+", "
+float bar(float a, float b) {
+  return a - b;
+}
+
+void main() {
+  gl_FragColor.x = bar(gl_FragCoord.y, gl_FragCoord.x);
+}
+").trimSymbols
+
 # Fold casts of integers to "float"
 test("
 export void vertex() {
