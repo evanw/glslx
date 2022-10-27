@@ -24,6 +24,12 @@ class GLSLX.Resolver {
     for extension in _generatedExtensions.values {
       global.insertChildBefore(first, extension)
     }
+
+    # Constants may end up being marked as unused because they are resolved
+    # early during parsing due to how the language works. However, we don't
+    # want them to show up as unused in the IDE. Post-process the unused
+    # symbol list to filter out constants that were later used.
+    _log.unusedSymbols = _log.unusedSymbols.filter(x => x.useCount == 0)
   }
 
   def _maybeMarkAsUnused(symbol Symbol) {

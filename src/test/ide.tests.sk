@@ -125,5 +125,89 @@ void main() {
   expect("highp vec4 gl_Position;", ide.tooltipQuery(1, 2))
 })
 
+# Check unused symbol detection for local symbols
+testIDE("
+float foo() {
+  float x = 1.0;
+  float y = 2.0;
+  return x;
+}
+", "
+", (ide, expect) => {
+  expect("x: used", ide.unusedStatusQuery("x"))
+  expect("y: unused", ide.unusedStatusQuery("y"))
+})
+
+# Check unused symbol detection for global symbols
+testIDE("
+float x = 1.0;
+float y = 2.0;
+float foo() {
+  return x;
+}
+", "
+", (ide, expect) => {
+  expect("x: used", ide.unusedStatusQuery("x"))
+  expect("y: unused", ide.unusedStatusQuery("y"))
+})
+
+# Check unused symbol detection in dead branches
+testIDE("
+float foo() {
+  float x = 1.0;
+  float y = 2.0;
+  if (false) return x;
+  return 0.0;
+}
+", "
+", (ide, expect) => {
+  expect("x: used", ide.unusedStatusQuery("x"))
+  expect("y: unused", ide.unusedStatusQuery("y"))
+})
+
+# Check unused symbol detection for functions
+testIDE("
+void a() {}
+void b() {}
+void c() {}
+void d() { c(); }
+void foo() {
+  b();
+  d();
+}
+", "
+", (ide, expect) => {
+  expect("a: unused", ide.unusedStatusQuery("a"))
+  expect("b: used", ide.unusedStatusQuery("b"))
+  expect("c: used", ide.unusedStatusQuery("c"))
+  expect("d: used", ide.unusedStatusQuery("d"))
+})
+
+# Check unused symbol detection for local constants
+testIDE("
+float foo() {
+  const float x = 1.0;
+  const float y = 2.0;
+  return x;
+}
+", "
+", (ide, expect) => {
+  expect("x: used", ide.unusedStatusQuery("x"))
+  expect("y: unused", ide.unusedStatusQuery("y"))
+})
+
+# Check unused symbol detection for global constants
+testIDE("
+const float x = 1.0;
+const float y = 2.0;
+float foo() {
+  return x;
+}
+", "
+", (ide, expect) => {
+  expect("x: used", ide.unusedStatusQuery("x"))
+  expect("y: unused", ide.unusedStatusQuery("y"))
+})
+
   }
 }
