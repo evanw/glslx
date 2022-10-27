@@ -426,7 +426,30 @@ namespace GLSLX {
     }
 
     def isAssignTarget bool {
-      return parent != null && (parent.kind.isUnaryAssign || parent.kind.isBinaryAssign && parent.binaryLeft == self)
+      if parent != null {
+        # Check whether this node is the target of a mutating operator
+        if parent.kind.isUnaryAssign || parent.kind.isBinaryAssign && parent.binaryLeft == self {
+          return true
+        }
+
+        # Check whether this node is an "inout" argument in a function call
+        if parent.kind == .CALL {
+          var callTarget = parent.callTarget
+          var symbol = callTarget.symbol
+          if symbol != null && symbol.isFunction {
+            var function = symbol.asFunction
+            var i = 0
+            for child = callTarget.nextSibling; child != null; child = child.nextSibling {
+              if child == self {
+                return .INOUT in function.arguments[i].flags
+              }
+              i++
+            }
+          }
+        }
+      }
+
+      return false
     }
 
     def isUsedInStorage bool {

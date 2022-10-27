@@ -859,5 +859,33 @@ void main() {
 }
 ").trimSymbols
 
+# Do not inline variables used as "inout" parameters
+test("
+void foo(inout float param, float inc) {
+  param += inc;
+}
+
+export void fragment() {
+  float depth = 1.0;
+  float inc = 0.5;
+  vec2 before = vec2(depth, inc);
+  foo(depth, inc);
+  vec2 after = vec2(depth, inc);
+  gl_FragColor = vec4(before, after);
+}
+", "
+void foo(inout float param, float inc) {
+  param += inc;
+}
+
+void main() {
+  float depth = 1.0;
+  vec2 before = vec2(depth, 0.5);
+  foo(depth, 0.5);
+  vec2 after = vec2(depth, 0.5);
+  gl_FragColor = vec4(before, after);
+}
+").trimSymbols
+
   }
 }
