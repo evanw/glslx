@@ -913,11 +913,11 @@ void main() {
 # Fold casts of integers to "float"
 test("
 export void vertex() {
-  gl_FragColor.x = 1.0 + 2.0 + float(3);
+  gl_FragColor.x = 1.0 + 2.0 + float(3) + float(int(4));
 }
 ", "
 void main() {
-  gl_FragColor.x = 6.0;
+  gl_FragColor.x = 10.0;
 }
 ").compactSyntaxTree
 

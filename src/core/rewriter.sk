@@ -627,8 +627,17 @@ class GLSLX.Rewriter {
         if target.kind == .TYPE {
           var type = target.resolvedType
 
+          # "int(123)" => "123"
+          if type == .INT {
+            var child = target.nextSibling
+            if child != null && child.nextSibling == null && child.kind == .INT {
+              node.become(child.remove)
+              _reportCodeChange
+            }
+          }
+
           # "float(123)" => "123.0"
-          if type == .FLOAT {
+          else if type == .FLOAT {
             var child = target.nextSibling
             if child != null && child.nextSibling == null && child.kind == .INT {
               _changeToFloat(node, child.asInt)
