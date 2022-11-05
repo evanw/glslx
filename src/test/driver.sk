@@ -34,6 +34,7 @@ namespace GLSLX.Tests {
       _options.removeWhitespace = false
       _options.renameSymbols = .NONE
       _options.trimSymbols = false
+      _options.ignoredSymbols = []
       return self
     }
 
@@ -54,6 +55,11 @@ namespace GLSLX.Tests {
 
     def trimSymbols CompilerTest {
       _options.trimSymbols = true
+      return self
+    }
+
+    def ignoredSymbols(ignoredSymbols List<string>) CompilerTest {
+      _options.ignoredSymbols = ignoredSymbols
       return self
     }
 
@@ -180,6 +186,7 @@ namespace GLSLX.Tests {
     testMinifier
     testParser
     testResolver
+    testRenamer
     testRewriter
     testTooltips
     testFormatter

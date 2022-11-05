@@ -18,6 +18,7 @@ namespace GLSLX {
     var removeWhitespace = true
     var renameSymbols = RenameSymbols.ALL
     var trimSymbols = true
+    var ignoredSymbols List<string> = []
     var fileAccess fn(string, string) Source = null
   }
 
