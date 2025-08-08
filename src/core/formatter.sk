@@ -418,19 +418,34 @@ namespace GLSLX.Formatter {
       consumeIf(kind => kind == .RIGHT_BRACE)
     }
 
+    # Don't indent multiple times for multiple nested parentheses with a single inner newline
+    var isWaitingForNewline = false
+
     var handleParentheses = () => {
-      nesting++
+      var shouldNest = !isWaitingForNewline
+      isWaitingForNewline = true
+      if shouldNest {
+        nesting++
+      }
       while consumeIf(kind => kind != .RIGHT_PARENTHESIS) {
       }
-      nesting--
+      if shouldNest {
+        nesting--
+      }
       consumeIf(kind => kind == .RIGHT_PARENTHESIS)
     }
 
     var handleBrackets = () => {
-      nesting++
+      var shouldNest = !isWaitingForNewline
+      isWaitingForNewline = true
+      if shouldNest {
+        nesting++
+      }
       while consumeIf(kind => kind != .RIGHT_BRACKET) {
       }
-      nesting--
+      if shouldNest {
+        nesting--
+      }
       consumeIf(kind => kind == .RIGHT_BRACKET)
     }
 
@@ -448,6 +463,7 @@ namespace GLSLX.Formatter {
       text += newlines
       if newlines != "" {
         isStartOfLine = true
+        isWaitingForNewline = false
       }
       if isStartOfLine {
         text += indent.repeat(nesting)
