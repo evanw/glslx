@@ -219,7 +219,9 @@ class GLSLX.Resolver {
         _resolveAsExpression(yes)
         _resolveAsExpression(no)
 
-        if yes.resolvedType != no.resolvedType {
+        if yes.resolvedType == .ERROR || no.resolvedType == .ERROR {
+          node.resolvedType = .ERROR
+        } else if yes.resolvedType != no.resolvedType {
           _log.semanticErrorBadHookTypes(Range.span(yes.range, no.range), yes.resolvedType, no.resolvedType)
         } else if yes.resolvedType.containsArray {
           _log.semanticErrorArrayHook(Range.span(yes.range, no.range), yes.resolvedType)
