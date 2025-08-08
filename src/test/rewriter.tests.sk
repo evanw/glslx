@@ -232,6 +232,28 @@ vec4 main(int i) {
 }
 ").compactSyntaxTree
 
+# Check for hook substitution
+test("
+vec2 main(bool a, vec2 b) {
+  return a ? b * vec2(1, 2) : b * vec2(3, 4);
+}
+", "
+vec2 main(bool a, vec2 b) {
+  return b * (a ? vec2(1, 2) : vec2(3, 4));
+}
+").compactSyntaxTree
+
+# Check for hook substitution
+test("
+vec2 main(bool a, vec2 b) {
+  return a ? b * vec2(1, 2) : b * 3.0;
+}
+", "
+vec2 main(bool a, vec2 b) {
+  return a ? b * vec2(1, 2) : b * 3.0;
+}
+").compactSyntaxTree
+
 # Check for sequence flattening
 test("
 void foo();
