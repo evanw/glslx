@@ -372,13 +372,19 @@ namespace GLSLX.IDE {
     def run(global Node) {
       _addTextualCompletion("keyword", "false")
       _addTextualCompletion("keyword", "true")
+
       _addTextualCompletion("keyword", "void")
+      _addTextualCompletion("keyword", "const")
+
+      _addTextualCompletion("keyword", "lowp")
+      _addTextualCompletion("keyword", "mediump")
+      _addTextualCompletion("keyword", "highp")
 
       for type in Type.BUILT_INS {
         _addTextualCompletion("struct", type.symbol.name).detail = _tooltipForSymbol(type.symbol)
       }
 
-      _visit(global, true)
+      _visit(global)
     }
 
     def _touches(range Range) bool {
@@ -411,7 +417,7 @@ namespace GLSLX.IDE {
       completion.detail += _tooltipForSymbol(symbol)
     }
 
-    def _visit(node Node, isGlobal bool) bool {
+    def _visit(node Node) bool {
       if node == null {
         return false
       }
@@ -419,6 +425,24 @@ namespace GLSLX.IDE {
       var touches = _touches(node.range)
 
       switch node.kind {
+        case .GLOBAL {
+          var touchesFunction = false
+          for child = node.firstChild; child != null; child = child.nextSibling {
+            if child.kind == .FUNCTION && _touches(child.range) {
+              touchesFunction = true
+              break
+            }
+          }
+
+          # Add global-level keywords when we're outside a function
+          if !touchesFunction {
+            _addTextualCompletion("keyword", "precision")
+            _addTextualCompletion("keyword", "uniform")
+            _addTextualCompletion("keyword", "attribute")
+            _addTextualCompletion("keyword", "varying")
+          }
+        }
+
         case .FUNCTION {
           _addSymbolCompletion(node.symbol)
           if touches {
@@ -428,7 +452,7 @@ namespace GLSLX.IDE {
             for arg in function.arguments {
               _addSymbolCompletion(arg)
             }
-            _visit(function.block, false)
+            _visit(function.block)
           }
         }
 
@@ -506,9 +530,9 @@ namespace GLSLX.IDE {
         }
       }
 
-      if isGlobal || touches || node.kind == .VARIABLES {
+      if node.kind == .GLOBAL || touches || node.kind == .VARIABLES {
         for child = node.firstChild; child != null; child = child.nextSibling {
-          if _visit(child, false) {
+          if _visit(child) {
             return true
           }
         }
