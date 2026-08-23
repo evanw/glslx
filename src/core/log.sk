@@ -180,6 +180,10 @@ namespace GLSLX {
     def syntaxErrorInvalidOperator(range Range) {
       error(range, "The operator \"\(range)\" is reserved and cannot be used")
     }
+
+    def syntaxErrorUnrecognizedVersion(range Range) {
+      error(range, "Unrecognized version \"\(range)\"")
+    }
   }
 
   class Log {

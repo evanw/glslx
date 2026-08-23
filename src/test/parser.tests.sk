@@ -1,6 +1,28 @@
 namespace GLSLX.Tests {
   def testParser {
 
+# Test a valid version pragma
+test("
+#version 100
+void main() {
+}
+", "#version 100
+
+void main() {
+}
+")
+
+# Test an invalid version pragma
+test("
+#version 999
+void main() {
+}
+", "
+<stdin>:1:10: error: Unrecognized version \"999\"
+#version 999
+         ~~~
+")
+
 # Test constant parsing
 test("
 void main() {

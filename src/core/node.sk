@@ -646,8 +646,8 @@ namespace GLSLX {
       return new(.VARIABLES).withInt(flags).appendChild(type)
     }
 
-    def createVersion(version int) Node {
-      return new(.VERSION).withInt(version)
+    def createVersion(version string) Node {
+      return new(.VERSION).withText(version)
     }
 
     def createWhile(test Node, body Node) Node {
@@ -858,10 +858,10 @@ namespace GLSLX {
       return _firstChild._nextSibling
     }
 
-    def versionNumber int {
+    def versionText string {
       assert(kind == .VERSION)
       assert(childCount == 0)
-      return _literal as int
+      return _text
     }
 
     def whileTest Node {

@@ -437,7 +437,14 @@ namespace GLSLX.Parser {
     if !context.expect(.INT_LITERAL) {
       return null
     }
-    return Node.createVersion((range.toString as dynamic) | 0).withRange(context.spanSince(token.range))
+
+    # GLSL ES 1.00
+    if range.toString == "100" {
+      return Node.createVersion("100").withRange(context.spanSince(token.range))
+    }
+
+    context.log.syntaxErrorUnrecognizedVersion(range)
+    return Node.createVersion(range.toString).withRange(context.spanSince(token.range))
   }
 
   def parseWhile(context ParserContext) Node {
