@@ -1002,6 +1002,89 @@ void main() {
 }
 ")
 
+# Parser recovery for random layout qualifiers
+test("
+#version 300 es
+layout(foo, bar, ) out float x;
+layout(foo, bar, baz) out float y;
+void main() {
+}
+", "
+<stdin>:2:8: error: Unexpected IDENTIFIER
+layout(foo, bar, ) out float x;
+       ~~~
+<stdin>:2:13: error: Unexpected IDENTIFIER
+layout(foo, bar, ) out float x;
+            ~~~
+<stdin>:2:18: error: Unexpected RIGHT_PARENTHESIS
+layout(foo, bar, ) out float x;
+                 ^
+<stdin>:3:8: error: Unexpected IDENTIFIER
+layout(foo, bar, baz) out float y;
+       ~~~
+<stdin>:3:13: error: Unexpected IDENTIFIER
+layout(foo, bar, baz) out float y;
+            ~~~
+<stdin>:3:18: error: Unexpected IDENTIFIER
+layout(foo, bar, baz) out float y;
+                 ~~~
+")
+
+# Check errors for newer GLSL code without "#version 300 es"
+test("
+uniform float u;
+attribute float a;
+varying float v;
+in float i;
+out float o;
+inout float io;
+layout(location = 0) out vec4 color;
+void main() {
+  uint u = 123u;
+  uvec2 u2 = uvec2(0);
+  mat2x3 m23 = mat2x3(0);
+  sampler3D s3;
+  isampler2D is3;
+}
+", "
+<stdin>:4:1: error: Cannot use this qualifier here
+in float i;
+~~
+<stdin>:5:1: error: Cannot use this qualifier here
+out float o;
+~~~
+<stdin>:6:1: error: Cannot use this qualifier here
+inout float io;
+~~~~~
+<stdin>:7:1: error: Cannot use this qualifier here
+layout(location = 0) out vec4 color;
+~~~~~~
+<stdin>:9:3: error: Unexpected UINT
+  uint u = 123u;
+  ~~~~
+<stdin>:9:12: error: Unexpected UINT_LITERAL
+  uint u = 123u;
+           ~~~~
+<stdin>:10:3: error: Unexpected UVEC2
+  uvec2 u2 = uvec2(0);
+  ~~~~~
+<stdin>:10:14: error: Unexpected UVEC2
+  uvec2 u2 = uvec2(0);
+             ~~~~~
+<stdin>:11:3: error: Unexpected MAT2X3
+  mat2x3 m23 = mat2x3(0);
+  ~~~~~~
+<stdin>:11:16: error: Unexpected MAT2X3
+  mat2x3 m23 = mat2x3(0);
+               ~~~~~~
+<stdin>:12:3: error: Unexpected SAMPLER3D
+  sampler3D s3;
+  ~~~~~~~~~
+<stdin>:13:3: error: Unexpected ISAMPLER2D
+  isampler2D is3;
+  ~~~~~~~~~~
+")
+
 # Check #include with an older GLSL version
 test("
 #version 300 es

@@ -62,9 +62,13 @@ namespace GLSLX.Parser {
     pratt.literal(.INT_LITERAL, (context, token) => Node.createInt(parseInt(token.range.toString)).withRange(token.range))
     pratt.literal(.FLOAT_LITERAL, (context, token) => Node.createFloat(parseFloat(token.range.toString)).withRange(token.range))
 
-    if version300 {
-      pratt.literal(.UINT_LITERAL, (context, token) => Node.createUint(parseInt(token.range.toString)).withRange(token.range))
-    }
+    pratt.literal(.UINT_LITERAL, (context, token) => {
+      if !version300 {
+        context.log.syntaxErrorUnexpectedToken(token)
+        return Node.createParseError.withRange(token.range)
+      }
+      return Node.createUint(parseInt(token.range.toString)).withRange(token.range)
+    })
 
     typeParselet(pratt, .BOOL)
     typeParselet(pratt, .BVEC2)
@@ -83,18 +87,16 @@ namespace GLSLX.Parser {
     typeParselet(pratt, .VEC4)
     typeParselet(pratt, .VOID)
 
-    if version300 {
-      typeParselet(pratt, .MAT2X3)
-      typeParselet(pratt, .MAT2X4)
-      typeParselet(pratt, .MAT3X2)
-      typeParselet(pratt, .MAT3X4)
-      typeParselet(pratt, .MAT4X2)
-      typeParselet(pratt, .MAT4X3)
-      typeParselet(pratt, .UINT)
-      typeParselet(pratt, .UVEC2)
-      typeParselet(pratt, .UVEC3)
-      typeParselet(pratt, .UVEC4)
-    }
+    typeParselet(pratt, .MAT2X3)
+    typeParselet(pratt, .MAT2X4)
+    typeParselet(pratt, .MAT3X2)
+    typeParselet(pratt, .MAT3X4)
+    typeParselet(pratt, .MAT4X2)
+    typeParselet(pratt, .MAT4X3)
+    typeParselet(pratt, .UINT)
+    typeParselet(pratt, .UVEC2)
+    typeParselet(pratt, .UVEC3)
+    typeParselet(pratt, .UVEC4)
 
     pratt.prefix(.COMPLEMENT, .UNARY_PREFIX, version300 ? unaryPrefix(.COMPLEMENT) : invalidUnaryOperator)
     pratt.prefix(.DECREMENT, .UNARY_PREFIX, unaryPrefix(.PREFIX_DECREMENT))
@@ -874,6 +876,16 @@ namespace GLSLX.Parser {
     }
   }
 
+  def skipFlag(context ParserContext) {
+    if !context.eat(.LAYOUT) {
+      context.next
+    } else if context.eat(.LEFT_PARENTHESIS) {
+      while !context.peek(.END_OF_FILE) && !context.eat(.RIGHT_PARENTHESIS) {
+        context.next
+      }
+    }
+  }
+
   def parseFlags(context ParserContext, mode VariableKind) SymbolFlags {
     var version300 = context.version == .ES_300
     var flags SymbolFlags = 0
@@ -895,6 +907,10 @@ namespace GLSLX.Parser {
             }
           } else {
             context.unexpectedToken
+            if token.kind != .IDENTIFIER {
+              break
+            }
+            context.next
           }
           if !context.eat(.COMMA) {
             break
@@ -955,9 +971,10 @@ namespace GLSLX.Parser {
     }
 
     if isFlag(context.current.kind) {
-      context.log.syntaxErrorBadQualifier(context.next.range)
+      context.log.syntaxErrorBadQualifier(context.current.range)
+      skipFlag(context)
       while isFlag(context.current.kind) {
-        context.next
+        skipFlag(context)
       }
     }
 
