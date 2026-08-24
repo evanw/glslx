@@ -1,6 +1,7 @@
 class GLSLX.Resolver {
   const _log Log
   const _data CompilerData
+  const _version Version
   const _controlFlow = ControlFlowAnalyzer.new
   const _versions List<Node> = []
   const _generatedExtensions StringMap<Node> = {}
@@ -73,7 +74,7 @@ class GLSLX.Resolver {
         if symbol.value != null {
           _resolveAsExpression(symbol.value)
           checkConversion(symbol.value, type)
-          if type.containsArray {
+          if type.containsArray && _version == .ES_100 {
             _log.semanticErrorArrayAssignment(node.internalRange, type)
           }
         }
@@ -301,7 +302,13 @@ class GLSLX.Resolver {
     switch node.kind {
       case .NEGATIVE, .POSITIVE, .PREFIX_DECREMENT, .PREFIX_INCREMENT, .POSTFIX_DECREMENT, .POSTFIX_INCREMENT {
         node.resolvedType =
-          valueType.isIntOrFloat ? valueType :
+          valueType.hasFloatOrIntOrUintComponents ? valueType :
+          .ERROR
+      }
+
+      case .COMPLEMENT {
+        node.resolvedType =
+          valueType.hasIntOrUintComponents ? valueType :
           .ERROR
       }
 
@@ -317,6 +324,21 @@ class GLSLX.Resolver {
     }
   }
 
+  def matrixMultiplyType(l Type, r Type) Type {
+    if l.isMatrix {
+      if r.isMatrix {
+        if l.indexCount == r.indexType.indexCount {
+          return Type.matrixOrVectorType(r.indexCount, l.indexType.indexCount) ?? .ERROR
+        }
+      } else if r.indexType == .FLOAT && l.indexCount == r.indexCount {
+        return Type.matrixOrVectorType(1, l.indexType.indexCount) ?? .ERROR
+      }
+    } else if l.indexType == .FLOAT && r.isMatrix && l.indexCount == r.indexType.indexCount {
+      return Type.matrixOrVectorType(r.indexCount, 1) ?? .ERROR
+    }
+    return .ERROR
+  }
+
   def _resolveBinary(node Node) {
     var left = node.binaryLeft
     var right = node.binaryRight
@@ -328,73 +350,83 @@ class GLSLX.Resolver {
       _checkStorage(left)
     }
 
-    var leftType = left.resolvedType
-    var rightType = right.resolvedType
-    var isSame = leftType == rightType
+    var l = left.resolvedType
+    var r = right.resolvedType
+    var isSame = l == r
 
     switch node.kind {
       case .ADD, .SUBTRACT, .MULTIPLY, .DIVIDE {
         node.resolvedType =
-          isSame && leftType.componentType != null ? leftType :
+          isSame && l.componentType != null ? l :
+          l.hasFloatOrIntOrUintComponents && r == l.componentType ? l :
+          r.hasFloatOrIntOrUintComponents && l == r.componentType ? r :
+          node.kind == .MULTIPLY ? matrixMultiplyType(l, r) :
+          .ERROR
+      }
 
-          leftType.hasFloatComponents && rightType == .FLOAT ? leftType :
-          leftType.hasIntComponents && rightType == .INT ? leftType :
+      case .BITWISE_AND, .BITWISE_OR, .BITWISE_XOR, .REMAINDER {
+        node.resolvedType =
+          isSame && l.hasIntOrUintComponents ? l :
+          l.hasIntOrUintComponents && r == l.componentType ? l :
+          r.hasIntOrUintComponents && l == r.componentType ? r :
+          .ERROR
+      }
 
-          leftType == .FLOAT && rightType.hasFloatComponents ? rightType :
-          leftType == .INT && rightType.hasIntComponents ? rightType :
-
-          node.kind == .MULTIPLY && (leftType == .VEC2 && rightType == .MAT2 || leftType == .MAT2 && rightType == .VEC2) ? .VEC2 :
-          node.kind == .MULTIPLY && (leftType == .VEC3 && rightType == .MAT3 || leftType == .MAT3 && rightType == .VEC3) ? .VEC3 :
-          node.kind == .MULTIPLY && (leftType == .VEC4 && rightType == .MAT4 || leftType == .MAT4 && rightType == .VEC4) ? .VEC4 :
-
+      case .SHIFT_LEFT, .SHIFT_RIGHT {
+        node.resolvedType =
+          isSame && l.hasIntOrUintComponents ? l :
+          l.hasIntOrUintComponents && r == l.componentType ? l :
           .ERROR
       }
 
       case .EQUAL, .NOT_EQUAL {
         node.resolvedType =
-          isSame && leftType.canUseEqualityOperators ? .BOOL :
+          isSame && l.canUseEqualityOperators(_version) ? .BOOL :
           .ERROR
       }
 
       case .LOGICAL_AND, .LOGICAL_OR, .LOGICAL_XOR {
         node.resolvedType =
-          isSame && leftType == .BOOL ? .BOOL :
+          isSame && l == .BOOL ? .BOOL :
           .ERROR
       }
 
       case .LESS_THAN, .LESS_THAN_OR_EQUAL, .GREATER_THAN, .GREATER_THAN_OR_EQUAL {
         node.resolvedType =
-          isSame && (leftType == .FLOAT || leftType == .INT) ? .BOOL :
+          isSame && (l == .FLOAT || l == .INT) ? .BOOL :
           .ERROR
       }
 
       case .ASSIGN {
-        node.resolvedType = leftType
-        if leftType.containsArray {
-          _log.semanticErrorArrayAssignment(node.internalRange, leftType)
+        node.resolvedType = l
+        if l.containsArray && _version == .ES_100 {
+          _log.semanticErrorArrayAssignment(node.internalRange, l)
         }
-        checkConversion(right, leftType)
+        checkConversion(right, l)
         return
       }
 
       case .ASSIGN_ADD, .ASSIGN_SUBTRACT, .ASSIGN_MULTIPLY, .ASSIGN_DIVIDE {
         node.resolvedType =
-          isSame && leftType.componentType != null ? leftType :
-
-          leftType.hasFloatComponents && rightType == .FLOAT ? leftType :
-          leftType.hasIntComponents && rightType == .INT ? leftType :
-
+          isSame && l.componentType != null ? l :
+          l.hasFloatOrIntOrUintComponents && r == l.componentType ? l :
           node.kind == .ASSIGN_MULTIPLY && (
-            leftType == .VEC2 && rightType == .MAT2 ||
-            leftType == .VEC3 && rightType == .MAT3 ||
-            leftType == .VEC4 && rightType == .MAT4) ? leftType :
+            l == .VEC2 && r == .MAT2 ||
+            l == .VEC3 && r == .MAT3 ||
+            l == .VEC4 && r == .MAT4) ? l :
+          .ERROR
+      }
 
+      case .ASSIGN_BITWISE_AND, .ASSIGN_BITWISE_OR, .ASSIGN_BITWISE_XOR, .ASSIGN_REMAINDER, .ASSIGN_SHIFT_LEFT, .ASSIGN_SHIFT_RIGHT {
+        node.resolvedType =
+          isSame && l.hasIntOrUintComponents ? l :
+          l.hasIntOrUintComponents && r == l.componentType ? l :
           .ERROR
       }
 
       case .INDEX {
-        if rightType == .INT {
-          var indexType = leftType.indexType
+        if r == .INT {
+          var indexType = l.indexType
           if indexType != null {
             node.resolvedType = indexType
           }
@@ -403,11 +435,11 @@ class GLSLX.Resolver {
           var folded = Folder.fold(right)
           if folded != null && folded.kind == .INT {
             var value = folded.asInt
-            var count = leftType.indexCount
+            var count = l.indexCount
 
             # Negative indices are always invalid even if the array size is unknown
-            if value < 0 || count != 0 && value >= count {
-              _log.semanticErrorOutOfBoundsIndex(right.range, value, leftType)
+            if value < 0 || count > 0 && value >= count {
+              _log.semanticErrorOutOfBoundsIndex(right.range, value, l)
             }
           }
         }
@@ -415,17 +447,32 @@ class GLSLX.Resolver {
     }
 
     # If we get here, show an error about an invalid operator
-    if node.resolvedType == .ERROR && leftType != .ERROR && rightType != .ERROR {
+    if node.resolvedType == .ERROR && l != .ERROR && r != .ERROR {
       if node.kind == .INDEX {
-        _log.semanticErrorBadIndex(node.internalRange, leftType, rightType)
+        _log.semanticErrorBadIndex(node.internalRange, l, r)
       } else {
-        _log.semanticErrorBadBinaryOperator(node.internalRange, node.internalRange.toString, leftType, rightType)
+        _log.semanticErrorBadBinaryOperator(node.internalRange, node.internalRange.toString, l, r)
       }
     }
   }
 
   def _resolveCall(node Node) {
     var callTarget = node.callTarget
+
+    # Special-case array length
+    if _version == .ES_300 && node.hasOneChild && callTarget.kind == .DOT && callTarget.asString == "length" {
+      var dotTarget = callTarget.dotTarget
+      _resolveAsExpression(dotTarget)
+      var type = dotTarget.resolvedType
+      if type.isArrayOf != null {
+        if type.arrayCount > 0 {
+          node.become(Node.createInt(type.arrayCount).withRange(node.range))
+        }
+        node.resolvedType = .INT
+        return
+      }
+    }
+
     resolveNode(callTarget)
 
     var type = callTarget.resolvedType
@@ -452,9 +499,14 @@ class GLSLX.Resolver {
       }
 
       if symbol.isStruct {
-        _resolveConstructor(type, node, arguments)
+        _resolveStructConstructor(type, node, arguments)
         return
       }
+    }
+
+    if callTarget.kind == .TYPE && type.isArrayOf != null {
+      _resolveArrayConstructor(type, node, arguments)
+      return
     }
 
     if type != .ERROR {
@@ -475,30 +527,29 @@ class GLSLX.Resolver {
 
     var type = dotTarget.resolvedType
     var isAssignTarget = node.isAssignTarget
-    switch type {
-      case .BVEC2, .IVEC2, .VEC2, .BVEC3, .IVEC3, .VEC3, .BVEC4, .IVEC4, .VEC4 {
-        node.resolvedType = _validateSwizzle(range, type, name, isAssignTarget)
-      }
 
-      case .ERROR {
-        # Ignore this case since the error was already reported
-      }
+    if type.isVector {
+      node.resolvedType = _validateSwizzle(range, type, name, isAssignTarget)
+    }
 
-      default {
-        if type.symbol != null && type.symbol.isStruct {
-          for variable in type.symbol.asStruct.variables {
-            if variable.name == name {
-              node.symbol = variable
-              resolveNode(variable.type)
-              node.resolvedType = variable.type.resolvedType
-              break
-            }
+    else if type == .ERROR {
+      # Ignore this case since the error was already reported
+    }
+
+    else {
+      if type.symbol != null && type.symbol.isStruct {
+        for variable in type.symbol.asStruct.variables {
+          if variable.name == name {
+            node.symbol = variable
+            resolveNode(variable.type)
+            node.resolvedType = variable.type.resolvedType
+            break
           }
         }
+      }
 
-        if node.symbol == null {
-          _log.semanticErrorBadMember(range, type, name)
-        }
+      if node.symbol == null {
+        _log.semanticErrorBadMember(range, type, name)
       }
     }
   }
@@ -569,7 +620,15 @@ class GLSLX.Resolver {
     node.resolvedType = overload.returnType.resolvedType
   }
 
-  def _resolveConstructor(type Type, node Node, arguments List<Node>) {
+  def _resolveArrayConstructor(type Type, node Node, arguments List<Node>) {
+    node.resolvedType = type
+
+    if type.arrayCount > 0 && type.arrayCount != arguments.count {
+      _log.semanticErrorBadConstructorCount(node.internalRange, type, arguments.count)
+    }
+  }
+
+  def _resolveStructConstructor(type Type, node Node, arguments List<Node>) {
     node.resolvedType = type
 
     if type == .ERROR {

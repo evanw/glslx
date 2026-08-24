@@ -28,13 +28,29 @@ namespace GLSLX {
   class ParserContext {
     const log Log
     const _tokens List<Token>
+    const version Version
     const compilationData CompilerData
     const resolver Resolver
     const processedIncludes StringMap<bool>
+    const pratt Pratt
     const includes List<Include> = []
     var flags SymbolFlags = 0
     var _index = 0
     var _scope Scope = null
+
+    def new(log Log, tokenized Tokenized, compilationData CompilerData, resolver Resolver, processedIncludes StringMap<bool>) {
+      self.log = log
+      _tokens = tokenized.tokens
+      version = tokenized.version
+      self.compilationData = compilationData
+      self.resolver = resolver
+      self.processedIncludes = processedIncludes
+      self.pratt = Parser.createExpressionParser(version)
+    }
+
+    def isFirstToken bool {
+      return _index == 0
+    }
 
     def current Token {
       return _tokens[_index]
@@ -92,6 +108,14 @@ namespace GLSLX {
 
     def unexpectedToken {
       log.syntaxErrorUnexpectedToken(current)
+    }
+
+    def validTypeInVersion300(type Type) Type {
+      if version == .ES_300 {
+        return type
+      }
+      unexpectedToken
+      return .ERROR
     }
 
     def scope Scope {

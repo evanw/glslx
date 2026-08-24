@@ -673,5 +673,41 @@ void main() {
 }
 ")
 
+# Check matrix constructor layout in GLSL 3.0
+test("
+#version 300 es
+void main() {
+  int m23[int(mat2x3(1) == mat2x3(1, 0, 0, 0, 1, 0))];
+  int m32[int(mat3x2(1) == mat3x2(1, 0, 0, 1, 0, 0))];
+
+  int m24[int(mat2x4(1) == mat2x4(1, 0, 0, 0, 0, 1, 0, 0))];
+  int m42[int(mat4x2(1) == mat4x2(1, 0, 0, 1, 0, 0, 0, 0))];
+
+  int m34[int(mat3x4(1) == mat3x4(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0))];
+  int m43[int(mat4x3(1) == mat4x3(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0))];
+
+  int m23m42[int(mat2x3(mat4x2(1, 2, 3, 4, 5, 6, 7, 8)) == mat2x3(1, 2, 0, 3, 4, 0))];
+  int m32m24[int(mat3x2(mat2x4(1, 2, 3, 4, 5, 6, 7, 8)) == mat3x2(1, 2, 5, 6, 0, 0))];
+
+  int m43m42[int(mat4x3(mat4x2(1, 2, 3, 4, 5, 6, 7, 8)) == mat4x3(1, 2, 0, 3, 4, 0, 5, 6, 1, 7, 8, 0))];
+  int m34m24[int(mat3x4(mat2x4(1, 2, 3, 4, 5, 6, 7, 8)) == mat3x4(1, 2, 3, 4, 5, 6, 7, 8, 0, 0, 1, 0))];
+}
+", "
+#version 300 es
+
+void main() {
+  int m23[int(mat2x3(1) == mat2x3(1, 0, 0, 0, 1, 0))];
+  int m32[int(mat3x2(1) == mat3x2(1, 0, 0, 1, 0, 0))];
+  int m24[int(mat2x4(1) == mat2x4(1, 0, 0, 0, 0, 1, 0, 0))];
+  int m42[int(mat4x2(1) == mat4x2(1, 0, 0, 1, 0, 0, 0, 0))];
+  int m34[int(mat3x4(1) == mat3x4(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0))];
+  int m43[int(mat4x3(1) == mat4x3(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0))];
+  int m23m42[int(mat2x3(mat4x2(1, 2, 3, 4, 5, 6, 7, 8)) == mat2x3(1, 2, 0, 3, 4, 0))];
+  int m32m24[int(mat3x2(mat2x4(1, 2, 3, 4, 5, 6, 7, 8)) == mat3x2(1, 2, 5, 6, 0, 0))];
+  int m43m42[int(mat4x3(mat4x2(1, 2, 3, 4, 5, 6, 7, 8)) == mat4x3(1, 2, 0, 3, 4, 0, 5, 6, 1, 7, 8, 0))];
+  int m34m24[int(mat3x4(mat2x4(1, 2, 3, 4, 5, 6, 7, 8)) == mat3x4(1, 2, 3, 4, 5, 6, 7, 8, 0, 0, 1, 0))];
+}
+")
+
   }
 }

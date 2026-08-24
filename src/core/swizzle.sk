@@ -42,6 +42,15 @@ namespace GLSLX.Swizzle {
           case 4 { return .IVEC4 }
         }
       }
+
+      case .UINT {
+        switch componentCount {
+          case 1 { return .UINT }
+          case 2 { return .UVEC2 }
+          case 3 { return .UVEC3 }
+          case 4 { return .UVEC4 }
+        }
+      }
     }
 
     assert(false)

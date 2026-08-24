@@ -614,13 +614,13 @@ class GLSLX.Rewriter {
         var right = node.binaryRight
 
         # "0 + a" => "a"
-        if left.isIntOrFloat(0) {
+        if left.isFloatOrIntOrUint(0) {
           node.become(right.remove)
           _reportCodeChange
         }
 
         # "a + 0" => "a"
-        else if right.isIntOrFloat(0) {
+        else if right.isFloatOrIntOrUint(0) {
           node.become(left.remove)
           _reportCodeChange
         }
@@ -674,7 +674,7 @@ class GLSLX.Rewriter {
         var right = node.binaryRight
 
         # "a / 1" => "a"
-        if right.isIntOrFloat(1) {
+        if right.isFloatOrIntOrUint(1) {
           node.become(left.remove)
           _reportCodeChange
         }
@@ -863,13 +863,13 @@ class GLSLX.Rewriter {
         var right = node.binaryRight
 
         # "0 - a" => "-a"
-        if left.isIntOrFloat(0) {
+        if left.isFloatOrIntOrUint(0) {
           node.become(Node.createUnary(.NEGATIVE, right.remove).withType(node.resolvedType))
           _reportCodeChange
         }
 
         # "a - 0" => "a"
-        else if right.isIntOrFloat(0) {
+        else if right.isFloatOrIntOrUint(0) {
           node.become(left.remove)
           _reportCodeChange
         }

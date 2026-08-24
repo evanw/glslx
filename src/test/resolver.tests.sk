@@ -2690,5 +2690,1175 @@ return 0;
 ~~~~~~~~~
 ")
 
+# Matrix types in GLSL 1.0
+test("
+void main() {
+  mat2 m2;
+  mat2x2 m2x2;
+  mat2x3 m2x3;
+  mat2x4 m2x4;
+  mat3 m3;
+  mat3x2 m3x2;
+  mat3x3 m3x3;
+  mat3x4 m3x4;
+  mat4 m4;
+  mat4x2 m4x2;
+  mat4x3 m4x3;
+  mat4x4 m4x4;
+}
+", "
+<stdin>:4:3: error: Unexpected MAT2X3
+  mat2x3 m2x3;
+  ~~~~~~
+<stdin>:5:3: error: Unexpected MAT2X4
+  mat2x4 m2x4;
+  ~~~~~~
+<stdin>:7:3: error: Unexpected MAT3X2
+  mat3x2 m3x2;
+  ~~~~~~
+<stdin>:9:3: error: Unexpected MAT3X4
+  mat3x4 m3x4;
+  ~~~~~~
+<stdin>:11:3: error: Unexpected MAT4X2
+  mat4x2 m4x2;
+  ~~~~~~
+<stdin>:12:3: error: Unexpected MAT4X3
+  mat4x3 m4x3;
+  ~~~~~~
+")
+
+# Matrix types in GLSL 3.0
+test("
+#version 300 es
+void main() {
+  mat2 m2;
+  mat2x2 m2x2;
+  mat2x3 m2x3;
+  mat2x4 m2x4;
+  mat3 m3;
+  mat3x2 m3x2;
+  mat3x3 m3x3;
+  mat3x4 m3x4;
+  mat4 m4;
+  mat4x2 m4x2;
+  mat4x3 m4x3;
+  mat4x4 m4x4;
+}
+", "
+#version 300 es
+
+void main() {
+  mat2 m2;
+  mat2 m2x2;
+  mat2x3 m2x3;
+  mat2x4 m2x4;
+  mat3 m3;
+  mat3x2 m3x2;
+  mat3 m3x3;
+  mat3x4 m3x4;
+  mat4 m4;
+  mat4x2 m4x2;
+  mat4x3 m4x3;
+  mat4 m4x4;
+}
+")
+
+# Matrix constructors in GLSL 3.0
+test("
+#version 300 es
+void initExact() {
+  mat2 m2 = mat2(0, 1, 2, 3);
+  mat2x3 m2x3 = mat2x3(0, 1, 2, 3, 4, 5);
+  mat2x4 m2x4 = mat2x4(0, 1, 2, 3, 4, 5, 6, 7);
+
+  mat3 m3 = mat3(0, 1, 2, 3, 4, 5, 6, 7, 8);
+  mat3x2 m3x2 = mat3x2(0, 1, 2, 3, 4, 5);
+  mat3x4 m3x4 = mat3x4(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11);
+
+  mat4 m4 = mat4(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15);
+  mat4x2 m4x2 = mat4x2(0, 1, 2, 3, 4, 5, 6, 7);
+  mat4x3 m4x3 = mat4x3(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11);
+}
+void initTooFew() {
+  mat2 m2 = mat2(0, 1, 2);
+  mat2x3 m2x3 = mat2x3(0, 1, 2, 3, 4);
+  mat2x4 m2x4 = mat2x4(0, 1, 2, 3, 4, 5, 6);
+
+  mat3 m3 = mat3(0, 1, 2, 3, 4, 5, 6, 7);
+  mat3x2 m3x2 = mat3x2(0, 1, 2, 3, 4);
+  mat3x4 m3x4 = mat3x4(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
+
+  mat4 m4 = mat4(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14);
+  mat4x2 m4x2 = mat4x2(0, 1, 2, 3, 4, 5, 6);
+  mat4x3 m4x3 = mat4x3(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
+}
+void initTooMany() {
+  mat2 m2 = mat2(0, 1, 2, 3, 4);
+  mat2x3 m2x3 = mat2x3(0, 1, 2, 3, 4, 5, 6);
+  mat2x4 m2x4 = mat2x4(0, 1, 2, 3, 4, 5, 6, 7, 8);
+
+  mat3 m3 = mat3(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
+  mat3x2 m3x2 = mat3x2(0, 1, 2, 3, 4, 5, 6);
+  mat3x4 m3x4 = mat3x4(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12);
+
+  mat4 m4 = mat4(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16);
+  mat4x2 m4x2 = mat4x2(0, 1, 2, 3, 4, 5, 6, 7, 8);
+  mat4x3 m4x3 = mat4x3(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12);
+}
+", "
+<stdin>:16:17: error: Cannot construct type \"mat2\" with 3 arguments
+  mat2 m2 = mat2(0, 1, 2);
+                ~~~~~~~~~
+<stdin>:17:23: error: Cannot construct type \"mat2x3\" with 5 arguments
+  mat2x3 m2x3 = mat2x3(0, 1, 2, 3, 4);
+                      ~~~~~~~~~~~~~~~
+<stdin>:18:23: error: Cannot construct type \"mat2x4\" with 7 arguments
+  mat2x4 m2x4 = mat2x4(0, 1, 2, 3, 4, 5, 6);
+                      ~~~~~~~~~~~~~~~~~~~~~
+<stdin>:20:17: error: Cannot construct type \"mat3\" with 8 arguments
+  mat3 m3 = mat3(0, 1, 2, 3, 4, 5, 6, 7);
+                ~~~~~~~~~~~~~~~~~~~~~~~~
+<stdin>:21:23: error: Cannot construct type \"mat3x2\" with 5 arguments
+  mat3x2 m3x2 = mat3x2(0, 1, 2, 3, 4);
+                      ~~~~~~~~~~~~~~~
+<stdin>:22:23: error: Cannot construct type \"mat3x4\" with 11 arguments
+  mat3x4 m3x4 = mat3x4(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
+                      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+<stdin>:24:17: error: Cannot construct type \"mat4\" with 15 arguments
+  mat4 m4 = mat4(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14);
+                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+<stdin>:25:23: error: Cannot construct type \"mat4x2\" with 7 arguments
+  mat4x2 m4x2 = mat4x2(0, 1, 2, 3, 4, 5, 6);
+                      ~~~~~~~~~~~~~~~~~~~~~
+<stdin>:26:23: error: Cannot construct type \"mat4x3\" with 11 arguments
+  mat4x3 m4x3 = mat4x3(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
+                      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+<stdin>:29:30: error: The constructor for type \"mat2\" only takes 4 arguments and this argument would bring the total to 5
+  mat2 m2 = mat2(0, 1, 2, 3, 4);
+                             ^
+<stdin>:30:42: error: The constructor for type \"mat2x3\" only takes 6 arguments and this argument would bring the total to 7
+  mat2x3 m2x3 = mat2x3(0, 1, 2, 3, 4, 5, 6);
+                                         ^
+<stdin>:31:48: error: The constructor for type \"mat2x4\" only takes 8 arguments and this argument would bring the total to 9
+  mat2x4 m2x4 = mat2x4(0, 1, 2, 3, 4, 5, 6, 7, 8);
+                                               ^
+<stdin>:33:45: error: The constructor for type \"mat3\" only takes 9 arguments and this argument would bring the total to 10
+  mat3 m3 = mat3(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
+                                            ^
+<stdin>:34:42: error: The constructor for type \"mat3x2\" only takes 6 arguments and this argument would bring the total to 7
+  mat3x2 m3x2 = mat3x2(0, 1, 2, 3, 4, 5, 6);
+                                         ^
+<stdin>:35:62: error: The constructor for type \"mat3x4\" only takes 12 arguments and this argument would bring the total to 13
+  mat3x4 m3x4 = mat3x4(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12);
+                                                             ~~
+<stdin>:37:72: error: The constructor for type \"mat4\" only takes 16 arguments and this argument would bring the total to 17
+  mat4 m4 = mat4(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16);
+                                                                       ~~
+<stdin>:38:48: error: The constructor for type \"mat4x2\" only takes 8 arguments and this argument would bring the total to 9
+  mat4x2 m4x2 = mat4x2(0, 1, 2, 3, 4, 5, 6, 7, 8);
+                                               ^
+<stdin>:39:62: error: The constructor for type \"mat4x3\" only takes 12 arguments and this argument would bring the total to 13
+  mat4x3 m4x3 = mat4x3(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12);
+                                                             ~~
+")
+
+# Matrix components in GLSL 3.0
+test("
+#version 300 es
+void test(mat2 m2, mat2x3 m2x3, mat2x4 m2x4, mat3 m3, mat3x2 m3x2, mat3x4 m3x4, mat4 m4, mat4x2 m4x2, mat4x3 m4x3) {
+  bool b;
+  b = m2[0];
+  b = m2x3[0];
+  b = m2x4[0];
+  b = m3[0];
+  b = m3x2[0];
+  b = m3x4[0];
+  b = m4[0];
+  b = m4x2[0];
+  b = m4x3[0];
+}
+", "
+<stdin>:4:7: error: Cannot convert from type \"vec2\" to type \"bool\"
+  b = m2[0];
+      ~~~~~
+<stdin>:5:7: error: Cannot convert from type \"vec3\" to type \"bool\"
+  b = m2x3[0];
+      ~~~~~~~
+<stdin>:6:7: error: Cannot convert from type \"vec4\" to type \"bool\"
+  b = m2x4[0];
+      ~~~~~~~
+<stdin>:7:7: error: Cannot convert from type \"vec3\" to type \"bool\"
+  b = m3[0];
+      ~~~~~
+<stdin>:8:7: error: Cannot convert from type \"vec2\" to type \"bool\"
+  b = m3x2[0];
+      ~~~~~~~
+<stdin>:9:7: error: Cannot convert from type \"vec4\" to type \"bool\"
+  b = m3x4[0];
+      ~~~~~~~
+<stdin>:10:7: error: Cannot convert from type \"vec4\" to type \"bool\"
+  b = m4[0];
+      ~~~~~
+<stdin>:11:7: error: Cannot convert from type \"vec2\" to type \"bool\"
+  b = m4x2[0];
+      ~~~~~~~
+<stdin>:12:7: error: Cannot convert from type \"vec3\" to type \"bool\"
+  b = m4x3[0];
+      ~~~~~~~
+")
+
+# Invalid operators from GLSL 3.0
+test("
+#version 300 es
+void test_ivec2(ivec2 x) {
+  x <<= (x << 1) << (1 << x);
+  x >>= (x >> 1) >> (1 >> x);
+}
+void test_ivec3(ivec3 x) {
+  x <<= (x << 1) << (1 << x);
+  x >>= (x >> 1) >> (1 >> x);
+}
+void test_ivec4(ivec4 x) {
+  x <<= (x << 1) << (1 << x);
+  x >>= (x >> 1) >> (1 >> x);
+}
+void test_uvec2(uvec2 x) {
+  x <<= (x << 1) << (1 << x);
+  x >>= (x >> 1) >> (1 >> x);
+}
+void test_uvec3(uvec3 x) {
+  x <<= (x << 1) << (1 << x);
+  x >>= (x >> 1) >> (1 >> x);
+}
+void test_uvec4(uvec4 x) {
+  x <<= (x << 1) << (1 << x);
+  x >>= (x >> 1) >> (1 >> x);
+}
+void test_float(float x) {
+  x += (x + 1.0) + (1.0 + x);
+  x -= (x - 1.0) - (1.0 - x);
+  x *= (x * 1.0) * (1.0 * x);
+  x /= (x / 1.0) / (1.0 / x);
+  x %= (x % 1.0) % (1.0 % x);
+  x &= (x & 1.0) & (1.0 & x);
+  x |= (x | 1.0) | (1.0 | x);
+  x ^= (x ^ 1.0) ^ (1.0 ^ x);
+  x <<= (x << 1.0) << (1.0 << x);
+  x >>= (x >> 1.0) >> (1.0 >> x);
+}
+void test_vec2(vec2 x) {
+  x += (x + 1.0) + (1.0 + x);
+  x -= (x - 1.0) - (1.0 - x);
+  x *= (x * 1.0) * (1.0 * x);
+  x /= (x / 1.0) / (1.0 / x);
+  x %= (x % 1.0) % (1.0 % x);
+  x &= (x & 1.0) & (1.0 & x);
+  x |= (x | 1.0) | (1.0 | x);
+  x ^= (x ^ 1.0) ^ (1.0 ^ x);
+  x <<= (x << 1.0) << (1.0 << x);
+  x >>= (x >> 1.0) >> (1.0 >> x);
+}
+void test_vec3(vec3 x) {
+  x += (x + 1.0) + (1.0 + x);
+  x -= (x - 1.0) - (1.0 - x);
+  x *= (x * 1.0) * (1.0 * x);
+  x /= (x / 1.0) / (1.0 / x);
+  x %= (x % 1.0) % (1.0 % x);
+  x &= (x & 1.0) & (1.0 & x);
+  x |= (x | 1.0) | (1.0 | x);
+  x ^= (x ^ 1.0) ^ (1.0 ^ x);
+  x <<= (x << 1.0) << (1.0 << x);
+  x >>= (x >> 1.0) >> (1.0 >> x);
+}
+void test_vec4(vec4 x) {
+  x += (x + 1.0) + (1.0 + x);
+  x -= (x - 1.0) - (1.0 - x);
+  x *= (x * 1.0) * (1.0 * x);
+  x /= (x / 1.0) / (1.0 / x);
+  x %= (x % 1.0) % (1.0 % x);
+  x &= (x & 1.0) & (1.0 & x);
+  x |= (x | 1.0) | (1.0 | x);
+  x ^= (x ^ 1.0) ^ (1.0 ^ x);
+  x <<= (x << 1.0) << (1.0 << x);
+  x >>= (x >> 1.0) >> (1.0 >> x);
+}
+", "
+<stdin>:3:24: error: No binary operator \"<<\" for type \"int\" and type \"ivec2\"
+  x <<= (x << 1) << (1 << x);
+                       ~~
+<stdin>:4:24: error: No binary operator \">>\" for type \"int\" and type \"ivec2\"
+  x >>= (x >> 1) >> (1 >> x);
+                       ~~
+<stdin>:7:24: error: No binary operator \"<<\" for type \"int\" and type \"ivec3\"
+  x <<= (x << 1) << (1 << x);
+                       ~~
+<stdin>:8:24: error: No binary operator \">>\" for type \"int\" and type \"ivec3\"
+  x >>= (x >> 1) >> (1 >> x);
+                       ~~
+<stdin>:11:24: error: No binary operator \"<<\" for type \"int\" and type \"ivec4\"
+  x <<= (x << 1) << (1 << x);
+                       ~~
+<stdin>:12:24: error: No binary operator \">>\" for type \"int\" and type \"ivec4\"
+  x >>= (x >> 1) >> (1 >> x);
+                       ~~
+<stdin>:15:12: error: No binary operator \"<<\" for type \"uvec2\" and type \"int\"
+  x <<= (x << 1) << (1 << x);
+           ~~
+<stdin>:15:24: error: No binary operator \"<<\" for type \"int\" and type \"uvec2\"
+  x <<= (x << 1) << (1 << x);
+                       ~~
+<stdin>:16:12: error: No binary operator \">>\" for type \"uvec2\" and type \"int\"
+  x >>= (x >> 1) >> (1 >> x);
+           ~~
+<stdin>:16:24: error: No binary operator \">>\" for type \"int\" and type \"uvec2\"
+  x >>= (x >> 1) >> (1 >> x);
+                       ~~
+<stdin>:19:12: error: No binary operator \"<<\" for type \"uvec3\" and type \"int\"
+  x <<= (x << 1) << (1 << x);
+           ~~
+<stdin>:19:24: error: No binary operator \"<<\" for type \"int\" and type \"uvec3\"
+  x <<= (x << 1) << (1 << x);
+                       ~~
+<stdin>:20:12: error: No binary operator \">>\" for type \"uvec3\" and type \"int\"
+  x >>= (x >> 1) >> (1 >> x);
+           ~~
+<stdin>:20:24: error: No binary operator \">>\" for type \"int\" and type \"uvec3\"
+  x >>= (x >> 1) >> (1 >> x);
+                       ~~
+<stdin>:23:12: error: No binary operator \"<<\" for type \"uvec4\" and type \"int\"
+  x <<= (x << 1) << (1 << x);
+           ~~
+<stdin>:23:24: error: No binary operator \"<<\" for type \"int\" and type \"uvec4\"
+  x <<= (x << 1) << (1 << x);
+                       ~~
+<stdin>:24:12: error: No binary operator \">>\" for type \"uvec4\" and type \"int\"
+  x >>= (x >> 1) >> (1 >> x);
+           ~~
+<stdin>:24:24: error: No binary operator \">>\" for type \"int\" and type \"uvec4\"
+  x >>= (x >> 1) >> (1 >> x);
+                       ~~
+<stdin>:31:11: error: There is no operator \"%\" defined for type \"float\"
+  x %= (x % 1.0) % (1.0 % x);
+          ^
+<stdin>:31:25: error: There is no operator \"%\" defined for type \"float\"
+  x %= (x % 1.0) % (1.0 % x);
+                        ^
+<stdin>:32:11: error: There is no operator \"&\" defined for type \"float\"
+  x &= (x & 1.0) & (1.0 & x);
+          ^
+<stdin>:32:25: error: There is no operator \"&\" defined for type \"float\"
+  x &= (x & 1.0) & (1.0 & x);
+                        ^
+<stdin>:33:11: error: There is no operator \"|\" defined for type \"float\"
+  x |= (x | 1.0) | (1.0 | x);
+          ^
+<stdin>:33:25: error: There is no operator \"|\" defined for type \"float\"
+  x |= (x | 1.0) | (1.0 | x);
+                        ^
+<stdin>:34:11: error: There is no operator \"^\" defined for type \"float\"
+  x ^= (x ^ 1.0) ^ (1.0 ^ x);
+          ^
+<stdin>:34:25: error: There is no operator \"^\" defined for type \"float\"
+  x ^= (x ^ 1.0) ^ (1.0 ^ x);
+                        ^
+<stdin>:35:12: error: There is no operator \"<<\" defined for type \"float\"
+  x <<= (x << 1.0) << (1.0 << x);
+           ~~
+<stdin>:35:28: error: There is no operator \"<<\" defined for type \"float\"
+  x <<= (x << 1.0) << (1.0 << x);
+                           ~~
+<stdin>:36:12: error: There is no operator \">>\" defined for type \"float\"
+  x >>= (x >> 1.0) >> (1.0 >> x);
+           ~~
+<stdin>:36:28: error: There is no operator \">>\" defined for type \"float\"
+  x >>= (x >> 1.0) >> (1.0 >> x);
+                           ~~
+<stdin>:43:11: error: No binary operator \"%\" for type \"vec2\" and type \"float\"
+  x %= (x % 1.0) % (1.0 % x);
+          ^
+<stdin>:43:25: error: No binary operator \"%\" for type \"float\" and type \"vec2\"
+  x %= (x % 1.0) % (1.0 % x);
+                        ^
+<stdin>:44:11: error: No binary operator \"&\" for type \"vec2\" and type \"float\"
+  x &= (x & 1.0) & (1.0 & x);
+          ^
+<stdin>:44:25: error: No binary operator \"&\" for type \"float\" and type \"vec2\"
+  x &= (x & 1.0) & (1.0 & x);
+                        ^
+<stdin>:45:11: error: No binary operator \"|\" for type \"vec2\" and type \"float\"
+  x |= (x | 1.0) | (1.0 | x);
+          ^
+<stdin>:45:25: error: No binary operator \"|\" for type \"float\" and type \"vec2\"
+  x |= (x | 1.0) | (1.0 | x);
+                        ^
+<stdin>:46:11: error: No binary operator \"^\" for type \"vec2\" and type \"float\"
+  x ^= (x ^ 1.0) ^ (1.0 ^ x);
+          ^
+<stdin>:46:25: error: No binary operator \"^\" for type \"float\" and type \"vec2\"
+  x ^= (x ^ 1.0) ^ (1.0 ^ x);
+                        ^
+<stdin>:47:12: error: No binary operator \"<<\" for type \"vec2\" and type \"float\"
+  x <<= (x << 1.0) << (1.0 << x);
+           ~~
+<stdin>:47:28: error: No binary operator \"<<\" for type \"float\" and type \"vec2\"
+  x <<= (x << 1.0) << (1.0 << x);
+                           ~~
+<stdin>:48:12: error: No binary operator \">>\" for type \"vec2\" and type \"float\"
+  x >>= (x >> 1.0) >> (1.0 >> x);
+           ~~
+<stdin>:48:28: error: No binary operator \">>\" for type \"float\" and type \"vec2\"
+  x >>= (x >> 1.0) >> (1.0 >> x);
+                           ~~
+<stdin>:55:11: error: No binary operator \"%\" for type \"vec3\" and type \"float\"
+  x %= (x % 1.0) % (1.0 % x);
+          ^
+<stdin>:55:25: error: No binary operator \"%\" for type \"float\" and type \"vec3\"
+  x %= (x % 1.0) % (1.0 % x);
+                        ^
+<stdin>:56:11: error: No binary operator \"&\" for type \"vec3\" and type \"float\"
+  x &= (x & 1.0) & (1.0 & x);
+          ^
+<stdin>:56:25: error: No binary operator \"&\" for type \"float\" and type \"vec3\"
+  x &= (x & 1.0) & (1.0 & x);
+                        ^
+<stdin>:57:11: error: No binary operator \"|\" for type \"vec3\" and type \"float\"
+  x |= (x | 1.0) | (1.0 | x);
+          ^
+<stdin>:57:25: error: No binary operator \"|\" for type \"float\" and type \"vec3\"
+  x |= (x | 1.0) | (1.0 | x);
+                        ^
+<stdin>:58:11: error: No binary operator \"^\" for type \"vec3\" and type \"float\"
+  x ^= (x ^ 1.0) ^ (1.0 ^ x);
+          ^
+<stdin>:58:25: error: No binary operator \"^\" for type \"float\" and type \"vec3\"
+  x ^= (x ^ 1.0) ^ (1.0 ^ x);
+                        ^
+<stdin>:59:12: error: No binary operator \"<<\" for type \"vec3\" and type \"float\"
+  x <<= (x << 1.0) << (1.0 << x);
+           ~~
+<stdin>:59:28: error: No binary operator \"<<\" for type \"float\" and type \"vec3\"
+  x <<= (x << 1.0) << (1.0 << x);
+                           ~~
+<stdin>:60:12: error: No binary operator \">>\" for type \"vec3\" and type \"float\"
+  x >>= (x >> 1.0) >> (1.0 >> x);
+           ~~
+<stdin>:60:28: error: No binary operator \">>\" for type \"float\" and type \"vec3\"
+  x >>= (x >> 1.0) >> (1.0 >> x);
+                           ~~
+<stdin>:67:11: error: No binary operator \"%\" for type \"vec4\" and type \"float\"
+  x %= (x % 1.0) % (1.0 % x);
+          ^
+<stdin>:67:25: error: No binary operator \"%\" for type \"float\" and type \"vec4\"
+  x %= (x % 1.0) % (1.0 % x);
+                        ^
+<stdin>:68:11: error: No binary operator \"&\" for type \"vec4\" and type \"float\"
+  x &= (x & 1.0) & (1.0 & x);
+          ^
+<stdin>:68:25: error: No binary operator \"&\" for type \"float\" and type \"vec4\"
+  x &= (x & 1.0) & (1.0 & x);
+                        ^
+<stdin>:69:11: error: No binary operator \"|\" for type \"vec4\" and type \"float\"
+  x |= (x | 1.0) | (1.0 | x);
+          ^
+<stdin>:69:25: error: No binary operator \"|\" for type \"float\" and type \"vec4\"
+  x |= (x | 1.0) | (1.0 | x);
+                        ^
+<stdin>:70:11: error: No binary operator \"^\" for type \"vec4\" and type \"float\"
+  x ^= (x ^ 1.0) ^ (1.0 ^ x);
+          ^
+<stdin>:70:25: error: No binary operator \"^\" for type \"float\" and type \"vec4\"
+  x ^= (x ^ 1.0) ^ (1.0 ^ x);
+                        ^
+<stdin>:71:12: error: No binary operator \"<<\" for type \"vec4\" and type \"float\"
+  x <<= (x << 1.0) << (1.0 << x);
+           ~~
+<stdin>:71:28: error: No binary operator \"<<\" for type \"float\" and type \"vec4\"
+  x <<= (x << 1.0) << (1.0 << x);
+                           ~~
+<stdin>:72:12: error: No binary operator \">>\" for type \"vec4\" and type \"float\"
+  x >>= (x >> 1.0) >> (1.0 >> x);
+           ~~
+<stdin>:72:28: error: No binary operator \">>\" for type \"float\" and type \"vec4\"
+  x >>= (x >> 1.0) >> (1.0 >> x);
+                           ~~
+")
+
+# Valid operators from GLSL 3.0
+test("
+#version 300 es
+int test_int(int x) {
+  x += (x + 1) + (1 + x);
+  x -= (x - 1) - (1 - x);
+  x *= (x * 1) * (1 * x);
+  x /= (x / 1) / (1 / x);
+  x %= (x % 1) % (1 % x);
+  x &= (x & 1) & (1 & x);
+  x |= (x | 1) | (1 | x);
+  x ^= (x ^ 1) ^ (1 ^ x);
+  x <<= (x << 1) << (1 << x);
+  x >>= (x >> 1) >> (1 >> x);
+  return x;
+}
+ivec2 test_ivec2(ivec2 x) {
+  x += (x + 1) + (1 + x);
+  x -= (x - 1) - (1 - x);
+  x *= (x * 1) * (1 * x);
+  x /= (x / 1) / (1 / x);
+  x %= (x % 1) % (1 % x);
+  x &= (x & 1) & (1 & x);
+  x |= (x | 1) | (1 | x);
+  x ^= (x ^ 1) ^ (1 ^ x);
+  x <<= (x << 1) << x;
+  x >>= (x >> 1) >> x;
+  return x;
+}
+ivec3 test_ivec3(ivec3 x) {
+  x += (x + 1) + (1 + x);
+  x -= (x - 1) - (1 - x);
+  x *= (x * 1) * (1 * x);
+  x /= (x / 1) / (1 / x);
+  x %= (x % 1) % (1 % x);
+  x &= (x & 1) & (1 & x);
+  x |= (x | 1) | (1 | x);
+  x ^= (x ^ 1) ^ (1 ^ x);
+  x <<= (x << 1) << x;
+  x >>= (x >> 1) >> x;
+  return x;
+}
+ivec4 test_ivec4(ivec4 x) {
+  x += (x + 1) + (1 + x);
+  x -= (x - 1) - (1 - x);
+  x *= (x * 1) * (1 * x);
+  x /= (x / 1) / (1 / x);
+  x %= (x % 1) % (1 % x);
+  x &= (x & 1) & (1 & x);
+  x |= (x | 1) | (1 | x);
+  x ^= (x ^ 1) ^ (1 ^ x);
+  x <<= (x << 1) << x;
+  x >>= (x >> 1) >> x;
+  return x;
+}
+uint test_uint(uint x) {
+  x += (x + 1u) + (1u + x);
+  x -= (x - 1u) - (1u - x);
+  x *= (x * 1u) * (1u * x);
+  x /= (x / 1u) / (1u / x);
+  x %= (x % 1u) % (1u % x);
+  x &= (x & 1u) & (1u & x);
+  x |= (x | 1u) | (1u | x);
+  x ^= (x ^ 1u) ^ (1u ^ x);
+  x <<= (x << 1u) << (1u << x);
+  x >>= (x >> 1u) >> (1u >> x);
+  return x;
+}
+uvec2 test_uvec2(uvec2 x) {
+  x += (x + 1u) + (1u + x);
+  x -= (x - 1u) - (1u - x);
+  x *= (x * 1u) * (1u * x);
+  x /= (x / 1u) / (1u / x);
+  x %= (x % 1u) % (1u % x);
+  x &= (x & 1u) & (1u & x);
+  x |= (x | 1u) | (1u | x);
+  x ^= (x ^ 1u) ^ (1u ^ x);
+  x <<= (x << 1u) << x;
+  x >>= (x >> 1u) >> x;
+  return x;
+}
+uvec3 test_uvec3(uvec3 x) {
+  x += (x + 1u) + (1u + x);
+  x -= (x - 1u) - (1u - x);
+  x *= (x * 1u) * (1u * x);
+  x /= (x / 1u) / (1u / x);
+  x %= (x % 1u) % (1u % x);
+  x &= (x & 1u) & (1u & x);
+  x |= (x | 1u) | (1u | x);
+  x ^= (x ^ 1u) ^ (1u ^ x);
+  x <<= (x << 1u) << x;
+  x >>= (x >> 1u) >> x;
+  return x;
+}
+uvec4 test_uvec4(uvec4 x) {
+  x += (x + 1u) + (1u + x);
+  x -= (x - 1u) - (1u - x);
+  x *= (x * 1u) * (1u * x);
+  x /= (x / 1u) / (1u / x);
+  x %= (x % 1u) % (1u % x);
+  x &= (x & 1u) & (1u & x);
+  x |= (x | 1u) | (1u | x);
+  x ^= (x ^ 1u) ^ (1u ^ x);
+  x <<= (x << 1u) << x;
+  x >>= (x >> 1u) >> x;
+  return x;
+}
+void main() {
+  test_int(0);
+  test_ivec2(ivec2(0));
+  test_ivec3(ivec3(0));
+  test_ivec4(ivec4(0));
+
+  test_uint(0u);
+  test_uvec2(uvec2(0));
+  test_uvec3(uvec3(0));
+  test_uvec4(uvec4(0));
+}
+", "
+#version 300 es
+
+int test_int(int x) {
+  x += x + 1 + (1 + x);
+  x -= x - 1 - (1 - x);
+  x *= x * 1 * (1 * x);
+  x /= x / 1 / (1 / x);
+  x %= x % 1 % (1 % x);
+  x &= x & 1 & (1 & x);
+  x |= x | 1 | (1 | x);
+  x ^= x ^ 1 ^ (1 ^ x);
+  x <<= x << 1 << (1 << x);
+  x >>= x >> 1 >> (1 >> x);
+  return x;
+}
+
+ivec2 test_ivec2(ivec2 x) {
+  x += x + 1 + (1 + x);
+  x -= x - 1 - (1 - x);
+  x *= x * 1 * (1 * x);
+  x /= x / 1 / (1 / x);
+  x %= x % 1 % (1 % x);
+  x &= x & 1 & (1 & x);
+  x |= x | 1 | (1 | x);
+  x ^= x ^ 1 ^ (1 ^ x);
+  x <<= x << 1 << x;
+  x >>= x >> 1 >> x;
+  return x;
+}
+
+ivec3 test_ivec3(ivec3 x) {
+  x += x + 1 + (1 + x);
+  x -= x - 1 - (1 - x);
+  x *= x * 1 * (1 * x);
+  x /= x / 1 / (1 / x);
+  x %= x % 1 % (1 % x);
+  x &= x & 1 & (1 & x);
+  x |= x | 1 | (1 | x);
+  x ^= x ^ 1 ^ (1 ^ x);
+  x <<= x << 1 << x;
+  x >>= x >> 1 >> x;
+  return x;
+}
+
+ivec4 test_ivec4(ivec4 x) {
+  x += x + 1 + (1 + x);
+  x -= x - 1 - (1 - x);
+  x *= x * 1 * (1 * x);
+  x /= x / 1 / (1 / x);
+  x %= x % 1 % (1 % x);
+  x &= x & 1 & (1 & x);
+  x |= x | 1 | (1 | x);
+  x ^= x ^ 1 ^ (1 ^ x);
+  x <<= x << 1 << x;
+  x >>= x >> 1 >> x;
+  return x;
+}
+
+uint test_uint(uint x) {
+  x += x + 1u + (1u + x);
+  x -= x - 1u - (1u - x);
+  x *= x * 1u * (1u * x);
+  x /= x / 1u / (1u / x);
+  x %= x % 1u % (1u % x);
+  x &= x & 1u & (1u & x);
+  x |= x | 1u | (1u | x);
+  x ^= x ^ 1u ^ (1u ^ x);
+  x <<= x << 1u << (1u << x);
+  x >>= x >> 1u >> (1u >> x);
+  return x;
+}
+
+uvec2 test_uvec2(uvec2 x) {
+  x += x + 1u + (1u + x);
+  x -= x - 1u - (1u - x);
+  x *= x * 1u * (1u * x);
+  x /= x / 1u / (1u / x);
+  x %= x % 1u % (1u % x);
+  x &= x & 1u & (1u & x);
+  x |= x | 1u | (1u | x);
+  x ^= x ^ 1u ^ (1u ^ x);
+  x <<= x << 1u << x;
+  x >>= x >> 1u >> x;
+  return x;
+}
+
+uvec3 test_uvec3(uvec3 x) {
+  x += x + 1u + (1u + x);
+  x -= x - 1u - (1u - x);
+  x *= x * 1u * (1u * x);
+  x /= x / 1u / (1u / x);
+  x %= x % 1u % (1u % x);
+  x &= x & 1u & (1u & x);
+  x |= x | 1u | (1u | x);
+  x ^= x ^ 1u ^ (1u ^ x);
+  x <<= x << 1u << x;
+  x >>= x >> 1u >> x;
+  return x;
+}
+
+uvec4 test_uvec4(uvec4 x) {
+  x += x + 1u + (1u + x);
+  x -= x - 1u - (1u - x);
+  x *= x * 1u * (1u * x);
+  x /= x / 1u / (1u / x);
+  x %= x % 1u % (1u % x);
+  x &= x & 1u & (1u & x);
+  x |= x | 1u | (1u | x);
+  x ^= x ^ 1u ^ (1u ^ x);
+  x <<= x << 1u << x;
+  x >>= x >> 1u >> x;
+  return x;
+}
+
+void main() {
+  test_int(0);
+  test_ivec2(ivec2(0));
+  test_ivec3(ivec3(0));
+  test_ivec4(ivec4(0));
+  test_uint(0u);
+  test_uvec2(uvec2(0));
+  test_uvec3(uvec3(0));
+  test_uvec4(uvec4(0));
+}
+")
+
+# Array length can't be used in GLSL 1.0
+test("
+int main(float a[5]) {
+  return a.length();
+}
+", "
+<stdin>:2:12: error: Cannot find \"length\" on type \"float[5]\"
+  return a.length();
+           ~~~~~~
+")
+
+# Array length from GLSL 3.0 only works on arrays
+test("
+#version 300 es
+int main(float a[5], float b, vec2 c) {
+  return a.length() + b.length() + c.length() + a.length(0) + a.length;
+}
+", "
+<stdin>:3:25: error: Cannot find \"length\" on type \"float\"
+  return a.length() + b.length() + c.length() + a.length(0) + a.length;
+                        ~~~~~~
+<stdin>:3:38: error: Invalid swizzle \"length\" on type \"vec2\"
+  return a.length() + b.length() + c.length() + a.length(0) + a.length;
+                                     ~~~~~~
+<stdin>:3:51: error: Cannot find \"length\" on type \"float[5]\"
+  return a.length() + b.length() + c.length() + a.length(0) + a.length;
+                                                  ~~~~~~
+<stdin>:3:65: error: Cannot find \"length\" on type \"float[5]\"
+  return a.length() + b.length() + c.length() + a.length(0) + a.length;
+                                                                ~~~~~~
+")
+
+# Array length from GLSL 3.0 is a constant expression
+test("
+#version 300 es
+float main(float a[5]) {
+  float b[a.length()];
+  b[0] = 1.0;
+  return b[0];
+}
+", "
+#version 300 es
+
+float main(float a[5]) {
+  float b[5];
+  b[0] = 1.0;
+  return b[0];
+}
+")
+
+# Forbid multidimensional arrays
+test("
+#version 300 es
+void main() {
+  int[1][2] a;
+  int[1] b, c[2];
+  int d[1][2];
+}
+", "
+<stdin>:3:9: error: Multidimensional arrays are not a part of the language
+  int[1][2] a;
+        ~~~
+<stdin>:4:14: error: Multidimensional arrays are not a part of the language
+  int[1] b, c[2];
+             ~~~
+<stdin>:5:11: error: Multidimensional arrays are not a part of the language
+  int d[1][2];
+          ~~~
+")
+
+# Check array constructors from GLSL 3.0
+test("
+#version 300 es
+void before() {
+  int[3] a2 = int[3](0, 1);
+  int[3] a3 = int[3](0, 1, 2);
+  int[3] a4 = int[3](0, 1, 2, 3);
+  int[3] b2 = int[](0, 1);
+  int[3] b3 = int[](0, 1, 2);
+  int[3] b4 = int[](0, 1, 2, 3);
+  int[] c2 = int[3](0, 1);
+  int[] c3 = int[3](0, 1, 2);
+  int[] c4 = int[3](0, 1, 2, 3);
+  int[] d2 = int[](0, 1);
+  int[] d3 = int[](0, 1, 2);
+  int[] d4 = int[](0, 1, 2, 3);
+  int[3] bad = int[3](0.0, 1u, false);
+  a2 = d2;
+  a3 = d3;
+  a4 = d4;
+}
+void after() {
+  int a2[3] = int[3](0, 1);
+  int a3[3] = int[3](0, 1, 2);
+  int a4[3] = int[3](0, 1, 2, 3);
+  int b2[3] = int[](0, 1);
+  int b3[3] = int[](0, 1, 2);
+  int b4[3] = int[](0, 1, 2, 3);
+  int c2[] = int[3](0, 1);
+  int c3[] = int[3](0, 1, 2);
+  int c4[] = int[3](0, 1, 2, 3);
+  int d2[] = int[](0, 1);
+  int d3[] = int[](0, 1, 2);
+  int d4[] = int[](0, 1, 2, 3);
+  int bad[3] = int[3](0.0, 1u, false);
+  a2 = d2;
+  a3 = d3;
+  a4 = d4;
+}
+", "
+<stdin>:9:20: error: Cannot construct type \"int[3]\" with 2 arguments
+  int[] c2 = int[3](0, 1);
+                   ~~~~~~
+<stdin>:11:20: error: Cannot construct type \"int[3]\" with 4 arguments
+  int[] c4 = int[3](0, 1, 2, 3);
+                   ~~~~~~~~~~~~
+<stdin>:27:20: error: Cannot construct type \"int[3]\" with 2 arguments
+  int c2[] = int[3](0, 1);
+                   ~~~~~~
+<stdin>:29:20: error: Cannot construct type \"int[3]\" with 4 arguments
+  int c4[] = int[3](0, 1, 2, 3);
+                   ~~~~~~~~~~~~
+<stdin>:3:21: error: Cannot construct type \"int[3]\" with 2 arguments
+  int[3] a2 = int[3](0, 1);
+                    ~~~~~~
+<stdin>:5:21: error: Cannot construct type \"int[3]\" with 4 arguments
+  int[3] a4 = int[3](0, 1, 2, 3);
+                    ~~~~~~~~~~~~
+<stdin>:6:15: error: Cannot convert from type \"int[2]\" to type \"int[3]\"
+  int[3] b2 = int[](0, 1);
+              ~~~~~~~~~~~
+<stdin>:8:15: error: Cannot convert from type \"int[4]\" to type \"int[3]\"
+  int[3] b4 = int[](0, 1, 2, 3);
+              ~~~~~~~~~~~~~~~~~
+<stdin>:16:8: error: Cannot convert from type \"int[2]\" to type \"int[3]\"
+  a2 = d2;
+       ~~
+<stdin>:18:8: error: Cannot convert from type \"int[4]\" to type \"int[3]\"
+  a4 = d4;
+       ~~
+<stdin>:21:21: error: Cannot construct type \"int[3]\" with 2 arguments
+  int a2[3] = int[3](0, 1);
+                    ~~~~~~
+<stdin>:23:21: error: Cannot construct type \"int[3]\" with 4 arguments
+  int a4[3] = int[3](0, 1, 2, 3);
+                    ~~~~~~~~~~~~
+<stdin>:24:15: error: Cannot convert from type \"int[2]\" to type \"int[3]\"
+  int b2[3] = int[](0, 1);
+              ~~~~~~~~~~~
+<stdin>:26:15: error: Cannot convert from type \"int[4]\" to type \"int[3]\"
+  int b4[3] = int[](0, 1, 2, 3);
+              ~~~~~~~~~~~~~~~~~
+<stdin>:34:8: error: Cannot convert from type \"int[2]\" to type \"int[3]\"
+  a2 = d2;
+       ~~
+<stdin>:36:8: error: Cannot convert from type \"int[4]\" to type \"int[3]\"
+  a4 = d4;
+       ~~
+")
+
+# Array types from GLSL 3.0
+test("
+#version 300 es
+float[5] foo(float[5] a) {
+  float[5] b;
+  b = a;
+  b = float[](1.0, 2.0, 3.0, 4.0, 5.0);
+  b = float[5](1.0, 2.0, 3.0, 4.0, 5.0);
+  b[0] = float(a.length());
+  b[1] = float(a == b);
+  b[2] = float(a != b);
+  float[] c = a;
+  float d[] = a;
+  return b;
+}
+struct S {
+  float a;
+  int b;
+};
+S[2] bar(S[2] a, S p, S q) {
+  S[2] b;
+  b = a;
+  b = S[](p, q);
+  b = S[2](p, q);
+  b[0] = S(float(a.length()), b.length());
+  b[1] = S(float(a == b), int(a != b));
+  S[] c = a;
+  S d[] = a;
+  return b;
+}
+void main(float f, S s) {
+  foo(float[5](f, f, f, f, f));
+  bar(S[2](s, s), s, s);
+}
+", "
+#version 300 es
+
+float foo(float a) {
+  float b;
+  b = a;
+  b = float(1.0, 2.0, 3.0, 4.0, 5.0);
+  b = float(1.0, 2.0, 3.0, 4.0, 5.0);
+  b[0] = float(5);
+  b[1] = float(a == b);
+  b[2] = float(a != b);
+  float c = a;
+  float d = a;
+  return b;
+}
+
+struct S {
+  float a;
+  int b;
+};
+
+S bar(S a, S p, S q) {
+  S b;
+  b = a;
+  b = S(p, q);
+  b = S(p, q);
+  b[0] = S(float(2), 2);
+  b[1] = S(float(a == b), int(a != b));
+  S c = a;
+  S d = a;
+  return b;
+}
+
+void main(float f, S s) {
+  foo(float(f, f, f, f, f));
+  bar(S(s, s), s, s);
+}
+")
+
+# Test matrix-matrix multiplications in GLSL 3.0
+test("
+#version 300 es
+void main(int x) {
+  x = mat2x2(0) * mat2x2(0); // mat2
+  x = mat2x3(0) * mat2x2(0); // mat2x3
+  x = mat2x4(0) * mat2x2(0); // mat2x4
+  x = mat2x2(0) * mat3x2(0); // mat3x2
+  x = mat2x3(0) * mat3x2(0); // mat3
+  x = mat2x4(0) * mat3x2(0); // mat3x4
+  x = mat2x2(0) * mat4x2(0); // mat4x2
+  x = mat2x3(0) * mat4x2(0); // mat4x3
+  x = mat2x4(0) * mat4x2(0); // mat4
+
+  x = mat3x2(0) * mat2x3(0); // mat2
+  x = mat3x3(0) * mat2x3(0); // mat2x3
+  x = mat3x4(0) * mat2x3(0); // mat2x4
+  x = mat3x2(0) * mat3x3(0); // mat3x2
+  x = mat3x3(0) * mat3x3(0); // mat3
+  x = mat3x4(0) * mat3x3(0); // mat3x4
+  x = mat3x2(0) * mat4x3(0); // mat4x2
+  x = mat3x3(0) * mat4x3(0); // mat4x3
+  x = mat3x4(0) * mat4x3(0); // mat4
+
+  x = mat4x2(0) * mat2x4(0); // mat2
+  x = mat4x3(0) * mat2x4(0); // mat2x3
+  x = mat4x4(0) * mat2x4(0); // mat2x4
+  x = mat4x2(0) * mat3x4(0); // mat3x2
+  x = mat4x3(0) * mat3x4(0); // mat3
+  x = mat4x4(0) * mat3x4(0); // mat3x4
+  x = mat4x2(0) * mat4x4(0); // mat4x2
+  x = mat4x3(0) * mat4x4(0); // mat4x3
+  x = mat4x4(0) * mat4x4(0); // mat4
+}
+", "
+<stdin>:3:7: error: Cannot convert from type \"mat2\" to type \"int\"
+  x = mat2x2(0) * mat2x2(0); // mat2
+      ~~~~~~~~~~~~~~~~~~~~~
+<stdin>:4:7: error: Cannot convert from type \"mat2x3\" to type \"int\"
+  x = mat2x3(0) * mat2x2(0); // mat2x3
+      ~~~~~~~~~~~~~~~~~~~~~
+<stdin>:5:7: error: Cannot convert from type \"mat2x4\" to type \"int\"
+  x = mat2x4(0) * mat2x2(0); // mat2x4
+      ~~~~~~~~~~~~~~~~~~~~~
+<stdin>:6:7: error: Cannot convert from type \"mat3x2\" to type \"int\"
+  x = mat2x2(0) * mat3x2(0); // mat3x2
+      ~~~~~~~~~~~~~~~~~~~~~
+<stdin>:7:7: error: Cannot convert from type \"mat3\" to type \"int\"
+  x = mat2x3(0) * mat3x2(0); // mat3
+      ~~~~~~~~~~~~~~~~~~~~~
+<stdin>:8:7: error: Cannot convert from type \"mat3x4\" to type \"int\"
+  x = mat2x4(0) * mat3x2(0); // mat3x4
+      ~~~~~~~~~~~~~~~~~~~~~
+<stdin>:9:7: error: Cannot convert from type \"mat4x2\" to type \"int\"
+  x = mat2x2(0) * mat4x2(0); // mat4x2
+      ~~~~~~~~~~~~~~~~~~~~~
+<stdin>:10:7: error: Cannot convert from type \"mat4x3\" to type \"int\"
+  x = mat2x3(0) * mat4x2(0); // mat4x3
+      ~~~~~~~~~~~~~~~~~~~~~
+<stdin>:11:7: error: Cannot convert from type \"mat4\" to type \"int\"
+  x = mat2x4(0) * mat4x2(0); // mat4
+      ~~~~~~~~~~~~~~~~~~~~~
+<stdin>:13:7: error: Cannot convert from type \"mat2\" to type \"int\"
+  x = mat3x2(0) * mat2x3(0); // mat2
+      ~~~~~~~~~~~~~~~~~~~~~
+<stdin>:14:7: error: Cannot convert from type \"mat2x3\" to type \"int\"
+  x = mat3x3(0) * mat2x3(0); // mat2x3
+      ~~~~~~~~~~~~~~~~~~~~~
+<stdin>:15:7: error: Cannot convert from type \"mat2x4\" to type \"int\"
+  x = mat3x4(0) * mat2x3(0); // mat2x4
+      ~~~~~~~~~~~~~~~~~~~~~
+<stdin>:16:7: error: Cannot convert from type \"mat3x2\" to type \"int\"
+  x = mat3x2(0) * mat3x3(0); // mat3x2
+      ~~~~~~~~~~~~~~~~~~~~~
+<stdin>:17:7: error: Cannot convert from type \"mat3\" to type \"int\"
+  x = mat3x3(0) * mat3x3(0); // mat3
+      ~~~~~~~~~~~~~~~~~~~~~
+<stdin>:18:7: error: Cannot convert from type \"mat3x4\" to type \"int\"
+  x = mat3x4(0) * mat3x3(0); // mat3x4
+      ~~~~~~~~~~~~~~~~~~~~~
+<stdin>:19:7: error: Cannot convert from type \"mat4x2\" to type \"int\"
+  x = mat3x2(0) * mat4x3(0); // mat4x2
+      ~~~~~~~~~~~~~~~~~~~~~
+<stdin>:20:7: error: Cannot convert from type \"mat4x3\" to type \"int\"
+  x = mat3x3(0) * mat4x3(0); // mat4x3
+      ~~~~~~~~~~~~~~~~~~~~~
+<stdin>:21:7: error: Cannot convert from type \"mat4\" to type \"int\"
+  x = mat3x4(0) * mat4x3(0); // mat4
+      ~~~~~~~~~~~~~~~~~~~~~
+<stdin>:23:7: error: Cannot convert from type \"mat2\" to type \"int\"
+  x = mat4x2(0) * mat2x4(0); // mat2
+      ~~~~~~~~~~~~~~~~~~~~~
+<stdin>:24:7: error: Cannot convert from type \"mat2x3\" to type \"int\"
+  x = mat4x3(0) * mat2x4(0); // mat2x3
+      ~~~~~~~~~~~~~~~~~~~~~
+<stdin>:25:7: error: Cannot convert from type \"mat2x4\" to type \"int\"
+  x = mat4x4(0) * mat2x4(0); // mat2x4
+      ~~~~~~~~~~~~~~~~~~~~~
+<stdin>:26:7: error: Cannot convert from type \"mat3x2\" to type \"int\"
+  x = mat4x2(0) * mat3x4(0); // mat3x2
+      ~~~~~~~~~~~~~~~~~~~~~
+<stdin>:27:7: error: Cannot convert from type \"mat3\" to type \"int\"
+  x = mat4x3(0) * mat3x4(0); // mat3
+      ~~~~~~~~~~~~~~~~~~~~~
+<stdin>:28:7: error: Cannot convert from type \"mat3x4\" to type \"int\"
+  x = mat4x4(0) * mat3x4(0); // mat3x4
+      ~~~~~~~~~~~~~~~~~~~~~
+<stdin>:29:7: error: Cannot convert from type \"mat4x2\" to type \"int\"
+  x = mat4x2(0) * mat4x4(0); // mat4x2
+      ~~~~~~~~~~~~~~~~~~~~~
+<stdin>:30:7: error: Cannot convert from type \"mat4x3\" to type \"int\"
+  x = mat4x3(0) * mat4x4(0); // mat4x3
+      ~~~~~~~~~~~~~~~~~~~~~
+<stdin>:31:7: error: Cannot convert from type \"mat4\" to type \"int\"
+  x = mat4x4(0) * mat4x4(0); // mat4
+      ~~~~~~~~~~~~~~~~~~~~~
+")
+
+# Test vector-matrix and matrix-vector multiplications in GLSL 3.0
+test("
+#version 300 es
+void main(int x) {
+  x = vec2(0) * mat2x2(0); // vec2
+  x = vec2(0) * mat3x2(0); // vec3
+  x = vec2(0) * mat4x2(0); // vec4
+  x = vec3(0) * mat2x3(0); // vec2
+  x = vec3(0) * mat3x3(0); // vec3
+  x = vec3(0) * mat4x3(0); // vec4
+  x = vec4(0) * mat2x4(0); // vec2
+  x = vec4(0) * mat3x4(0); // vec3
+  x = vec4(0) * mat4x4(0); // vec4
+
+  x = mat2x2(0) * vec2(0); // vec2
+  x = mat2x3(0) * vec2(0); // vec3
+  x = mat2x4(0) * vec2(0); // vec4
+  x = mat3x2(0) * vec3(0); // vec2
+  x = mat3x3(0) * vec3(0); // vec3
+  x = mat3x4(0) * vec3(0); // vec4
+  x = mat4x2(0) * vec4(0); // vec2
+  x = mat4x3(0) * vec4(0); // vec3
+  x = mat4x4(0) * vec4(0); // vec4
+}
+", "
+<stdin>:3:7: error: Cannot convert from type \"vec2\" to type \"int\"
+  x = vec2(0) * mat2x2(0); // vec2
+      ~~~~~~~~~~~~~~~~~~~
+<stdin>:4:7: error: Cannot convert from type \"vec3\" to type \"int\"
+  x = vec2(0) * mat3x2(0); // vec3
+      ~~~~~~~~~~~~~~~~~~~
+<stdin>:5:7: error: Cannot convert from type \"vec4\" to type \"int\"
+  x = vec2(0) * mat4x2(0); // vec4
+      ~~~~~~~~~~~~~~~~~~~
+<stdin>:6:7: error: Cannot convert from type \"vec2\" to type \"int\"
+  x = vec3(0) * mat2x3(0); // vec2
+      ~~~~~~~~~~~~~~~~~~~
+<stdin>:7:7: error: Cannot convert from type \"vec3\" to type \"int\"
+  x = vec3(0) * mat3x3(0); // vec3
+      ~~~~~~~~~~~~~~~~~~~
+<stdin>:8:7: error: Cannot convert from type \"vec4\" to type \"int\"
+  x = vec3(0) * mat4x3(0); // vec4
+      ~~~~~~~~~~~~~~~~~~~
+<stdin>:9:7: error: Cannot convert from type \"vec2\" to type \"int\"
+  x = vec4(0) * mat2x4(0); // vec2
+      ~~~~~~~~~~~~~~~~~~~
+<stdin>:10:7: error: Cannot convert from type \"vec3\" to type \"int\"
+  x = vec4(0) * mat3x4(0); // vec3
+      ~~~~~~~~~~~~~~~~~~~
+<stdin>:11:7: error: Cannot convert from type \"vec4\" to type \"int\"
+  x = vec4(0) * mat4x4(0); // vec4
+      ~~~~~~~~~~~~~~~~~~~
+<stdin>:13:7: error: Cannot convert from type \"vec2\" to type \"int\"
+  x = mat2x2(0) * vec2(0); // vec2
+      ~~~~~~~~~~~~~~~~~~~
+<stdin>:14:7: error: Cannot convert from type \"vec3\" to type \"int\"
+  x = mat2x3(0) * vec2(0); // vec3
+      ~~~~~~~~~~~~~~~~~~~
+<stdin>:15:7: error: Cannot convert from type \"vec4\" to type \"int\"
+  x = mat2x4(0) * vec2(0); // vec4
+      ~~~~~~~~~~~~~~~~~~~
+<stdin>:16:7: error: Cannot convert from type \"vec2\" to type \"int\"
+  x = mat3x2(0) * vec3(0); // vec2
+      ~~~~~~~~~~~~~~~~~~~
+<stdin>:17:7: error: Cannot convert from type \"vec3\" to type \"int\"
+  x = mat3x3(0) * vec3(0); // vec3
+      ~~~~~~~~~~~~~~~~~~~
+<stdin>:18:7: error: Cannot convert from type \"vec4\" to type \"int\"
+  x = mat3x4(0) * vec3(0); // vec4
+      ~~~~~~~~~~~~~~~~~~~
+<stdin>:19:7: error: Cannot convert from type \"vec2\" to type \"int\"
+  x = mat4x2(0) * vec4(0); // vec2
+      ~~~~~~~~~~~~~~~~~~~
+<stdin>:20:7: error: Cannot convert from type \"vec3\" to type \"int\"
+  x = mat4x3(0) * vec4(0); // vec3
+      ~~~~~~~~~~~~~~~~~~~
+<stdin>:21:7: error: Cannot convert from type \"vec4\" to type \"int\"
+  x = mat4x4(0) * vec4(0); // vec4
+      ~~~~~~~~~~~~~~~~~~~
+")
+
   }
 }

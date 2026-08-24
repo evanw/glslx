@@ -47,14 +47,8 @@ namespace GLSLX.Formatter {
         }
       }
 
-      case .LEFT_PARENTHESIS {
-        if left.isIdentifierOrType || left == .RIGHT_BRACKET {
-          return false
-        }
-      }
-
-      case .LEFT_BRACKET {
-        if left.isIdentifierOrType || left == .RIGHT_BRACKET {
+      case .LEFT_PARENTHESIS, .LEFT_BRACKET {
+        if left.isIdentifierOrType || left == .RIGHT_BRACKET || left == .LAYOUT {
           return false
         }
       }
@@ -197,12 +191,13 @@ namespace GLSLX.Formatter {
   def format(input string, indent string, newline string, trailingNewline TrailingNewline) string {
     var log = Log.new
     var source = Source.new("<stdin>", input)
-    var tokens = Tokenizer.tokenize(log, source, .FORMAT)
+    Tokenizer.tokenize(log, source, .FORMAT)
     if log.hasErrors {
       return input
     }
 
     var text = ""
+    var tokens = source.tokenized.tokens
     var prevPrevKind = TokenKind.END_OF_FILE
     var prevKind = TokenKind.END_OF_FILE
     var prevEnd = 0
@@ -277,7 +272,7 @@ namespace GLSLX.Formatter {
           return false
         }
 
-        case .IMPORT, .EXPORT {
+        case .IMPORT, .EXPORT, .EXPORT_VERTEX, .EXPORT_FRAGMENT, .DECORATOR {
           consumeIf(kind => true)
         }
 

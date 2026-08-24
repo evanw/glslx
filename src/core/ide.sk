@@ -26,7 +26,7 @@ namespace GLSLX.IDE {
   def _tooltipForSymbol(symbol Symbol) string {
     if symbol.isStruct {
       var struct = symbol.asStruct
-      var text = "\(struct.flags)struct \(symbol.name)"
+      var text = "\(struct.flags.emitAsString(" "))struct \(symbol.name)"
 
       if !struct.isNative {
         text += " {\n"
@@ -55,7 +55,7 @@ namespace GLSLX.IDE {
 
     if symbol.isFunction {
       var function = symbol.asFunction
-      var text = "\(function.flags)\(function.returnType.resolvedType) \(symbol.name)("
+      var text = "\(function.flags.emitAsString(" "))\(function.returnType.resolvedType) \(symbol.name)("
 
       for argument in function.arguments {
         if argument != function.arguments.first {
@@ -73,9 +73,9 @@ namespace GLSLX.IDE {
 
   def _variableTooltipText(variable VariableSymbol) string {
     var type = variable.type.resolvedType
-    var text = "\(variable.flags)\(type.isArrayOf ?? type) \(variable.name)"
+    var text = "\(variable.flags.emitAsString(" "))\(type.isArrayOf ?? type) \(variable.name)"
     if type.isArrayOf != null {
-      text += type.arrayCount != 0 ? "[\(type.arrayCount)]" : "[]"
+      text += type.arrayCount > 0 ? "[\(type.arrayCount)]" : "[]"
     }
     return text
   }
@@ -369,7 +369,7 @@ namespace GLSLX.IDE {
     const _map StringMap<Completion> = {}
     var completions List<Completion> = []
 
-    def run(global Node) {
+    def run(global Node, version Version) {
       _addTextualCompletion("keyword", "false")
       _addTextualCompletion("keyword", "true")
 
@@ -382,6 +382,12 @@ namespace GLSLX.IDE {
 
       for type in Type.BUILT_INS {
         _addTextualCompletion("struct", type.symbol.name).detail = _tooltipForSymbol(type.symbol)
+      }
+
+      if version == .ES_300 {
+        for type in Type.BUILT_INS_300 {
+          _addTextualCompletion("struct", type.symbol.name).detail = _tooltipForSymbol(type.symbol)
+        }
       }
 
       _visit(global)

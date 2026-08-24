@@ -38,8 +38,10 @@ namespace GLSLX {
     BOOL
     FLOAT
     INT
+    UINT
 
     # Unary prefix
+    COMPLEMENT
     NEGATIVE
     NOT
     POSITIVE
@@ -54,6 +56,9 @@ namespace GLSLX {
 
     # Binary
     ADD
+    BITWISE_AND
+    BITWISE_OR
+    BITWISE_XOR
     DIVIDE
     EQUAL
     GREATER_THAN
@@ -66,13 +71,22 @@ namespace GLSLX {
     LOGICAL_XOR
     MULTIPLY
     NOT_EQUAL
+    REMAINDER
+    SHIFT_LEFT
+    SHIFT_RIGHT
     SUBTRACT
 
     # Binary assignment
     ASSIGN
     ASSIGN_ADD
+    ASSIGN_BITWISE_AND
+    ASSIGN_BITWISE_OR
+    ASSIGN_BITWISE_XOR
     ASSIGN_DIVIDE
     ASSIGN_MULTIPLY
+    ASSIGN_REMAINDER
+    ASSIGN_SHIFT_LEFT
+    ASSIGN_SHIFT_RIGHT
     ASSIGN_SUBTRACT
 
     def isStatement bool {
@@ -88,11 +102,11 @@ namespace GLSLX {
     }
 
     def isUnary bool {
-      return self as int >= NEGATIVE && self as int <= POSTFIX_INCREMENT
+      return self as int >= COMPLEMENT && self as int <= POSTFIX_INCREMENT
     }
 
     def isUnaryPrefix bool {
-      return self as int >= NEGATIVE && self as int <= PREFIX_INCREMENT
+      return self as int >= COMPLEMENT && self as int <= PREFIX_INCREMENT
     }
 
     def isUnaryPostfix bool {
@@ -417,8 +431,8 @@ namespace GLSLX {
       return kind == .BOOL && !asBool
     }
 
-    def isIntOrFloat(value int) bool {
-      return kind == .INT && asInt == value || kind == .FLOAT && asFloat == value
+    def isFloatOrIntOrUint(value int) bool {
+      return kind == .FLOAT && asFloat == value || (kind == .INT || kind == .UINT) && asInt == value
     }
 
     def isCallTarget bool {
@@ -706,6 +720,10 @@ namespace GLSLX {
       return new(.INT).withInt(value).withType(.INT)
     }
 
+    def createUint(value int) Node {
+      return new(.UINT).withInt(value).withType(.UINT)
+    }
+
     def createFloat(value double) Node {
       return new(.FLOAT).withFloat(value).withType(.FLOAT)
     }
@@ -930,7 +948,7 @@ namespace GLSLX {
     }
 
     def asInt int {
-      assert(kind == .INT)
+      assert(kind == .INT || kind == .UINT)
       return _literal as int
     }
 

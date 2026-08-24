@@ -1,7 +1,7 @@
 namespace GLSLX {
   # This is from https://www.khronos.org/registry/gles/specs/2.0/GLSL_ES_Specification_1.0.17.pdf
   const API_NAME = "<api>"
-  const API = "
+  const API_100 = "
 import {
   // The variable `gl_Position` is available only in the vertex language and is intended for writing the
   // homogeneous vertex position. This value will be used by primitive assembly, clipping, culling, and other

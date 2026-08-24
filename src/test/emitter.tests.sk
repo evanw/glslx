@@ -257,5 +257,172 @@ pub static GLSLX_SOURCE_BAR: &str = \"uniform float a;varying float b;void main(
 pub static GLSLX_NAME_GLOBAL: &str = \"a\";
 
 ").removeWhitespace.trimSymbols.renameAll.generateOutput(.RUST)
+
+# Test emitting a block with multiple functions
+test("
+export {
+  void foo() { gl_Position = vec4(1); }
+  void bar() { gl_Position = vec4(2); }
+}
+", "
+[foo]
+void main() {
+  gl_Position = vec4(1);
+}
+
+[bar]
+void main() {
+  gl_Position = vec4(2);
+}
+").trimSymbols
+
+# Test GLSL ES 3.0 with "@vertex" and "@fragment"
+test("
+#version 300 es
+
+uniform sampler2D materialTexture;
+uniform vec4 materialColor;
+
+in vec2 position;
+inout vec2 coord;
+layout(location=0) out vec4 fragColor;
+
+@vertex
+void commonVertex() {
+  coord = position;
+  gl_Position = vec4( position*2.0 - 1.0, 0,1 );
+}
+
+@fragment
+void colorFragment() {
+  fragColor = materialColor;
+}
+
+@fragment
+void textureFragment() {
+  fragColor = texture(materialTexture, coord);
+}
+", "
+[commonVertex]
+#version 300 es
+
+in vec2 position;
+out vec2 coord;
+
+void main() {
+  coord = position;
+  gl_Position = vec4(position * 2.0 - 1.0, 0, 1);
+}
+
+[colorFragment]
+#version 300 es
+
+uniform vec4 materialColor;
+layout(location = 0) out vec4 fragColor;
+
+void main() {
+  fragColor = materialColor;
+}
+
+[textureFragment]
+#version 300 es
+
+uniform sampler2D materialTexture;
+in vec2 coord;
+layout(location = 0) out vec4 fragColor;
+
+void main() {
+  fragColor = texture(materialTexture, coord);
+}
+").trimSymbols
+
+# Test GLSL ES 3.0 output to JSON
+test("
+#version 300 es
+
+uniform sampler2D materialTexture;
+uniform vec4 materialColor;
+
+in vec2 position;
+inout vec2 coord;
+layout(location=0) out vec4 fragColor;
+
+@vertex
+void commonVertex() {
+  coord = position;
+  gl_Position = vec4( position*2.0 - 1.0, 0,1 );
+}
+
+@fragment
+void colorFragment() {
+  fragColor = materialColor;
+}
+
+@fragment
+void textureFragment() {
+  fragColor = texture(materialTexture, coord);
+}
+", "
+{
+  \"shaders\": [
+    {
+      \"name\": \"commonVertex\",
+      \"contents\": \"#version 300 es\\nin vec2 c;out vec2 a;void main(){a=c;gl_Position=vec4(c*2.-1.,0,1);}\",
+      \"type\": \"vertex\"
+    },
+    {
+      \"name\": \"colorFragment\",
+      \"contents\": \"#version 300 es\\nuniform vec4 d;layout(location=0)out vec4 b;void main(){b=d;}\",
+      \"type\": \"fragment\"
+    },
+    {
+      \"name\": \"textureFragment\",
+      \"contents\": \"#version 300 es\\nuniform sampler2D e;in vec2 a;layout(location=0)out vec4 b;void main(){b=texture(e,a);}\",
+      \"type\": \"fragment\"
+    }
+  ],
+  \"renaming\": {
+    \"position\": \"c\",
+    \"materialColor\": \"d\",
+    \"materialTexture\": \"e\"
+  }
+}
+").removeWhitespace.renameAll.trimSymbols.generateOutput(.JSON)
+
+# Test GLSL ES 3.0 output to JS
+test("
+#version 300 es
+
+uniform sampler2D materialTexture;
+uniform vec4 materialColor;
+
+in vec2 position;
+inout vec2 coord;
+layout(location=0) out vec4 fragColor;
+
+@vertex
+void commonVertex() {
+  coord = position;
+  gl_Position = vec4( position*2.0 - 1.0, 0,1 );
+}
+
+@fragment
+void colorFragment() {
+  fragColor = materialColor;
+}
+
+@fragment
+void textureFragment() {
+  fragColor = texture(materialTexture, coord);
+}
+", "
+export const GLSLX_SOURCE_COMMON_VERTEX = \"#version 300 es\\nin vec2 c;out vec2 a;void main(){a=c;gl_Position=vec4(c*2.-1.,0,1);}\"
+export const GLSLX_SOURCE_COLOR_FRAGMENT = \"#version 300 es\\nuniform vec4 d;layout(location=0)out vec4 b;void main(){b=d;}\"
+export const GLSLX_SOURCE_TEXTURE_FRAGMENT = \"#version 300 es\\nuniform sampler2D e;in vec2 a;layout(location=0)out vec4 b;void main(){b=texture(e,a);}\"
+
+export const GLSLX_NAME_POSITION = \"c\"
+export const GLSLX_NAME_MATERIAL_COLOR = \"d\"
+export const GLSLX_NAME_MATERIAL_TEXTURE = \"e\"
+").removeWhitespace.renameAll.trimSymbols.generateOutput(.JS)
   }
 }

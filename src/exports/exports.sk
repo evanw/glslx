@@ -167,6 +167,8 @@ Advanced:
     if args.prettyPrint { options.removeWhitespace = false }
     if args.keepSymbols { options.trimSymbols = false }
     if args.fileAccess { options.fileAccess = wrapFileAccess(args.fileAccess) }
+    options.indent = "indent" in args ? args.indent as string : "  "
+    options.newline = "newline" in args ? args.newline as string : "\n"
 
     var result = Compiler.compile(log, sources, options)
     return {
@@ -345,7 +347,7 @@ Advanced:
           var index = source.lineColumnToIndex(line, column)
           if index != -1 && result != null {
             var completionQuery = IDE.CompletionQuery.new(source, index)
-            completionQuery.run(result.global)
+            completionQuery.run(result.global, source.tokenized.version)
             completions = completionQuery.completions.map<dynamic>(completion => ({
               "kind": completion.kind,
               "name": completion.name,

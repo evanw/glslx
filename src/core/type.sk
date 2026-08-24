@@ -1,4 +1,7 @@
 namespace GLSLX {
+  const ARRAY_COUNT_OMITTED = -1
+  const ARRAY_COUNT_UNKNOWN = -2
+
   class Type {
     const symbol Symbol
     const isArrayOf Type
@@ -16,7 +19,8 @@ namespace GLSLX {
 
     # A count of "0" means an array with an unknown size
     def arrayType(count int) Type {
-      assert(count >= 0)
+      assert(count > 0 || count == ARRAY_COUNT_OMITTED || count == ARRAY_COUNT_UNKNOWN)
+      assert(isArrayOf == null)
       _arrayTypes ?= {}
       var arrayType = _arrayTypes.get(count, null)
       if arrayType == null {
@@ -29,7 +33,7 @@ namespace GLSLX {
 
     def toString string {
       if isArrayOf != null {
-        return arrayCount != 0 ? "\(isArrayOf)[\(arrayCount)]" : "\(isArrayOf)[]"
+        return arrayCount > 0 ? "\(isArrayOf)[\(arrayCount)]" : "\(isArrayOf)[]"
       }
       return symbol.name
     }
@@ -37,9 +41,9 @@ namespace GLSLX {
     # For index expressions where "0 <= index < indexCount" (so indexCount == 0 means this type is un-indexable)
     def indexCount int {
       switch self {
-        case BVEC2, VEC2, IVEC2, MAT2 { return 2 }
-        case BVEC3, VEC3, IVEC3, MAT3 { return 3 }
-        case BVEC4, VEC4, IVEC4, MAT4 { return 4 }
+        case BVEC2, VEC2, IVEC2, UVEC2, MAT2, MAT2X3, MAT2X4 { return 2 }
+        case BVEC3, VEC3, IVEC3, UVEC3, MAT3, MAT3X2, MAT3X4 { return 3 }
+        case BVEC4, VEC4, IVEC4, UVEC4, MAT4, MAT4X2, MAT4X3 { return 4 }
         default { return arrayCount }
       }
     }
@@ -50,9 +54,10 @@ namespace GLSLX {
         case BVEC2, BVEC3, BVEC4 { return BOOL }
         case VEC2, VEC3, VEC4 { return FLOAT }
         case IVEC2, IVEC3, IVEC4 { return INT }
-        case MAT2 { return VEC2 }
-        case MAT3 { return VEC3 }
-        case MAT4 { return VEC4 }
+        case UVEC2, UVEC3, UVEC4 { return UINT }
+        case MAT2, MAT3X2, MAT4X2 { return VEC2 }
+        case MAT3, MAT2X3, MAT4X3 { return VEC3 }
+        case MAT4, MAT2X4, MAT3X4 { return VEC4 }
         default { return isArrayOf }
       }
     }
@@ -60,11 +65,14 @@ namespace GLSLX {
     # For constructor expressions, returns the number of required elements
     def componentCount int {
       switch self {
-        case BOOL, FLOAT, INT { return 1 }
-        case BVEC2, VEC2, IVEC2 { return 2 }
-        case BVEC3, VEC3, IVEC3 { return 3 }
-        case BVEC4, VEC4, IVEC4, MAT2 { return 4 }
+        case BOOL, FLOAT, INT, UINT { return 1 }
+        case BVEC2, VEC2, IVEC2, UVEC2 { return 2 }
+        case BVEC3, VEC3, IVEC3, UVEC3 { return 3 }
+        case BVEC4, VEC4, IVEC4, UVEC4, MAT2 { return 4 }
+        case MAT2X3, MAT3X2 { return 6 }
+        case MAT2X4, MAT4X2 { return 8 }
         case MAT3 { return 9 }
+        case MAT3X4, MAT4X3 { return 12 }
         case MAT4 { return 16 }
         default { return 0 }
       }
@@ -74,8 +82,9 @@ namespace GLSLX {
     def componentType Type {
       switch self {
         case BOOL, BVEC2, BVEC3, BVEC4 { return BOOL }
-        case FLOAT, VEC2, VEC3, VEC4, MAT2, MAT3, MAT4 { return FLOAT }
+        case FLOAT, VEC2, VEC3, VEC4, MAT2, MAT3, MAT4, MAT2X3, MAT2X4, MAT3X2, MAT3X4, MAT4X2, MAT4X3 { return FLOAT }
         case INT, IVEC2, IVEC3, IVEC4 { return INT }
+        case UINT, UVEC2, UVEC3, UVEC4 { return UINT }
         default { return null }
       }
     }
@@ -83,39 +92,42 @@ namespace GLSLX {
     # Vector types are the only ones with swizzles
     def isVector bool {
       switch self {
-        case BVEC2, BVEC3, BVEC4, IVEC2, IVEC3, IVEC4, VEC2, VEC3, VEC4 { return true }
+        case BVEC2, BVEC3, BVEC4, IVEC2, IVEC3, IVEC4, UVEC2, UVEC3, UVEC4, VEC2, VEC3, VEC4 { return true }
         default { return false }
       }
     }
 
     def isMatrix bool {
       switch self {
-        case MAT2, MAT3, MAT4 { return true }
+        case MAT2, MAT3, MAT4, MAT2X3, MAT2X4, MAT3X2, MAT3X4, MAT4X2, MAT4X3 { return true }
         default { return false }
       }
     }
 
     def hasIntComponents bool {
-      switch self {
-        case INT, IVEC2, IVEC3, IVEC4 { return true }
-        default { return false }
-      }
+      return componentType == .INT
+    }
+
+    def hasUintComponents bool {
+      return componentType == .UINT
     }
 
     def hasFloatComponents bool {
-      switch self {
-        case FLOAT, VEC2, VEC3, VEC4 { return true }
-        case MAT2, MAT3, MAT4 { return true }
-        default { return false }
-      }
+      return componentType == .FLOAT
     }
 
-    def isIntOrFloat bool {
-      return hasIntComponents || hasFloatComponents
+    def hasIntOrUintComponents bool {
+      var type = componentType
+      return type == .INT || type == .UINT
     }
 
-    def canUseEqualityOperators bool {
-      return !containsSampler && !containsArray
+    def hasFloatOrIntOrUintComponents bool {
+      var type = componentType
+      return type == .FLOAT || type == .INT || type == .UINT
+    }
+
+    def canUseEqualityOperators(version Version) bool {
+      return !containsSampler && (!containsArray || version == .ES_300)
     }
 
     def _setContainsSampler Type {
@@ -145,6 +157,31 @@ namespace GLSLX {
     const VEC4 = StructSymbol.new(-18, null, "vec4", null).resolvedType
     const VOID = StructSymbol.new(-19, null, "void", null).resolvedType
 
+    # GLSL ES 3.0
+    const ISAMPLER2D = StructSymbol.new(-20, null, "isampler2D", null).resolvedType._setContainsSampler
+    const ISAMPLER2DARRAY = StructSymbol.new(-21, null, "isampler2DArray", null).resolvedType._setContainsSampler
+    const ISAMPLER3D = StructSymbol.new(-22, null, "isampler3D", null).resolvedType._setContainsSampler
+    const ISAMPLERCUBE = StructSymbol.new(-23, null, "isamplerCube", null).resolvedType._setContainsSampler
+    const MAT2X3 = StructSymbol.new(-24, null, "mat2x3", null).resolvedType
+    const MAT2X4 = StructSymbol.new(-25, null, "mat2x4", null).resolvedType
+    const MAT3X2 = StructSymbol.new(-26, null, "mat3x2", null).resolvedType
+    const MAT3X4 = StructSymbol.new(-27, null, "mat3x4", null).resolvedType
+    const MAT4X2 = StructSymbol.new(-28, null, "mat4x2", null).resolvedType
+    const MAT4X3 = StructSymbol.new(-29, null, "mat4x3", null).resolvedType
+    const SAMPLER2DARRAY = StructSymbol.new(-30, null, "sampler2DArray", null).resolvedType._setContainsSampler
+    const SAMPLER2DARRAYSHADOW = StructSymbol.new(-31, null, "sampler2DArrayShadow", null).resolvedType._setContainsSampler
+    const SAMPLER2DSHADOW = StructSymbol.new(-32, null, "sampler2DShadow", null).resolvedType._setContainsSampler
+    const SAMPLER3D = StructSymbol.new(-33, null, "sampler3D", null).resolvedType._setContainsSampler
+    const SAMPLERCUBESHADOW = StructSymbol.new(-34, null, "samplerCubeShadow", null).resolvedType._setContainsSampler
+    const UINT = StructSymbol.new(-35, null, "uint", null).resolvedType
+    const USAMPLER2D = StructSymbol.new(-36, null, "usampler2D", null).resolvedType._setContainsSampler
+    const USAMPLER2DARRAY = StructSymbol.new(-37, null, "usampler2DArray", null).resolvedType._setContainsSampler
+    const USAMPLER3D = StructSymbol.new(-38, null, "usampler3D", null).resolvedType._setContainsSampler
+    const USAMPLERCUBE = StructSymbol.new(-39, null, "usamplerCube", null).resolvedType._setContainsSampler
+    const UVEC2 = StructSymbol.new(-40, null, "uvec2", null).resolvedType
+    const UVEC3 = StructSymbol.new(-41, null, "uvec3", null).resolvedType
+    const UVEC4 = StructSymbol.new(-42, null, "uvec4", null).resolvedType
+
     const BUILT_INS = [
       BOOL,
       BVEC2,
@@ -164,5 +201,49 @@ namespace GLSLX {
       VEC3,
       VEC4,
     ]
+
+    # GLSL ES 3.0
+    const BUILT_INS_300 = [
+      ISAMPLER2D,
+      ISAMPLER2DARRAY,
+      ISAMPLER3D,
+      ISAMPLERCUBE,
+      MAT2X3,
+      MAT2X4,
+      MAT3X2,
+      MAT3X4,
+      MAT4X2,
+      MAT4X3,
+      SAMPLER2DARRAY,
+      SAMPLER2DARRAYSHADOW,
+      SAMPLER2DSHADOW,
+      SAMPLERCUBESHADOW,
+      UINT,
+      USAMPLER2D,
+      USAMPLER2DARRAY,
+      USAMPLER3D,
+      USAMPLERCUBE,
+      UVEC2,
+      UVEC3,
+      UVEC4,
+    ]
+
+    def matrixOrVectorType(cols int, rows int) Type {
+      switch cols * 10 + rows {
+        case 21, 12 { return .VEC2 }
+        case 31, 13 { return .VEC3 }
+        case 41, 14 { return .VEC4 }
+        case 22 { return .MAT2 }
+        case 23 { return .MAT2X3 }
+        case 24 { return .MAT2X4 }
+        case 32 { return .MAT3X2 }
+        case 33 { return .MAT3 }
+        case 34 { return .MAT3X4 }
+        case 42 { return .MAT4X2 }
+        case 43 { return .MAT4X3 }
+        case 44 { return .MAT4 }
+        default { return null }
+      }
+    }
   }
 }

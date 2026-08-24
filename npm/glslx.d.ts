@@ -8,6 +8,8 @@ export interface CompileArgs {
   prettyPrint?: boolean; // Default: false
   keepSymbols?: boolean; // Default: false
   fileAccess?: FileAccess; // For '#include'
+  indent?: string; // Default: '  '
+  newline?: string; // Default: '\n'
 }
 
 export interface CompileResult {

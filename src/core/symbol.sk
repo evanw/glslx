@@ -1,36 +1,70 @@
 namespace GLSLX {
+  enum ShaderType {
+    UNKNOWN
+    VERTEX
+    FRAGMENT
+  }
+
   flags SymbolFlags {
     # Keyword modifiers
     ATTRIBUTE
+    CENTROID
     CONST
+    FLAT
     HIGHP
     IN
     INOUT
+    INVARIANT
     LOWP
     MEDIUMP
     OUT
+    SMOOTH
     UNIFORM
     VARYING
 
     # Internal compiler flags
-    EXPORTED
+    EXPORTED_VERTEX
+    EXPORTED_FRAGMENT
     IMPORTED
 
-    def toString string {
+    # The location number is stored in the remaining bits
+    HAS_LAYOUT_LOCATION
+    LAYOUT_LOCATION
+
+    def shaderType ShaderType {
+      var isVertex = .EXPORTED_VERTEX in self
+      var isFragment = .EXPORTED_FRAGMENT in self
+      return
+        isVertex && !isFragment ? .VERTEX :
+        isFragment && !isVertex ? .FRAGMENT :
+        .UNKNOWN
+    }
+
+    def emitAsString(space string) string {
       var text = ""
+
+      if INVARIANT in self { text += "invariant " }
+      if FLAT in self { text += "flat " }
+      if SMOOTH in self { text += "smooth " }
+
+      if HAS_LAYOUT_LOCATION in self {
+        var location = self as int / LAYOUT_LOCATION
+        text += "layout(location\(space)=\(space)\(location))\(space)"
+      }
 
       if ATTRIBUTE in self { text += "attribute " }
       if CONST in self { text += "const " }
       if UNIFORM in self { text += "uniform " }
       if VARYING in self { text += "varying " }
 
-      if HIGHP in self { text += "highp " }
-      if LOWP in self { text += "lowp " }
-      if MEDIUMP in self { text += "mediump " }
-
+      if CENTROID in self { text += "centroid " }
       if IN in self { text += "in " }
       if INOUT in self { text += "inout " }
       if OUT in self { text += "out " }
+
+      if HIGHP in self { text += "highp " }
+      if LOWP in self { text += "lowp " }
+      if MEDIUMP in self { text += "mediump " }
 
       return text
     }
@@ -59,12 +93,15 @@ namespace GLSLX {
     def isOut bool       { return .OUT in flags }
     def isUniform bool   { return .UNIFORM in flags }
     def isVarying bool   { return .VARYING in flags }
-    def isAttributeOrUniform bool { return (.ATTRIBUTE | .UNIFORM) in flags }
+
+    def isAttributeOrUniform bool {
+      return (.ATTRIBUTE | .UNIFORM) in flags || .IN in flags && scope.kind == .GLOBAL
+    }
 
     # Internal compiler flags
     def isImported bool { return .IMPORTED in flags }
-    def isExported bool { return .EXPORTED in flags }
-    def isImportedOrExported bool  { return (.IMPORTED | .EXPORTED) in flags }
+    def isExported bool { return (.EXPORTED_VERTEX | .EXPORTED_FRAGMENT) in flags }
+    def isImportedOrExported bool  { return (.IMPORTED | .EXPORTED_VERTEX | .EXPORTED_FRAGMENT) in flags }
 
     def isStruct bool { return self is StructSymbol }
     def isFunction bool { return self is FunctionSymbol }

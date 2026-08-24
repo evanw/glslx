@@ -1,8 +1,6 @@
 namespace GLSLX.Parser {
-  var pratt Pratt = null
-
-  def typeParselet(type Type) fn(ParserContext, Token) Node {
-    return (context, token) => Node.createType(type).withRange(token.range)
+  def typeParselet(pratt Pratt, kind TokenKind) {
+    pratt.parselet(kind, .LOWEST).prefix = context => parseType(context, .REPORT_ERRORS)
   }
 
   def unaryPrefix(kind NodeKind) fn(ParserContext, Token, Node) Node {
@@ -21,6 +19,11 @@ namespace GLSLX.Parser {
   }
 
   def parseInt(text string) int {
+    var n = text.count
+    var c = text[n - 1]
+    if c == 'u' || c == 'U' {
+      text = text.slice(0, n - 1)
+    }
     if text.count > 1 && text[0] == '0' && (text[1] != 'x' && text[1] != 'X') {
       return dynamic.parseInt(text, 8)
     }
@@ -31,7 +34,17 @@ namespace GLSLX.Parser {
     return +(text as dynamic)
   }
 
-  def createExpressionParser Pratt {
+  var pratt100 Pratt = null
+  var pratt300 Pratt = null
+
+  def createExpressionParser(version Version) Pratt {
+    const version300 = version == .ES_300
+    if version300 {
+      if pratt300 != null { return pratt300 }
+    } else {
+      if pratt100 != null { return pratt100 }
+    }
+
     var pratt = Pratt.new
 
     var invalidUnaryOperator = (context ParserContext, token Token, value Node) Node => {
@@ -49,24 +62,41 @@ namespace GLSLX.Parser {
     pratt.literal(.INT_LITERAL, (context, token) => Node.createInt(parseInt(token.range.toString)).withRange(token.range))
     pratt.literal(.FLOAT_LITERAL, (context, token) => Node.createFloat(parseFloat(token.range.toString)).withRange(token.range))
 
-    pratt.literal(.BOOL, typeParselet(.BOOL))
-    pratt.literal(.BVEC2, typeParselet(.BVEC2))
-    pratt.literal(.BVEC3, typeParselet(.BVEC3))
-    pratt.literal(.BVEC4, typeParselet(.BVEC4))
-    pratt.literal(.FLOAT, typeParselet(.FLOAT))
-    pratt.literal(.INT, typeParselet(.INT))
-    pratt.literal(.IVEC2, typeParselet(.IVEC2))
-    pratt.literal(.IVEC3, typeParselet(.IVEC3))
-    pratt.literal(.IVEC4, typeParselet(.IVEC4))
-    pratt.literal(.MAT2, typeParselet(.MAT2))
-    pratt.literal(.MAT3, typeParselet(.MAT3))
-    pratt.literal(.MAT4, typeParselet(.MAT4))
-    pratt.literal(.VEC2, typeParselet(.VEC2))
-    pratt.literal(.VEC3, typeParselet(.VEC3))
-    pratt.literal(.VEC4, typeParselet(.VEC4))
-    pratt.literal(.VOID, typeParselet(.VOID))
+    if version300 {
+      pratt.literal(.UINT_LITERAL, (context, token) => Node.createUint(parseInt(token.range.toString)).withRange(token.range))
+    }
 
-    pratt.prefix(.COMPLEMENT, .UNARY_PREFIX, invalidUnaryOperator)
+    typeParselet(pratt, .BOOL)
+    typeParselet(pratt, .BVEC2)
+    typeParselet(pratt, .BVEC3)
+    typeParselet(pratt, .BVEC4)
+    typeParselet(pratt, .FLOAT)
+    typeParselet(pratt, .INT)
+    typeParselet(pratt, .IVEC2)
+    typeParselet(pratt, .IVEC3)
+    typeParselet(pratt, .IVEC4)
+    typeParselet(pratt, .MAT2)
+    typeParselet(pratt, .MAT3)
+    typeParselet(pratt, .MAT4)
+    typeParselet(pratt, .VEC2)
+    typeParselet(pratt, .VEC3)
+    typeParselet(pratt, .VEC4)
+    typeParselet(pratt, .VOID)
+
+    if version300 {
+      typeParselet(pratt, .MAT2X3)
+      typeParselet(pratt, .MAT2X4)
+      typeParselet(pratt, .MAT3X2)
+      typeParselet(pratt, .MAT3X4)
+      typeParselet(pratt, .MAT4X2)
+      typeParselet(pratt, .MAT4X3)
+      typeParselet(pratt, .UINT)
+      typeParselet(pratt, .UVEC2)
+      typeParselet(pratt, .UVEC3)
+      typeParselet(pratt, .UVEC4)
+    }
+
+    pratt.prefix(.COMPLEMENT, .UNARY_PREFIX, version300 ? unaryPrefix(.COMPLEMENT) : invalidUnaryOperator)
     pratt.prefix(.DECREMENT, .UNARY_PREFIX, unaryPrefix(.PREFIX_DECREMENT))
     pratt.prefix(.INCREMENT, .UNARY_PREFIX, unaryPrefix(.PREFIX_INCREMENT))
     pratt.prefix(.MINUS, .UNARY_PREFIX, unaryPrefix(.NEGATIVE))
@@ -86,30 +116,36 @@ namespace GLSLX.Parser {
     pratt.infix(.MULTIPLY, .MULTIPLY, binaryParselet(.MULTIPLY))
     pratt.infix(.NOT_EQUAL, .COMPARE, binaryParselet(.NOT_EQUAL))
     pratt.infix(.PLUS, .ADD, binaryParselet(.ADD))
-    pratt.infix(.REMAINDER, .MULTIPLY, invalidBinaryOperator)
-    pratt.infix(.SHIFT_LEFT, .SHIFT, invalidBinaryOperator)
-    pratt.infix(.SHIFT_RIGHT, .SHIFT, invalidBinaryOperator)
+    pratt.infix(.REMAINDER, .MULTIPLY, version300 ? binaryParselet(.REMAINDER) : invalidBinaryOperator)
+    pratt.infix(.SHIFT_LEFT, .SHIFT, version300 ? binaryParselet(.SHIFT_LEFT) : invalidBinaryOperator)
+    pratt.infix(.SHIFT_RIGHT, .SHIFT, version300 ? binaryParselet(.SHIFT_RIGHT) : invalidBinaryOperator)
     pratt.infix(.LOGICAL_OR, .LOGICAL_OR, binaryParselet(.LOGICAL_OR))
     pratt.infix(.LOGICAL_XOR, .LOGICAL_XOR, binaryParselet(.LOGICAL_XOR))
     pratt.infix(.LOGICAL_AND, .LOGICAL_AND, binaryParselet(.LOGICAL_AND))
-    pratt.infix(.BITWISE_AND, .BITWISE_AND, invalidBinaryOperator)
-    pratt.infix(.BITWISE_OR, .BITWISE_OR, invalidBinaryOperator)
-    pratt.infix(.BITWISE_XOR, .BITWISE_XOR, invalidBinaryOperator)
+    pratt.infix(.BITWISE_AND, .BITWISE_AND, version300 ? binaryParselet(.BITWISE_AND) : invalidBinaryOperator)
+    pratt.infix(.BITWISE_OR, .BITWISE_OR, version300 ? binaryParselet(.BITWISE_OR) : invalidBinaryOperator)
+    pratt.infix(.BITWISE_XOR, .BITWISE_XOR, version300 ? binaryParselet(.BITWISE_XOR) : invalidBinaryOperator)
 
     pratt.infixRight(.ASSIGN, .ASSIGN, binaryParselet(.ASSIGN))
     pratt.infixRight(.ASSIGN_ADD, .ASSIGN, binaryParselet(.ASSIGN_ADD))
-    pratt.infixRight(.ASSIGN_BITWISE_AND, .ASSIGN, invalidBinaryOperator)
-    pratt.infixRight(.ASSIGN_BITWISE_OR, .ASSIGN, invalidBinaryOperator)
-    pratt.infixRight(.ASSIGN_BITWISE_XOR, .ASSIGN, invalidBinaryOperator)
+    pratt.infixRight(.ASSIGN_BITWISE_AND, .ASSIGN, version300 ? binaryParselet(.ASSIGN_BITWISE_AND) : invalidBinaryOperator)
+    pratt.infixRight(.ASSIGN_BITWISE_OR, .ASSIGN, version300 ? binaryParselet(.ASSIGN_BITWISE_OR) : invalidBinaryOperator)
+    pratt.infixRight(.ASSIGN_BITWISE_XOR, .ASSIGN, version300 ? binaryParselet(.ASSIGN_BITWISE_XOR) : invalidBinaryOperator)
     pratt.infixRight(.ASSIGN_DIVIDE, .ASSIGN, binaryParselet(.ASSIGN_DIVIDE))
     pratt.infixRight(.ASSIGN_MULTIPLY, .ASSIGN, binaryParselet(.ASSIGN_MULTIPLY))
-    pratt.infixRight(.ASSIGN_REMAINDER, .ASSIGN, invalidBinaryOperator)
-    pratt.infixRight(.ASSIGN_SHIFT_LEFT, .ASSIGN, invalidBinaryOperator)
-    pratt.infixRight(.ASSIGN_SHIFT_RIGHT, .ASSIGN, invalidBinaryOperator)
+    pratt.infixRight(.ASSIGN_REMAINDER, .ASSIGN, version300 ? binaryParselet(.ASSIGN_REMAINDER) : invalidBinaryOperator)
+    pratt.infixRight(.ASSIGN_SHIFT_LEFT, .ASSIGN, version300 ? binaryParselet(.ASSIGN_SHIFT_LEFT) : invalidBinaryOperator)
+    pratt.infixRight(.ASSIGN_SHIFT_RIGHT, .ASSIGN, version300 ? binaryParselet(.ASSIGN_SHIFT_RIGHT) : invalidBinaryOperator)
     pratt.infixRight(.ASSIGN_SUBTRACT, .ASSIGN, binaryParselet(.ASSIGN_SUBTRACT))
 
     # Name
-    pratt.literal(.IDENTIFIER, (context, token) => {
+    pratt.parselet(.IDENTIFIER, .LOWEST).prefix = context => {
+      var type = parseType(context, .IGNORE_ERRORS)
+      if type != null {
+        return type
+      }
+
+      var token = context.next
       var name = token.range.toString
       var symbol = context.scope.find(name)
       if symbol == null {
@@ -123,8 +159,8 @@ namespace GLSLX.Parser {
       }
 
       symbol.useCount++
-      return (symbol.isStruct ? Node.createType(symbol.resolvedType) : Node.createName(symbol)).withRange(token.range)
-    })
+      return Node.createName(symbol).withRange(token.range)
+    }
 
     # Sequence
     pratt.infix(.COMMA, .COMMA, (context, left, token, right) => {
@@ -149,7 +185,7 @@ namespace GLSLX.Parser {
     # Group
     pratt.parselet(.LEFT_PARENTHESIS, .LOWEST).prefix = (context) => {
       var token = context.next
-      var value = pratt.parse(context, .LOWEST)
+      var value = context.pratt.parse(context, .LOWEST)
       if value == null || !context.expect(.RIGHT_PARENTHESIS) {
         return Node.createParseError.withRange(context.spanSince(token.range))
       }
@@ -163,6 +199,12 @@ namespace GLSLX.Parser {
       if !parseCommaSeparatedList(context, node, .RIGHT_PARENTHESIS) {
         return Node.createParseError.withRange(context.spanSince(token.range))
       }
+
+      # Automatically fill in the omitted array count for array constructors
+      if left.kind == .TYPE && left.resolvedType.isArrayOf != null && left.resolvedType.arrayCount == ARRAY_COUNT_OMITTED {
+        left.resolvedType = left.resolvedType.isArrayOf.arrayType(node.childCount - 1)
+      }
+
       return node.withRange(context.spanSince(left.range)).withInternalRange(context.spanSince(token.range))
     }
 
@@ -177,7 +219,7 @@ namespace GLSLX.Parser {
         return Node.createParseError.withRange(context.spanSince(token.range))
       }
 
-      var value = pratt.parse(context, .LOWEST)
+      var value = context.pratt.parse(context, .LOWEST)
       if value == null || !context.expect(.RIGHT_BRACKET) {
         return Node.createParseError.withRange(context.spanSince(token.range))
       }
@@ -187,17 +229,22 @@ namespace GLSLX.Parser {
     # Hook
     pratt.parselet(.QUESTION, .ASSIGN).infix = (context, left) => {
       var token = context.next
-      var middle = pratt.parse(context, .COMMA)
+      var middle = context.pratt.parse(context, .COMMA)
       if middle == null || !context.expect(.COLON) {
         return Node.createParseError.withRange(context.spanSince(token.range))
       }
-      var right = pratt.parse(context, .COMMA)
+      var right = context.pratt.parse(context, .COMMA)
       if right == null {
         return Node.createParseError.withRange(context.spanSince(token.range))
       }
       return Node.createHook(left, middle, right).withRange(context.spanSince(left.range))
     }
 
+    if version300 {
+      pratt300 = pratt
+    } else {
+      pratt100 = pratt
+    }
     return pratt
   }
 
@@ -208,13 +255,13 @@ namespace GLSLX.Parser {
         context.expect(.COMMA)
       }
       var firstToken = context.current
-      var value = pratt.parse(context, .COMMA)
+      var value = context.pratt.parse(context, .COMMA)
       if value != null {
         parent.appendChild(value)
       } else {
         # Recover from errors due to partially-typed calls
         parent.appendChild(Node.createParseError.withRange(context.spanSince(firstToken.range)))
-        if context.current.kind != .COMMA && context.current.kind != stop {
+        if !context.peek(.COMMA) && !context.peek(stop) {
           return false
         }
       }
@@ -230,7 +277,7 @@ namespace GLSLX.Parser {
     if body == null || !context.expect(.WHILE) || !context.expect(.LEFT_PARENTHESIS) {
       return null
     }
-    var test = pratt.parse(context, .LOWEST)
+    var test = context.pratt.parse(context, .LOWEST)
     if test == null {
       return null
     }
@@ -244,12 +291,17 @@ namespace GLSLX.Parser {
   def parseExportOrImport(context ParserContext) Node {
     var token = context.next
     var old = context.flags
-    context.flags |= token.kind == .EXPORT ? .EXPORTED : .IMPORTED
+    context.flags |=
+      token.kind == .EXPORT_VERTEX ? .EXPORTED_VERTEX :
+      token.kind == .EXPORT_FRAGMENT ? .EXPORTED_FRAGMENT :
+      token.kind == .EXPORT ? .EXPORTED_VERTEX | .EXPORTED_FRAGMENT :
+      .IMPORTED
 
     # Parse a modifier block
     if context.eat(.LEFT_BRACE) {
       var node = Node.createModifierBlock
       if !parseStatements(context, node, .GLOBAL) || !context.expect(.RIGHT_BRACE) {
+        context.flags = old
         return null
       }
       context.flags = old
@@ -259,6 +311,7 @@ namespace GLSLX.Parser {
     # Just parse a single statement
     var statement = parseStatement(context, .GLOBAL)
     if statement == null {
+      context.flags = old
       return null
     }
     context.flags = old
@@ -361,7 +414,7 @@ namespace GLSLX.Parser {
           return null
         }
       } else {
-        setup = pratt.parse(context, .LOWEST)
+        setup = context.pratt.parse(context, .LOWEST)
         if setup == null {
           return null
         }
@@ -374,7 +427,7 @@ namespace GLSLX.Parser {
     # Test
     var test Node = null
     if !context.eat(.SEMICOLON) {
-      test = pratt.parse(context, .LOWEST)
+      test = context.pratt.parse(context, .LOWEST)
       if test == null {
         return null
       }
@@ -386,7 +439,7 @@ namespace GLSLX.Parser {
     # Update
     var update Node = null
     if !context.eat(.RIGHT_PARENTHESIS) {
-      update = pratt.parse(context, .LOWEST)
+      update = context.pratt.parse(context, .LOWEST)
       if update == null {
         return null
       }
@@ -410,7 +463,7 @@ namespace GLSLX.Parser {
       return null
     }
     var firstToken = context.current
-    var test = pratt.parse(context, .LOWEST)
+    var test = context.pratt.parse(context, .LOWEST)
     if test == null {
       test = Node.createParseError.withRange(context.spanSince(firstToken.range))
     }
@@ -432,6 +485,10 @@ namespace GLSLX.Parser {
   }
 
   def parseVersion(context ParserContext) Node {
+    if !context.isFirstToken {
+      context.log.syntaxErrorUnexpectedVersion(context.current.range)
+    }
+
     var token = context.next
     var range = context.current.range
     if !context.expect(.INT_LITERAL) {
@@ -443,8 +500,19 @@ namespace GLSLX.Parser {
       return Node.createVersion("100").withRange(context.spanSince(token.range))
     }
 
+    # GLSL ES 1.00
+    if range.toString == "300" {
+      var ident = context.current.range
+      if !context.expect(.IDENTIFIER) {
+        return null
+      }
+      if ident.toString == "es" {
+        return Node.createVersion("300 es").withRange(context.spanSince(token.range))
+      }
+    }
+
     context.log.syntaxErrorUnrecognizedVersion(range)
-    return Node.createVersion(range.toString).withRange(context.spanSince(token.range))
+    return Node.createVersion(context.spanSince(range).toString).withRange(context.spanSince(token.range))
   }
 
   def parseWhile(context ParserContext) Node {
@@ -454,7 +522,7 @@ namespace GLSLX.Parser {
       return null
     }
     var firstToken = context.current
-    var test = pratt.parse(context, .LOWEST)
+    var test = context.pratt.parse(context, .LOWEST)
     if test == null {
       test = Node.createParseError.withRange(context.spanSince(firstToken.range))
     }
@@ -474,7 +542,7 @@ namespace GLSLX.Parser {
     var value Node = null
     if !context.eat(.SEMICOLON) {
       var firstToken = context.current
-      value = pratt.parse(context, .LOWEST)
+      value = context.pratt.parse(context, .LOWEST)
       if value == null {
         value = Node.createParseError.withRange(context.spanSince(firstToken.range))
       }
@@ -600,7 +668,7 @@ namespace GLSLX.Parser {
   def parseAfterType(context ParserContext, range Range, flags SymbolFlags, type Node, allow Allow, comments List<string>) Node {
     var name = context.current.range
     if flags == 0 && !context.peek(.IDENTIFIER) {
-      var value = pratt.resume(context, .LOWEST, type)
+      var value = context.pratt.resume(context, .LOWEST, type)
       if value == null {
         return null
       }
@@ -670,7 +738,7 @@ namespace GLSLX.Parser {
       case .CONTINUE { return checkForLoopAndSemicolon(context, context.next.range, Node.createContinue) }
       case .DISCARD { return checkForSemicolon(context, context.next.range, Node.createDiscard) }
       case .DO { return parseDoWhile(context) }
-      case .EXPORT, .IMPORT { return parseExportOrImport(context) }
+      case .EXPORT, .EXPORT_FRAGMENT, .EXPORT_VERTEX, .IMPORT { return parseExportOrImport(context) }
       case .EXTENSION { return parseExtension(context) }
       case .FOR { return parseFor(context) }
       case .IF { return parseIf(context) }
@@ -706,7 +774,7 @@ namespace GLSLX.Parser {
     }
 
     # Parse an expression
-    var value = pratt.parse(context, .LOWEST)
+    var value = context.pratt.parse(context, .LOWEST)
     if value == null {
       return null
     }
@@ -775,8 +843,11 @@ namespace GLSLX.Parser {
     context.includes.append(Include.new(range, source.entireRange))
 
     # Parse the file and insert it into the parent
-    var tokens = Tokenizer.tokenize(context.log, source, .COMPILE)
-    var nestedContext = ParserContext.new(context.log, tokens, context.compilationData, context.resolver, context.processedIncludes)
+    Tokenizer.tokenize(context.log, source, .COMPILE)
+    if context.version != source.tokenized.version {
+      context.log.syntaxErrorImportWrongVersion(range, path, source)
+    }
+    var nestedContext = ParserContext.new(context.log, source.tokenized, context.compilationData, context.resolver, context.processedIncludes)
     nestedContext.pushScope(context.scope)
     if !parseStatements(nestedContext, parent, .GLOBAL) || !nestedContext.expect(.END_OF_FILE) {
       return false
@@ -796,33 +867,101 @@ namespace GLSLX.Parser {
     return block.withRange(context.spanSince(token.range))
   }
 
-  def parseFlags(context ParserContext, mode VariableKind) SymbolFlags {
-    var flags SymbolFlags = 0
-    while true {
-      var kind = context.current.kind
-
-      switch kind {
-        case .ATTRIBUTE { flags |= .ATTRIBUTE }
-        case .CONST     { flags |= .CONST }
-        case .HIGHP     { flags |= .HIGHP }
-        case .IN        { flags |= .IN }
-        case .INOUT     { flags |= .INOUT }
-        case .LOWP      { flags |= .LOWP }
-        case .MEDIUMP   { flags |= .MEDIUMP }
-        case .OUT       { flags |= .OUT }
-        case .UNIFORM   { flags |= .UNIFORM }
-        case .VARYING   { flags |= .VARYING }
-        default { return flags }
-      }
-
-      if mode == .ARGUMENT && (kind == .ATTRIBUTE || kind == .UNIFORM || kind == .VARYING) ||
-          mode == .STRUCT && kind != .LOWP && kind != .MEDIUMP && kind != .HIGHP ||
-          mode != .ARGUMENT && (kind == .IN || kind == .OUT || kind == .INOUT) {
-        context.log.syntaxErrorBadQualifier(context.current.range)
-      }
-
-      context.next
+  def isFlag(kind TokenKind) bool {
+    switch kind {
+      case .LAYOUT, .CONST, .CENTROID, .INVARIANT, .UNIFORM, .ATTRIBUTE, .VARYING, .IN, .OUT, .INOUT, .HIGHP, .MEDIUMP, .LOWP { return true }
+      default { return false }
     }
+  }
+
+  def parseFlags(context ParserContext, mode VariableKind) SymbolFlags {
+    var version300 = context.version == .ES_300
+    var flags SymbolFlags = 0
+
+    if mode == .GLOBAL {
+      if version300 && context.eat(.LAYOUT) && context.expect(.LEFT_PARENTHESIS) {
+        var location = -1
+        while true {
+          var token = context.current
+          if token.kind == .IDENTIFIER && token.range.toString == "location" {
+            context.next
+            if context.expect(.ASSIGN) {
+              if context.peek(.INT_LITERAL) || context.peek(.UINT_LITERAL) {
+                location = parseInt(context.current.range.toString)
+                context.next
+              } else {
+                context.expect(.INT_LITERAL)
+              }
+            }
+          } else {
+            context.unexpectedToken
+          }
+          if !context.eat(.COMMA) {
+            break
+          }
+        }
+        if location != -1 {
+          flags |= .HAS_LAYOUT_LOCATION | (location * SymbolFlags.LAYOUT_LOCATION)
+        }
+        context.expect(.RIGHT_PARENTHESIS)
+      }
+
+      else {
+        if context.eat(.INVARIANT) {
+          flags |= .INVARIANT
+        }
+
+        if version300 {
+          if context.eat(.FLAT) {
+            flags |= .FLAT
+          } else if context.eat(.SMOOTH) {
+            flags |= .SMOOTH
+          }
+        }
+      }
+    }
+
+    if mode != .STRUCT && context.eat(.CONST) {
+      flags |= .CONST
+    } else if mode == .GLOBAL && context.eat(.UNIFORM) {
+      flags |= .UNIFORM
+    } else if mode == .GLOBAL && !version300 && context.eat(.ATTRIBUTE) {
+      flags |= .ATTRIBUTE
+    } else if mode == .GLOBAL && !version300 && context.eat(.VARYING) {
+      flags |= .VARYING
+    } else if mode == .GLOBAL && version300 && context.eat(.CENTROID) {
+      flags |= .CENTROID
+      if context.eat(.IN) {
+        flags |= .IN
+      } else if context.eat(.OUT) {
+        flags |= .OUT
+      } else {
+        context.unexpectedToken
+      }
+    } else if (mode == .ARGUMENT || version300 && mode == .GLOBAL) && context.eat(.IN) {
+      flags |= .IN
+    } else if (mode == .ARGUMENT || version300 && mode == .GLOBAL) && context.eat(.OUT) {
+      flags |= .OUT
+    } else if (mode == .ARGUMENT || version300 && mode == .GLOBAL) && context.eat(.INOUT) {
+      flags |= .INOUT
+    }
+
+    if context.eat(.HIGHP) {
+      flags |= .HIGHP
+    } else if context.eat(.MEDIUMP) {
+      flags |= .MEDIUMP
+    } else if context.eat(.LOWP) {
+      flags |= .LOWP
+    }
+
+    if isFlag(context.current.kind) {
+      context.log.syntaxErrorBadQualifier(context.next.range)
+      while isFlag(context.current.kind) {
+        context.next
+      }
+    }
+
+    return flags
   }
 
   enum ParseTypeMode {
@@ -854,6 +993,30 @@ namespace GLSLX.Parser {
       case .VEC4        { type = .VEC4 }
       case .VOID        { type = .VOID }
 
+      case .ISAMPLER2D           { type = context.validTypeInVersion300(.ISAMPLER2D) }
+      case .ISAMPLER2DARRAY      { type = context.validTypeInVersion300(.ISAMPLER2DARRAY) }
+      case .ISAMPLER3D           { type = context.validTypeInVersion300(.ISAMPLER3D) }
+      case .ISAMPLERCUBE         { type = context.validTypeInVersion300(.ISAMPLERCUBE) }
+      case .MAT2X3               { type = context.validTypeInVersion300(.MAT2X3) }
+      case .MAT2X4               { type = context.validTypeInVersion300(.MAT2X4) }
+      case .MAT3X2               { type = context.validTypeInVersion300(.MAT3X2) }
+      case .MAT3X4               { type = context.validTypeInVersion300(.MAT3X4) }
+      case .MAT4X2               { type = context.validTypeInVersion300(.MAT4X2) }
+      case .MAT4X3               { type = context.validTypeInVersion300(.MAT4X3) }
+      case .SAMPLER2DARRAY       { type = context.validTypeInVersion300(.SAMPLER2DARRAY) }
+      case .SAMPLER2DARRAYSHADOW { type = context.validTypeInVersion300(.SAMPLER2DARRAYSHADOW) }
+      case .SAMPLER2DSHADOW      { type = context.validTypeInVersion300(.SAMPLER2DSHADOW) }
+      case .SAMPLER3D            { type = context.validTypeInVersion300(.SAMPLER3D) }
+      case .SAMPLERCUBESHADOW    { type = context.validTypeInVersion300(.SAMPLERCUBESHADOW) }
+      case .UINT                 { type = context.validTypeInVersion300(.UINT) }
+      case .USAMPLER2D           { type = context.validTypeInVersion300(.USAMPLER2D) }
+      case .USAMPLER2DARRAY      { type = context.validTypeInVersion300(.USAMPLER2DARRAY) }
+      case .USAMPLER3D           { type = context.validTypeInVersion300(.USAMPLER3D) }
+      case .USAMPLERCUBE         { type = context.validTypeInVersion300(.USAMPLERCUBE) }
+      case .UVEC2                { type = context.validTypeInVersion300(.UVEC2) }
+      case .UVEC3                { type = context.validTypeInVersion300(.UVEC3) }
+      case .UVEC4                { type = context.validTypeInVersion300(.UVEC4) }
+
       case .IDENTIFIER {
         var symbol = context.scope.find(token.range.toString)
         if symbol == null || !symbol.isStruct {
@@ -874,13 +1037,54 @@ namespace GLSLX.Parser {
     }
 
     context.next
+
+    # Parse an optional array length
+    if context.version == .ES_300 && context.eat(.LEFT_BRACKET) {
+      if context.eat(.RIGHT_BRACKET) {
+        type = type.arrayType(ARRAY_COUNT_OMITTED)
+      } else {
+        var arrayCount = context.pratt.parse(context, .LOWEST)
+        if arrayCount == null || !context.expect(.RIGHT_BRACKET) {
+          return null
+        }
+
+        # The array size must be resolved immediately
+        var count = ARRAY_COUNT_UNKNOWN
+        context.resolver.resolveNode(arrayCount)
+        context.resolver.checkConversion(arrayCount, .INT)
+        if arrayCount.resolvedType != .ERROR {
+          var folded = Folder.fold(arrayCount)
+          if folded == null {
+            context.log.syntaxErrorConstantRequired(arrayCount.range)
+          } else if folded.kind == .INT {
+            var value = folded.asInt
+            if value < 1 {
+              context.log.syntaxErrorInvalidArraySize(arrayCount.range, value)
+            } else {
+              count = value
+            }
+          }
+        }
+        type = type.arrayType(count)
+      }
+
+      # Multidimensional arrays are not supported
+      while context.peek(.LEFT_BRACKET) {
+        token = context.next
+        if !context.peek(.RIGHT_BRACKET) && context.pratt.parse(context, .LOWEST) == null || !context.expect(.RIGHT_BRACKET) {
+          return null
+        }
+        context.log.syntaxErrorMultidimensionalArray(context.spanSince(token.range))
+      }
+    }
+
     return Node.createType(type).withRange(context.spanSince(token.range))
   }
 
   def parseFunction(flags SymbolFlags, type Node, name Range, context ParserContext, comments List<string>) Node {
     var originalScope = context.scope
     var function = FunctionSymbol.new(context.compilationData.nextSymbolID, name, name.toString, Scope.new(.FUNCTION, originalScope))
-    function.flags |= context.flags | flags | (function.name == "main" ? .EXPORTED : 0)
+    function.flags |= context.flags | flags | (function.name == "main" ? .EXPORTED_VERTEX | .EXPORTED_FRAGMENT : 0)
     function.comments = comments
     function.returnType = type
     context.pushScope(function.scope)
@@ -978,9 +1182,9 @@ namespace GLSLX.Parser {
 
     if hasBlock {
       var old = context.flags
-      context.flags &= ~(.EXPORTED | .IMPORTED)
+      context.flags &= ~(.EXPORTED_VERTEX | .EXPORTED_FRAGMENT | .IMPORTED)
       function.block = parseBlock(context)
-      context.flags &= old
+      context.flags = old
       if function.block == null {
         return null
       }
@@ -993,46 +1197,55 @@ namespace GLSLX.Parser {
   def parseArraySize(context ParserContext, variable VariableSymbol) bool {
     var token = context.current
 
-    if context.eat(.LEFT_BRACKET) {
-      # The "[]" syntax isn't valid but skip over it and recover
-      if context.eat(.RIGHT_BRACKET) {
-        context.log.syntaxErrorMissingArraySize(context.spanSince(token.range))
-        return true
-      }
+    if token.kind == .LEFT_BRACKET {
+      var variableType = variable.type.resolvedType
+      if variableType.isArrayOf == null {
+        context.next
 
-      variable.arrayCount = pratt.parse(context, .LOWEST)
-      if variable.arrayCount == null || !context.expect(.RIGHT_BRACKET) {
-        return false
-      }
-
-      # The array size must be resolved immediately
-      var count = 0
-      context.resolver.resolveNode(variable.arrayCount)
-      context.resolver.checkConversion(variable.arrayCount, .INT)
-      if variable.arrayCount.resolvedType != .ERROR {
-        var folded = Folder.fold(variable.arrayCount)
-        if folded == null {
-          context.log.syntaxErrorConstantRequired(variable.arrayCount.range)
-        } else if folded.kind == .INT {
-          var value = folded.asInt
-          if value < 1 {
-            context.log.syntaxErrorInvalidArraySize(variable.arrayCount.range, value)
+        # The "[]" syntax isn't valid but skip over it and recover
+        if context.eat(.RIGHT_BRACKET) {
+          if context.version == .ES_300 {
+            variable.type = Node.createType(variableType.arrayType(ARRAY_COUNT_OMITTED)).withRange(variable.type.range)
           } else {
-            count = value
+            context.log.syntaxErrorMissingArraySize(context.spanSince(token.range))
+          }
+          return true
+        }
+
+        variable.arrayCount = context.pratt.parse(context, .LOWEST)
+        if variable.arrayCount == null || !context.expect(.RIGHT_BRACKET) {
+          return false
+        }
+
+        # The array size must be resolved immediately
+        var count = ARRAY_COUNT_UNKNOWN
+        context.resolver.resolveNode(variable.arrayCount)
+        context.resolver.checkConversion(variable.arrayCount, .INT)
+        if variable.arrayCount.resolvedType != .ERROR {
+          var folded = Folder.fold(variable.arrayCount)
+          if folded == null {
+            context.log.syntaxErrorConstantRequired(variable.arrayCount.range)
+          } else if folded.kind == .INT {
+            var value = folded.asInt
+            if value < 1 {
+              context.log.syntaxErrorInvalidArraySize(variable.arrayCount.range, value)
+            } else {
+              count = value
+            }
           }
         }
+
+        variable.type = Node.createType(variableType.arrayType(count)).withRange(variable.type.range)
       }
 
       # Multidimensional arrays are not supported
       while context.peek(.LEFT_BRACKET) {
         token = context.next
-        if !context.peek(.RIGHT_BRACKET) && pratt.parse(context, .LOWEST) == null || !context.expect(.RIGHT_BRACKET) {
+        if !context.peek(.RIGHT_BRACKET) && context.pratt.parse(context, .LOWEST) == null || !context.expect(.RIGHT_BRACKET) {
           return false
         }
         context.log.syntaxErrorMultidimensionalArray(context.spanSince(token.range))
       }
-
-      variable.type = Node.createType(variable.type.resolvedType.arrayType(count)).withRange(variable.type.range)
     }
 
     return true
@@ -1059,7 +1272,7 @@ namespace GLSLX.Parser {
       var value Node
       if context.eat(.ASSIGN) {
         var firstToken = context.current
-        value = pratt.parse(context, .COMMA)
+        value = context.pratt.parse(context, .COMMA)
         if value == null {
           value = Node.createParseError.withRange(context.spanSince(firstToken.range))
         }
@@ -1067,11 +1280,21 @@ namespace GLSLX.Parser {
         assign = null
       }
 
-      # Constants must be resolved immediately
       var variable = Node.createVariable(symbol, value).withRange(context.spanSince(symbol.range)).withInternalRange(assign)
       symbol.node = variable
       if symbol.isConst {
+        # Constants must be resolved immediately
         context.resolver.resolveNode(variable)
+      } else {
+        # Try to eagerly resolve omitted array counts
+        context.resolver.resolveNode(symbol.type)
+        var resolvedType = symbol.type.resolvedType
+        if resolvedType.isArrayOf != null && resolvedType.arrayCount == ARRAY_COUNT_OMITTED && value != null {
+          context.resolver.resolveNode(value)
+          if value.resolvedType.isArrayOf != null && value.resolvedType.arrayCount > 0 {
+            symbol.type.resolvedType = resolvedType.isArrayOf.arrayType(value.resolvedType.arrayCount)
+          }
+        }
       }
       variables.appendChild(variable)
       tryToDefineUniquelyInScope(context, symbol)
@@ -1139,13 +1362,9 @@ namespace GLSLX.Parser {
     const includes List<Include>
   }
 
-  def parse(log Log, tokens List<Token>, global Node, data CompilerData, scope Scope, resolver Resolver) ParseResult {
-    if pratt == null {
-      pratt = createExpressionParser
-    }
-
+  def parse(log Log, tokenized Tokenized, global Node, data CompilerData, scope Scope, resolver Resolver) ParseResult {
     const processedIncludes = StringMap<bool>.new
-    var context = ParserContext.new(log, tokens, data, resolver, processedIncludes)
+    var context = ParserContext.new(log, tokenized, data, resolver, processedIncludes)
     context.pushScope(scope)
     if parseStatements(context, global, .GLOBAL) {
       context.expect(.END_OF_FILE)

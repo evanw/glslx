@@ -1,9 +1,9 @@
 namespace GLSLX.Tests {
   def testParser {
 
-# Test a valid version pragma
+# Test a GLSL 1.0 version pragma
 test("
-#version 100
+  #version  100
 void main() {
 }
 ", "#version 100
@@ -12,15 +12,26 @@ void main() {
 }
 ")
 
+# Test a GLSL 3.0 version pragma
+test("
+  #version  300  es
+void main() {
+}
+", "#version 300 es
+
+void main() {
+}
+")
+
 # Test an invalid version pragma
 test("
-#version 999
+  #version  999
 void main() {
 }
 ", "
-<stdin>:1:10: error: Unrecognized version \"999\"
-#version 999
-         ~~~
+<stdin>:1:13: error: Unrecognized version \"999\"
+  #version  999
+            ~~~
 ")
 
 # Test constant parsing
@@ -255,6 +266,9 @@ void main() {
   varying float v;
 }
 ", "
+<stdin>:2:3: error: Cannot use this qualifier here
+  attribute float a;
+  ~~~~~~~~~
 <stdin>:5:3: error: Cannot use this qualifier here
   in float i;
   ~~
@@ -264,6 +278,12 @@ void main() {
 <stdin>:9:3: error: Cannot use this qualifier here
   out float o;
   ~~~
+<stdin>:10:3: error: Cannot use this qualifier here
+  uniform float u;
+  ~~~~~~~
+<stdin>:11:3: error: Cannot use this qualifier here
+  varying float v;
+  ~~~~~~~
 ")
 
 # Test duplicate arguments
@@ -960,6 +980,77 @@ const int n = N;
 #define N 1
 ~~~~~~~
 ")
+
+# Various qualifiers from GLSL 3.0
+test("
+#version 300 es
+invariant flat in float a;
+smooth centroid in float b;
+layout(location=1) out float x;
+layout(location=123u) out float y;
+void main() {
+}
+", "
+#version 300 es
+
+invariant flat in float a;
+smooth centroid in float b;
+layout(location = 1) out float x;
+layout(location = 123) out float y;
+
+void main() {
+}
+")
+
+# Check #include with an older GLSL version
+test("
+#version 300 es
+#include \"foo.glslx\"
+in float a;
+export float foo() {
+  return a;
+}
+", "
+<stdin>:2:10: error: Cannot include file \"foo.glslx\" that uses a different GLSL version
+#include \"foo.glslx\"
+         ~~~~~~~~~~~
+foo.glslx:1:1: note: Add \"#version 300 es\" to the included file
+varying float b;
+^
+").fileAccess((path, relativeTo) => {
+  assert(path == "foo.glslx")
+  assert(relativeTo == "<stdin>")
+  return Source.new("foo.glslx", "varying float b;
+export float bar() {
+  return b;
+}
+")
+})
+
+# Check #include with a newer GLSL version
+test("
+#include \"foo.glslx\"
+varying float a;
+export float foo() {
+  return a;
+}
+", "
+<stdin>:1:10: error: Cannot include file \"foo.glslx\" that uses a different GLSL version
+#include \"foo.glslx\"
+         ~~~~~~~~~~~
+<stdin>:1:1: note: Add \"#version 300 es\" to the including file
+#include \"foo.glslx\"
+^
+").fileAccess((path, relativeTo) => {
+  assert(path == "foo.glslx")
+  assert(relativeTo == "<stdin>")
+  return Source.new("foo.glslx", "#version 300 es
+in float b;
+export float bar() {
+  return b;
+}
+")
+})
 
   }
 }

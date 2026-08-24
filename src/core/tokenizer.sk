@@ -1,4 +1,9 @@
 namespace GLSLX {
+  enum Version {
+    ES_100
+    ES_300
+  }
+
   enum TokenKind {
     SINGLE_LINE_COMMENT
     MULTI_LINE_COMMENT
@@ -47,8 +52,40 @@ namespace GLSLX {
     VOID
     WHILE
 
+    # GLSL ES 3.0
+    CENTROID
+    FLAT
+    ISAMPLER2D
+    ISAMPLER2DARRAY
+    ISAMPLER3D
+    ISAMPLERCUBE
+    LAYOUT
+    MAT2X3
+    MAT2X4
+    MAT3X2
+    MAT3X4
+    MAT4X2
+    MAT4X3
+    SAMPLER2DARRAY
+    SAMPLER2DARRAYSHADOW
+    SAMPLER2DSHADOW
+    SAMPLER3D
+    SAMPLERCUBESHADOW
+    SMOOTH
+    UINT
+    USAMPLER2D
+    USAMPLER2DARRAY
+    USAMPLER3D
+    USAMPLERCUBE
+    UVEC2
+    UVEC3
+    UVEC4
+
     # Non-standard keywords
+    DECORATOR
     EXPORT
+    EXPORT_FRAGMENT
+    EXPORT_VERTEX
     IMPORT
 
     # Unary
@@ -114,6 +151,7 @@ namespace GLSLX {
     FLOAT_LITERAL
     IDENTIFIER
     INT_LITERAL
+    UINT_LITERAL
     STRING_LITERAL
 
     # This is always at the end of the token stream
@@ -126,11 +164,16 @@ namespace GLSLX {
     def isIdentifierOrType bool {
       switch self {
         case .IDENTIFIER, .VOID,
-          .SAMPLER2D, .SAMPLERCUBE,
+          .SAMPLER2D, .SAMPLER2DARRAY, .SAMPLER2DARRAYSHADOW, .SAMPLER2DSHADOW,
+          .SAMPLER3D, .SAMPLERCUBE, .SAMPLERCUBESHADOW,
+          .ISAMPLER2D, .ISAMPLER2DARRAY, .ISAMPLER3D, .ISAMPLERCUBE,
+          .USAMPLER2D, .USAMPLER2DARRAY, .USAMPLER3D, .USAMPLERCUBE,
           .FLOAT, .VEC2, .VEC3, .VEC4,
           .INT, .IVEC2, .IVEC3, .IVEC4,
+          .UINT, .UVEC2, .UVEC3, .UVEC4,
           .BOOL, .BVEC2, .BVEC3, .BVEC4,
-          .MAT2, .MAT3, .MAT4 {
+          .MAT2, .MAT3, .MAT4,
+          .MAT2X3, .MAT2X4, .MAT3X2, .MAT3X4, .MAT4X2, .MAT4X3 {
           return true
         }
       }
@@ -150,6 +193,11 @@ namespace GLSLX {
     var kind TokenKind
     var comments List<Range>
   }
+
+  class Tokenized {
+    var tokens List<Token>
+    var version Version
+  }
 }
 
 namespace GLSLX.Tokenizer {
@@ -158,7 +206,7 @@ namespace GLSLX.Tokenizer {
     FORMAT
   }
 
-  def tokenize(log Log, source Source, purpose TokenPurpose) List<Token> {
+  def tokenize(log Log, source Source, purpose TokenPurpose) {
     var parts List<string> = (source.contents as dynamic).split(_tokenRegex)
     var tokens List<Token> = []
     var comments List<Range> = null
@@ -186,9 +234,24 @@ namespace GLSLX.Tokenizer {
           }
         }
 
+        # Decorator
+        else if c == '@' {
+          var kind TokenKind = .DECORATOR
+          switch part {
+            case "@vertex" { kind = .EXPORT_VERTEX }
+            case "@fragment" { kind = .EXPORT_FRAGMENT }
+          }
+          tokens.append(Token.new(range, kind, comments))
+        }
+
         # Number
         else if c >= '0' && c <= '9' || c == '.' && count > 1 {
-          tokens.append(Token.new(range, _intRegex.test(part) ? .INT_LITERAL : .FLOAT_LITERAL, comments))
+          if _intRegex.test(part) {
+            c = part[count - 1]
+            tokens.append(Token.new(range, c == 'u' || c == 'U' ? .UINT_LITERAL : .INT_LITERAL, comments))
+          } else {
+            tokens.append(Token.new(range, .FLOAT_LITERAL, comments))
+          }
         }
 
         # Pragma
@@ -245,8 +308,18 @@ namespace GLSLX.Tokenizer {
       start = end
     }
 
+    var version Version = .ES_100
+    if tokens.count > 2 {
+      var t0 = tokens[0]
+      var t1 = tokens[1]
+      var t2 = tokens[2]
+      if t0.kind == .VERSION && t1.kind == .INT_LITERAL && t2.kind == .IDENTIFIER && t1.range.toString == "300" && t2.range.toString == "es" {
+        version = .ES_300
+      }
+    }
+
     tokens.append(Token.new(Range.new(source, start, start), .END_OF_FILE, comments))
-    return tokens
+    source.tokenized = Tokenized.new(tokens, version)
   }
 
   # The order matters here due to greedy matching
@@ -263,16 +336,16 @@ namespace GLSLX.Tokenizer {
     "[0-9]+[eE][+-]?[0-9]+\\b|" + # Floating-point constant
 
     # Int literals
-    "[1-9][0-9]*\\b|" + # Decimal int literal
-    "0[0-7]*\\b|" + # Octal int literal
-    "0[xX][0-9A-Fa-f]+\\b|" + # Hexadecimal int literal
+    "[1-9][0-9]*[uU]?\\b|" + # Decimal int literal
+    "0[0-7]*[uU]?\\b|" + # Octal int literal
+    "0[xX][0-9A-Fa-f]+[uU]?\\b|" + # Hexadecimal int literal
 
     # Other
     "[ \t\r\n]|" + # Whitespace
     "/\\*(?:.|\r\n|\n)*?\\*/|" + # Multi-line comment
     "//.*|" + # Single-line comment
     "&&|\\|\\||\\^\\^|\\+\\+|--|<<=?|>>=?|[()[\\]{}\\.,?:;]|[+\\-*/%=!<>&|^~]=?|" + # Operator
-    "[A-Za-z_][A-Za-z0-9_]*\\b|" + # Identifier
+    "@?[A-Za-z_][A-Za-z0-9_]*\\b|" + # Identifier
     "#\\w+\\b|" + # Pragma
     "\"(?:[^\"\\\\]|\\\\.)*\"" + # String literal
 
@@ -284,7 +357,7 @@ namespace GLSLX.Tokenizer {
     "[1-9][0-9]*|" +
     "0[0-7]*|" +
     "0[xX][0-9A-Fa-f]+" +
-    ")$"
+    ")[uU]?$"
   )
 
   const keywords StringMap<TokenKind> = {
@@ -331,6 +404,38 @@ namespace GLSLX.Tokenizer {
     "vec4": .VEC4,
     "void": .VOID,
     "while": .WHILE,
+
+    # GLSL ES 3.0
+    "centroid": .CENTROID,
+    "flat": .FLAT,
+    "isampler2D": .ISAMPLER2D,
+    "isampler2DArray": .ISAMPLER2DARRAY,
+    "isampler3D": .ISAMPLER3D,
+    "isamplerCube": .ISAMPLERCUBE,
+    "layout": .LAYOUT,
+    "mat2x2": .MAT2,
+    "mat2x3": .MAT2X3,
+    "mat2x4": .MAT2X4,
+    "mat3x2": .MAT3X2,
+    "mat3x3": .MAT3,
+    "mat3x4": .MAT3X4,
+    "mat4x2": .MAT4X2,
+    "mat4x3": .MAT4X3,
+    "mat4x4": .MAT4,
+    "sampler2DArray": .SAMPLER2DARRAY,
+    "sampler2DArrayShadow": .SAMPLER2DARRAYSHADOW,
+    "sampler2DShadow": .SAMPLER2DSHADOW,
+    "sampler3D": .SAMPLER3D,
+    "samplerCubeShadow": .SAMPLERCUBESHADOW,
+    "smooth": .SMOOTH,
+    "uint": .UINT,
+    "usampler2D": .USAMPLER2D,
+    "usampler2DArray": .USAMPLER2DARRAY,
+    "usampler3D": .USAMPLER3D,
+    "usamplerCube": .USAMPLERCUBE,
+    "uvec2": .UVEC2,
+    "uvec3": .UVEC3,
+    "uvec4": .UVEC4,
 
     # Non-standard keywords
     "export": .EXPORT,
@@ -405,7 +510,6 @@ namespace GLSLX.Tokenizer {
     "extern": 0,
     "external": 0,
     "fixed": 0,
-    "flat": 0,
     "fvec2": 0,
     "fvec3": 0,
     "fvec4": 0,
@@ -427,8 +531,6 @@ namespace GLSLX.Tokenizer {
     "sampler1DShadow": 0,
     "sampler2DRect": 0,
     "sampler2DRectShadow": 0,
-    "sampler2DShadow": 0,
-    "sampler3D": 0,
     "sampler3DRect": 0,
     "short": 0,
     "sizeof": 0,

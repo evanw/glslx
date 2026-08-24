@@ -184,6 +184,24 @@ namespace GLSLX {
     def syntaxErrorUnrecognizedVersion(range Range) {
       error(range, "Unrecognized version \"\(range)\"")
     }
+
+    def syntaxErrorUnexpectedVersion(range Range) {
+      error(range, "Move \"#version\" to the beginning of the file")
+    }
+
+    def syntaxErrorExpectedVersion(source Source, source300 Source) {
+      error(source.entireRange.rangeAtStart, "Expected this file to start with \"#version 300 es\"")
+      note(Range.span(source300.tokenized.tokens[0].range, source300.tokenized.tokens[2].range),
+        "This is expected due to \"#version 300 es\" here")
+    }
+
+    def syntaxErrorImportWrongVersion(range Range, name string, source Source) {
+      error(range, "Cannot include file \"\(name)\" that uses a different GLSL version")
+      switch source.tokenized.version {
+        case .ES_100 { note(source.entireRange.rangeAtStart, "Add \"#version 300 es\" to the included file") }
+        case .ES_300 { note(range.source.entireRange.rangeAtStart, "Add \"#version 300 es\" to the including file") }
+      }
+    }
   }
 
   class Log {

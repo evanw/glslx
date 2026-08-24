@@ -245,5 +245,23 @@ namespace GLSLX.Tests {
   */
 }
 ")
+
+    testFormatter("
+      #version 300 es
+      layout (location=2)out float alpha;
+", "#version 300 es
+layout(location = 2) out float alpha;
+")
+
+    testFormatter("
+      #version 300 es
+      @vertex  void vertexShader ( ) { }
+      @fragment
+      void fragmentShader ( ) { }
+", "#version 300 es
+@vertex void vertexShader() {}
+@fragment
+void fragmentShader() {}
+")
   }
 }

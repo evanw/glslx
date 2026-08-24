@@ -115,5 +115,19 @@ void main() {
 void main(){struct S{int x;}y,z[2];y.x=z[0].x+z[1].x;}
 ").removeWhitespace
 
+# Various qualifiers from GLSL 3.0
+test("
+#version 300 es
+invariant flat in float a;
+smooth centroid in float b;
+layout(location=1) out float x;
+layout(location=123u) out float y;
+void main() {
+}
+", "
+#version 300 es
+invariant flat in float a;smooth centroid in float b;layout(location=1)out float x;layout(location=123)out float y;void main(){}
+").removeWhitespace
+
   }
 }

@@ -240,7 +240,8 @@ namespace GLSLX.Folder {
 
     var type = target.resolvedType
     var componentType = type.componentType
-    var matrixStride = 0
+    var matrixCols = 0
+    var matrixRows = 0
     var arguments List<Node> = []
     var count = 0
 
@@ -274,7 +275,8 @@ namespace GLSLX.Folder {
       }
 
       if folded.resolvedType.isMatrix {
-        matrixStride = folded.resolvedType.indexCount
+        matrixCols = folded.resolvedType.indexCount
+        matrixRows = folded.resolvedType.indexType.indexCount
       }
 
       count++
@@ -282,13 +284,13 @@ namespace GLSLX.Folder {
 
     # If a matrix argument is given to a matrix constructor, it is an error
     # to have any other arguments
-    if type.isMatrix && matrixStride != 0 && count != 1 {
+    if type.isMatrix && matrixCols != 0 && matrixRows != 0 && count != 1 {
       return null
     }
 
     # Native component-based types
     if type.componentType != null {
-      return _foldComponentConstructor(arguments, type, type.isMatrix ? matrixStride : 0)
+      return _foldComponentConstructor(arguments, type, type.isMatrix ? matrixCols : 0, type.isMatrix ? matrixRows : 0)
     }
 
     # User-defined struct types
@@ -395,7 +397,7 @@ namespace GLSLX.Folder {
     return null
   }
 
-  def _foldComponentConstructor(arguments List<Node>, type Type, matrixStride int) Node {
+  def _foldComponentConstructor(arguments List<Node>, type Type, matrixCols int, matrixRows int) Node {
     var componentCount = type.componentCount
     var componentType = type.componentType
     var node = Node.createConstructorCall(type)
@@ -409,13 +411,21 @@ namespace GLSLX.Folder {
       }
 
       # When doing this with a matrix, only the diagonal is filled
-      var isMatrix = type.isMatrix
-      var stride = type.indexCount
+      if type.isMatrix {
+        var cols = type.indexCount
+        var rows = type.indexType.indexCount
+        for col in 0..cols {
+          for row in 0..rows {
+            node.appendChild(row != col ? Node.createFloat(0) : argument.clone)
+          }
+        }
+      }
 
       # Fill the target by repeating the single component
-      for i in 0..componentCount {
-        var isOffMatrixDiagonal = isMatrix && i % (stride + 1) != 0
-        node.appendChild(isOffMatrixDiagonal ? Node.createFloat(0) : argument.clone)
+      else {
+        for i in 0..componentCount {
+          node.appendChild(argument.clone)
+        }
       }
     }
 
@@ -423,15 +433,16 @@ namespace GLSLX.Folder {
     # row j) in the result that has a corresponding component (column i, row j)
     # in the argument will be initialized from there. All other components will
     # be initialized to the identity matrix.
-    else if matrixStride != 0 {
-      var stride = type.indexCount
+    else if matrixCols != 0 && matrixRows != 0 {
+      var cols = type.indexCount
+      var rows = type.indexType.indexCount
       assert(type.isMatrix)
-      assert(stride * stride == componentCount)
+      assert(cols * rows == componentCount)
 
-      for row in 0..stride {
-        for col in 0..stride {
-          node.appendChild(col < matrixStride && row < matrixStride
-            ? arguments[col + row * matrixStride]
+      for col in 0..cols {
+        for row in 0..rows {
+          node.appendChild(col < matrixCols && row < matrixRows
+            ? arguments[row + col * matrixRows]
             : Node.createFloat(col == row ? 1 : 0))
         }
       }

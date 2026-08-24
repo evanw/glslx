@@ -19,6 +19,8 @@ namespace GLSLX {
     var renameSymbols = RenameSymbols.ALL
     var trimSymbols = true
     var fileAccess fn(string, string) Source = null
+    var indent = "  "
+    var newline = "\n"
   }
 
   enum ExtensionBehavior {
@@ -44,8 +46,14 @@ namespace GLSLX {
     }
   }
 
+  class Shader {
+    var name string
+    var contents string
+    var type ShaderType
+  }
+
   class CompilerResult {
-    const shaders List<Source>
+    const shaders List<Shader>
     const renaming StringMap<string>
 
     def output(format OutputFormat) string {
@@ -54,10 +62,17 @@ namespace GLSLX {
           var map dynamic = {}
           renaming.keys.each(key => map[key] = renaming[key])
           return dynamic.JSON.stringify({
-            "shaders": shaders == null ? null : shaders.map<dynamic>(source => ({
-              "name": source.name,
-              "contents": source.contents,
-            })),
+            "shaders": shaders == null ? null : shaders.map<dynamic>(shader => {
+              var object dynamic = {
+                "name": shader.name,
+                "contents": shader.contents,
+              }
+              switch shader.type {
+                case .VERTEX { object["type"] = "vertex" }
+                case .FRAGMENT { object["type"] = "fragment" }
+              }
+              return object
+            }),
             "renaming": map,
           }, null, 2) + "\n"
         }
@@ -141,6 +156,32 @@ namespace GLSLX {
 }
 
 namespace GLSLX.Compiler {
+  def prependAPI(log Log, sources List<Source>) Version {
+    var source300 Source
+    for source in sources {
+      if source.tokenized.version == .ES_300 {
+        source300 = source
+        break
+      }
+    }
+
+    var apiSource Source
+    if source300 != null {
+      apiSource = Source.new(API_NAME, API_300)
+      for source in sources {
+        if source.tokenized.version == .ES_100 {
+          log.syntaxErrorExpectedVersion(source, source300)
+        }
+      }
+    } else {
+      apiSource = Source.new(API_NAME, API_100)
+    }
+
+    Tokenizer.tokenize(log, apiSource, .COMPILE)
+    sources.prepend(apiSource)
+    return source300 != null ? .ES_300 : .ES_100
+  }
+
   class TypeCheckResult {
     const global Node
     const includes List<Include>
@@ -152,20 +193,20 @@ namespace GLSLX.Compiler {
     }
 
     # Generate tokens once
-    sources.prepend(Source.new(API_NAME, API))
     for source in sources {
-      source.tokens = Tokenizer.tokenize(log, source, .COMPILE)
+      Tokenizer.tokenize(log, source, .COMPILE)
     }
+    var version = prependAPI(log, sources)
 
     var global = Node.createGlobal
     var scope = Scope.new(.GLOBAL, null)
     var data = CompilerData.new(options.fileAccess)
-    var resolver = Resolver.new(log, data)
+    var resolver = Resolver.new(log, data, version)
 
     # Parse everything next
     const includes List<Include> = []
     for source in sources {
-      const result = Parser.parse(log, source.tokens, global, data, scope, resolver)
+      const result = Parser.parse(log, source.tokenized, global, data, scope, resolver)
       includes.append(result.includes)
     }
 
@@ -182,19 +223,19 @@ namespace GLSLX.Compiler {
     }
 
     # Generate tokens once
-    sources.prepend(Source.new(API_NAME, API))
     for source in sources {
-      source.tokens = Tokenizer.tokenize(log, source, .COMPILE)
+      Tokenizer.tokenize(log, source, .COMPILE)
     }
+    var version = prependAPI(log, sources)
 
     var global = Node.createGlobal
     var scope = Scope.new(.GLOBAL, null)
     var data = CompilerData.new(options.fileAccess)
-    var resolver = Resolver.new(log, data)
+    var resolver = Resolver.new(log, data, version)
 
     # Parse everything next
     for source in sources {
-      Parser.parse(log, source.tokens, global, data, scope, resolver)
+      Parser.parse(log, source.tokenized, global, data, scope, resolver)
     }
 
     # Then run type checking
@@ -208,18 +249,18 @@ namespace GLSLX.Compiler {
     # and in theory we could quickly export all shaders from that, but in
     # practice it's simpler if the source code is just compiled over again once
     # per shader.
-    var names List<string> = []
+    var shaders List<Shader> = []
     var globals List<Node> = []
     for root in _collectAllExportedFunctions(scope) {
       var shaderGlobal = Node.createGlobal
       var shaderScope = Scope.new(.GLOBAL, null)
       var shaderData = CompilerData.new(options.fileAccess)
       var shaderLog = Log.new
-      var shaderResolver = Resolver.new(shaderLog, shaderData)
+      var shaderResolver = Resolver.new(shaderLog, shaderData, version)
 
       # Parse everything again
       for source in sources {
-        Parser.parse(shaderLog, source.tokens, shaderGlobal, shaderData, shaderScope, shaderResolver)
+        Parser.parse(shaderLog, source.tokenized, shaderGlobal, shaderData, shaderScope, shaderResolver)
       }
 
       # Flow types through the tree
@@ -229,14 +270,18 @@ namespace GLSLX.Compiler {
       _unexportAllFunctionsExcept(shaderScope, root)
       Rewriter.rewrite(shaderGlobal, shaderData, options)
       globals.append(shaderGlobal)
-      names.append(root.name)
+      shaders.append(Shader.new(root.name, "", root.flags.shaderType))
+
+      # Change "inout" to "in" or "out" depending on the context
+      if version == .ES_300 {
+        _rewriteInoutModifiers(shaderGlobal, root)
+      }
     }
 
     # Rename everything together
-    var shaders List<Source> = []
     var renaming = Renamer.rename(globals, options)
-    for i in 0..names.count {
-      shaders.append(Source.new(names[i], Emitter.emit(globals[i], options)))
+    for i in 0..shaders.count {
+      shaders[i].contents = Emitter.emit(globals[i], options)
     }
     return CompilerResult.new(shaders, renaming)
   }
@@ -254,12 +299,27 @@ namespace GLSLX.Compiler {
   def _unexportAllFunctionsExcept(scope Scope, function FunctionSymbol) {
     for symbol in scope.symbols.values {
       if symbol.id != function.id {
-        symbol.flags &= ~.EXPORTED
+        symbol.flags &= ~(.EXPORTED_VERTEX | .EXPORTED_FRAGMENT)
       } else {
         symbol.name = "main"
         var sibling = symbol.asFunction.sibling
         if sibling != null {
           sibling.name = symbol.name
+        }
+      }
+    }
+  }
+
+  def _rewriteInoutModifiers(global Node, function FunctionSymbol) {
+    var isVertex = .EXPORTED_VERTEX in function.flags
+    var isFragment = .EXPORTED_FRAGMENT in function.flags
+    if isVertex != isFragment {
+      for child = global.firstChild; child != null; child = child.nextSibling {
+        if child.kind == .VARIABLES {
+          var flags = child.variablesFlags
+          if .INOUT in flags {
+            child.withInt((flags & ~.INOUT) | (isFragment ? .IN : .OUT))
+          }
         }
       }
     }

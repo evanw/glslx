@@ -1,0 +1,1669 @@
+namespace GLSLX {
+  # This is from https://registry.khronos.org/OpenGL/specs/es/3.0/GLSL_ES_Specification_3.00.pdf
+  const API_300 = "
+#version 300 es
+import {
+  in highp int gl_VertexID;
+  in highp int gl_InstanceID;
+  out highp vec4 gl_Position;
+  out highp float gl_PointSize;
+
+  in highp vec4 gl_FragCoord;
+  in bool gl_FrontFacing;
+  out highp float gl_FragDepth;
+  in mediump vec2 gl_PointCoord;
+
+  const mediump int gl_MaxVertexAttribs;
+  const mediump int gl_MaxVertexUniformVectors;
+  const mediump int gl_MaxVertexOutputVectors;
+  const mediump int gl_MaxFragmentInputVectors;
+  const mediump int gl_MaxVertexTextureImageUnits;
+  const mediump int gl_MaxCombinedTextureImageUnits;
+  const mediump int gl_MaxTextureImageUnits;
+  const mediump int gl_MaxFragmentUniformVectors;
+  const mediump int gl_MaxDrawBuffers;
+  const mediump int gl_MinProgramTexelOffset;
+  const mediump int gl_MaxProgramTexelOffset;
+
+  struct gl_DepthRangeParameters {
+    highp float near; // n
+    highp float far; // f
+    highp float diff; // f - n
+  };
+  uniform gl_DepthRangeParameters gl_DepthRange;
+
+  ////////////////////////////////////////////////////////////////////////////////
+  // Angle and Trigonometry Functions
+
+  // Converts `degrees` to radians, i.e. `π / 180 * degrees`
+  float radians(float degrees);
+  // Converts `degrees` to radians, i.e. `π / 180 * degrees`
+  vec2 radians(vec2 degrees);
+  // Converts `degrees` to radians, i.e. `π / 180 * degrees`
+  vec3 radians(vec3 degrees);
+  // Converts `degrees` to radians, i.e. `π / 180 * degrees`
+  vec4 radians(vec4 degrees);
+
+  // Converts `radians` to degrees, i.e. `180 / π * radians`
+  float degrees(float radians);
+  // Converts `radians` to degrees, i.e. `180 / π * radians`
+  vec2 degrees(vec2 radians);
+  // Converts `radians` to degrees, i.e. `180 / π * radians`
+  vec3 degrees(vec3 radians);
+  // Converts `radians` to degrees, i.e. `180 / π * radians`
+  vec4 degrees(vec4 radians);
+
+  // The standard trigonometric sine function.
+  float sin(float angle);
+  // The standard trigonometric sine function.
+  vec2 sin(vec2 angle);
+  // The standard trigonometric sine function.
+  vec3 sin(vec3 angle);
+  // The standard trigonometric sine function.
+  vec4 sin(vec4 angle);
+
+  // The standard trigonometric cosine function.
+  float cos(float angle);
+  // The standard trigonometric cosine function.
+  vec2 cos(vec2 angle);
+  // The standard trigonometric cosine function.
+  vec3 cos(vec3 angle);
+  // The standard trigonometric cosine function.
+  vec4 cos(vec4 angle);
+
+  // The standard trigonometric tangent.
+  float tan(float angle);
+  // The standard trigonometric tangent.
+  vec2 tan(vec2 angle);
+  // The standard trigonometric tangent.
+  vec3 tan(vec3 angle);
+  // The standard trigonometric tangent.
+  vec4 tan(vec4 angle);
+
+  // Arc sine. Returns an angle whose sine is `x`. The range of values returned by this function is `[-π/2, π/2]`. Results are undefined if `∣x∣>1`.
+  float asin(float x);
+  // Arc sine. Returns an angle whose sine is `x`. The range of values returned by this function is `[-π/2, π/2]`. Results are undefined if `∣x∣>1`.
+  vec2 asin(vec2 x);
+  // Arc sine. Returns an angle whose sine is `x`. The range of values returned by this function is `[-π/2, π/2]`. Results are undefined if `∣x∣>1`.
+  vec3 asin(vec3 x);
+  // Arc sine. Returns an angle whose sine is `x`. The range of values returned by this function is `[-π/2, π/2]`. Results are undefined if `∣x∣>1`.
+  vec4 asin(vec4 x);
+
+  // Arc cosine. Returns an angle whose cosine is `x`. The range of values returned by this function is `[0, π]`. Results are undefined if `∣x∣>1`.
+  float acos(float x);
+  // Arc cosine. Returns an angle whose cosine is `x`. The range of values returned by this function is `[0, π]`. Results are undefined if `∣x∣>1`.
+  vec2 acos(vec2 x);
+  // Arc cosine. Returns an angle whose cosine is `x`. The range of values returned by this function is `[0, π]`. Results are undefined if `∣x∣>1`.
+  vec3 acos(vec3 x);
+  // Arc cosine. Returns an angle whose cosine is `x`. The range of values returned by this function is `[0, π]`. Results are undefined if `∣x∣>1`.
+  vec4 acos(vec4 x);
+
+  // Arc tangent. Returns an angle whose tangent is `y/x`. The signs of `x` and `y` are used to determine what quadrant the
+  // angle is in. The range of values returned by this function is `[−π,π]`. Results are undefined if `x` and `y` are both 0.
+  float atan(float y, float x);
+  // Arc tangent. Returns an angle whose tangent is `y/x`. The signs of `x` and `y` are used to determine what quadrant the
+  // angle is in. The range of values returned by this function is `[−π,π]`. Results are undefined if `x` and `y` are both 0.
+  vec2 atan(vec2 y, vec2 x);
+  // Arc tangent. Returns an angle whose tangent is `y/x`. The signs of `x` and `y` are used to determine what quadrant the
+  // angle is in. The range of values returned by this function is `[−π,π]`. Results are undefined if `x` and `y` are both 0.
+  vec3 atan(vec3 y, vec3 x);
+  // Arc tangent. Returns an angle whose tangent is `y/x`. The signs of `x` and `y` are used to determine what quadrant the
+  // angle is in. The range of values returned by this function is `[−π,π]`. Results are undefined if `x` and `y` are both 0.
+  vec4 atan(vec4 y, vec4 x);
+
+  // Arc tangent. Returns an angle whose tangent is `y_over_x`. The range of values returned by this function is `[-π/2, π/2]`.
+  float atan(float y_over_x);
+  // Arc tangent. Returns an angle whose tangent is `y_over_x`. The range of values returned by this function is `[-π/2, π/2]`.
+  vec2 atan(vec2 y_over_x);
+  // Arc tangent. Returns an angle whose tangent is `y_over_x`. The range of values returned by this function is `[-π/2, π/2]`.
+  vec3 atan(vec3 y_over_x);
+  // Arc tangent. Returns an angle whose tangent is `y_over_x`. The range of values returned by this function is `[-π/2, π/2]`.
+  vec4 atan(vec4 y_over_x);
+
+  // Returns the hyperbolic sine function `(eˣ - e⁻ˣ) / 2`
+  float sinh(float x);
+  // Returns the hyperbolic sine function `(eˣ - e⁻ˣ) / 2`
+  vec2 sinh(vec2 x);
+  // Returns the hyperbolic sine function `(eˣ - e⁻ˣ) / 2`
+  vec3 sinh(vec3 x);
+  // Returns the hyperbolic sine function `(eˣ - e⁻ˣ) / 2`
+  vec4 sinh(vec4 x);
+
+  // Returns the hyperbolic cosine function `(eˣ + e⁻ˣ) / 2`
+  float cosh(float x);
+  // Returns the hyperbolic cosine function `(eˣ + e⁻ˣ) / 2`
+  vec2 cosh(vec2 x);
+  // Returns the hyperbolic cosine function `(eˣ + e⁻ˣ) / 2`
+  vec3 cosh(vec3 x);
+  // Returns the hyperbolic cosine function `(eˣ + e⁻ˣ) / 2`
+  vec4 cosh(vec4 x);
+
+  // Returns the hyperbolic tangent function `sinh(x) / cosh(x)`
+  float tanh(float x);
+  // Returns the hyperbolic tangent function `sinh(x) / cosh(x)`
+  vec2 tanh(vec2 x);
+  // Returns the hyperbolic tangent function `sinh(x) / cosh(x)`
+  vec3 tanh(vec3 x);
+  // Returns the hyperbolic tangent function `sinh(x) / cosh(x)`
+  vec4 tanh(vec4 x);
+
+  // Arc hyperbolic sine; returns the inverse of `sinh`.
+  float asinh(float x);
+  // Arc hyperbolic sine; returns the inverse of `sinh`.
+  vec2 asinh(vec2 x);
+  // Arc hyperbolic sine; returns the inverse of `sinh`.
+  vec3 asinh(vec3 x);
+  // Arc hyperbolic sine; returns the inverse of `sinh`.
+  vec4 asinh(vec4 x);
+
+  // Arc hyperbolic cosine; returns the non-negative inverse of `cosh`. Results are undefined if `x < 1`.
+  float acosh(float x);
+  // Arc hyperbolic cosine; returns the non-negative inverse of `cosh`. Results are undefined if `x < 1`.
+  vec2 acosh(vec2 x);
+  // Arc hyperbolic cosine; returns the non-negative inverse of `cosh`. Results are undefined if `x < 1`.
+  vec3 acosh(vec3 x);
+  // Arc hyperbolic cosine; returns the non-negative inverse of `cosh`. Results are undefined if `x < 1`.
+  vec4 acosh(vec4 x);
+
+  // Arc hyperbolic tangent; returns the inverse of `tanh`. Results are undefined if `∣x∣≥1`.
+  float atanh(float x);
+  // Arc hyperbolic tangent; returns the inverse of `tanh`. Results are undefined if `∣x∣≥1`.
+  vec2 atanh(vec2 x);
+  // Arc hyperbolic tangent; returns the inverse of `tanh`. Results are undefined if `∣x∣≥1`.
+  vec3 atanh(vec3 x);
+  // Arc hyperbolic tangent; returns the inverse of `tanh`. Results are undefined if `∣x∣≥1`.
+  vec4 atanh(vec4 x);
+
+  ////////////////////////////////////////////////////////////////////////////////
+  // Exponential Functions
+
+  // Returns `x` raised to the `y` power, i.e., `xʸ`. Results are undefined if `x < 0`. Results are undefined if `x = 0` and `y <= 0`.
+  float pow(float x, float y);
+  // Returns `x` raised to the `y` power, i.e., `xʸ`. Results are undefined if `x < 0`. Results are undefined if `x = 0` and `y <= 0`.
+  vec2 pow(vec2 x, vec2 y);
+  // Returns `x` raised to the `y` power, i.e., `xʸ`. Results are undefined if `x < 0`. Results are undefined if `x = 0` and `y <= 0`.
+  vec3 pow(vec3 x, vec3 y);
+  // Returns `x` raised to the `y` power, i.e., `xʸ`. Results are undefined if `x < 0`. Results are undefined if `x = 0` and `y <= 0`.
+  vec4 pow(vec4 x, vec4 y);
+
+  // Returns the natural exponentiation of `x`, i.e., `eˣ`
+  float exp(float x);
+  // Returns the natural exponentiation of `x`, i.e., `eˣ`
+  vec2 exp(vec2 x);
+  // Returns the natural exponentiation of `x`, i.e., `eˣ`
+  vec3 exp(vec3 x);
+  // Returns the natural exponentiation of `x`, i.e., `eˣ`
+  vec4 exp(vec4 x);
+
+  // Returns the natural logarithm of `x`, i.e., returns the value `y` which satisfies the equation `x = eʸ`. Results are undefined if `x <= 0`.
+  float log(float x);
+  // Returns the natural logarithm of `x`, i.e., returns the value `y` which satisfies the equation `x = eʸ`. Results are undefined if `x <= 0`.
+  vec2 log(vec2 x);
+  // Returns the natural logarithm of `x`, i.e., returns the value `y` which satisfies the equation `x = eʸ`. Results are undefined if `x <= 0`.
+  vec3 log(vec3 x);
+  // Returns the natural logarithm of `x`, i.e., returns the value `y` which satisfies the equation `x = eʸ`. Results are undefined if `x <= 0`.
+  vec4 log(vec4 x);
+
+  // Returns 2 raised to the `x` power, i.e., `2ˣ`.
+  float exp2(float x);
+  // Returns 2 raised to the `x` power, i.e., `2ˣ`.
+  vec2 exp2(vec2 x);
+  // Returns 2 raised to the `x` power, i.e., `2ˣ`.
+  vec3 exp2(vec3 x);
+  // Returns 2 raised to the `x` power, i.e., `2ˣ`.
+  vec4 exp2(vec4 x);
+
+  // Returns the base 2 logarithm of `x`, i.e., returns the value `y` which satisfies the equation `x = 2ʸ`. Results are undefined if `x <= 0`.
+  float log2(float x);
+  // Returns the base 2 logarithm of `x`, i.e., returns the value `y` which satisfies the equation `x = 2ʸ`. Results are undefined if `x <= 0`.
+  vec2 log2(vec2 x);
+  // Returns the base 2 logarithm of `x`, i.e., returns the value `y` which satisfies the equation `x = 2ʸ`. Results are undefined if `x <= 0`.
+  vec3 log2(vec3 x);
+  // Returns the base 2 logarithm of `x`, i.e., returns the value `y` which satisfies the equation `x = 2ʸ`. Results are undefined if `x <= 0`.
+  vec4 log2(vec4 x);
+
+  // Returns `√x`. Results are undefined if `x < 0`.
+  float sqrt(float x);
+  // Returns `√x`. Results are undefined if `x < 0`.
+  vec2 sqrt(vec2 x);
+  // Returns `√x`. Results are undefined if `x < 0`.
+  vec3 sqrt(vec3 x);
+  // Returns `√x`. Results are undefined if `x < 0`.
+  vec4 sqrt(vec4 x);
+
+  // Returns `1 / √x`. Results are undefined if `x <= 0`.
+  float inversesqrt(float x);
+  // Returns `1 / √x`. Results are undefined if `x <= 0`.
+  vec2 inversesqrt(vec2 x);
+  // Returns `1 / √x`. Results are undefined if `x <= 0`.
+  vec3 inversesqrt(vec3 x);
+  // Returns `1 / √x`. Results are undefined if `x <= 0`.
+  vec4 inversesqrt(vec4 x);
+
+  ////////////////////////////////////////////////////////////////////////////////
+  // Common Functions
+
+  // Returns `x` if `x >= 0`, otherwise it returns `-x`.
+  float abs(float x);
+  // Returns `x` if `x >= 0`, otherwise it returns `-x`.
+  vec2 abs(vec2 x);
+  // Returns `x` if `x >= 0`, otherwise it returns `-x`.
+  vec3 abs(vec3 x);
+  // Returns `x` if `x >= 0`, otherwise it returns `-x`.
+  vec4 abs(vec4 x);
+
+  // Returns `x` if `x >= 0`, otherwise it returns `-x`.
+  int abs(int x);
+  // Returns `x` if `x >= 0`, otherwise it returns `-x`.
+  ivec2 abs(ivec2 x);
+  // Returns `x` if `x >= 0`, otherwise it returns `-x`.
+  ivec3 abs(ivec3 x);
+  // Returns `x` if `x >= 0`, otherwise it returns `-x`.
+  ivec4 abs(ivec4 x);
+
+  // Returns `1.0` if `x > 0`, `0.0` if `x = 0`, or `-1.0` if `x < 0`.
+  float sign(float x);
+  // Returns `1.0` if `x > 0`, `0.0` if `x = 0`, or `-1.0` if `x < 0`.
+  vec2 sign(vec2 x);
+  // Returns `1.0` if `x > 0`, `0.0` if `x = 0`, or `-1.0` if `x < 0`.
+  vec3 sign(vec3 x);
+  // Returns `1.0` if `x > 0`, `0.0` if `x = 0`, or `-1.0` if `x < 0`.
+  vec4 sign(vec4 x);
+
+  // Returns `1` if `x > 0`, `0` if `x = 0`, or `-1` if `x < 0`.
+  int sign(int x);
+  // Returns `1` if `x > 0`, `0` if `x = 0`, or `-1` if `x < 0`.
+  ivec2 sign(ivec2 x);
+  // Returns `1` if `x > 0`, `0` if `x = 0`, or `-1` if `x < 0`.
+  ivec3 sign(ivec3 x);
+  // Returns `1` if `x > 0`, `0` if `x = 0`, or `-1` if `x < 0`.
+  ivec4 sign(ivec4 x);
+
+  // Returns a value equal to the nearest integer that is less than or equal to `x`
+  float floor(float x);
+  // Returns a value equal to the nearest integer that is less than or equal to `x`
+  vec2 floor(vec2 x);
+  // Returns a value equal to the nearest integer that is less than or equal to `x`
+  vec3 floor(vec3 x);
+  // Returns a value equal to the nearest integer that is less than or equal to `x`
+  vec4 floor(vec4 x);
+
+  // Returns a value equal to the nearest integer to `x` whose absolute value is not larger than the absolute value of `x`.
+  float trunc(float x);
+  // Returns a value equal to the nearest integer to `x` whose absolute value is not larger than the absolute value of `x`.
+  vec2 trunc(vec2 x);
+  // Returns a value equal to the nearest integer to `x` whose absolute value is not larger than the absolute value of `x`.
+  vec3 trunc(vec3 x);
+  // Returns a value equal to the nearest integer to `x` whose absolute value is not larger than the absolute value of `x`.
+  vec4 trunc(vec4 x);
+
+  // Returns a value equal to the nearest integer to `x`. The fraction `0.5` will round in a direction chosen by the implementation.
+  float round(float x);
+  // Returns a value equal to the nearest integer to `x`. The fraction `0.5` will round in a direction chosen by the implementation.
+  vec2 round(vec2 x);
+  // Returns a value equal to the nearest integer to `x`. The fraction `0.5` will round in a direction chosen by the implementation.
+  vec3 round(vec3 x);
+  // Returns a value equal to the nearest integer to `x`. The fraction `0.5` will round in a direction chosen by the implementation.
+  vec4 round(vec4 x);
+
+  // Returns a value equal to the nearest integer to `x`. A fractional part of `0.5` will round toward the nearest even integer.
+  float roundEven(float x);
+  // Returns a value equal to the nearest integer to `x`. A fractional part of `0.5` will round toward the nearest even integer.
+  vec2 roundEven(vec2 x);
+  // Returns a value equal to the nearest integer to `x`. A fractional part of `0.5` will round toward the nearest even integer.
+  vec3 roundEven(vec3 x);
+  // Returns a value equal to the nearest integer to `x`. A fractional part of `0.5` will round toward the nearest even integer.
+  vec4 roundEven(vec4 x);
+
+  // Returns a value equal to the nearest integer that is greater than or equal to `x`
+  float ceil(float x);
+  // Returns a value equal to the nearest integer that is greater than or equal to `x`
+  vec2 ceil(vec2 x);
+  // Returns a value equal to the nearest integer that is greater than or equal to `x`
+  vec3 ceil(vec3 x);
+  // Returns a value equal to the nearest integer that is greater than or equal to `x`
+  vec4 ceil(vec4 x);
+
+  // Returns `x - floor(x)`
+  float fract(float x);
+  // Returns `x - floor(x)`
+  vec2 fract(vec2 x);
+  // Returns `x - floor(x)`
+  vec3 fract(vec3 x);
+  // Returns `x - floor(x)`
+  vec4 fract(vec4 x);
+
+  // Modulus. Returns `x - y * floor(x/y)`
+  float mod(float x, float y);
+  // Modulus. Returns `x - y * floor(x/y)`
+  vec2 mod(vec2 x, float y);
+  // Modulus. Returns `x - y * floor(x/y)`
+  vec3 mod(vec3 x, float y);
+  // Modulus. Returns `x - y * floor(x/y)`
+  vec4 mod(vec4 x, float y);
+
+  // Modulus. Returns `x - y * floor(x/y)`
+  vec2 mod(vec2 x, vec2 y);
+  // Modulus. Returns `x - y * floor(x/y)`
+  vec3 mod(vec3 x, vec3 y);
+  // Modulus. Returns `x - y * floor(x/y)`
+  vec4 mod(vec4 x, vec4 y);
+
+  // Returns the fractional part of `x` and sets `i` to the integer part (as a whole number floating point value).
+  // Both the return value and the output parameter will have the same sign as `x`.
+  // If `x` has the value `+/- INF`, the return value should be `NaN` and must be either `NaN` or `0.0`.
+  float modf(float x, out float i);
+  // Returns the fractional part of `x` and sets `i` to the integer part (as a whole number floating point value).
+  // Both the return value and the output parameter will have the same sign as `x`.
+  // If `x` has the value `+/- INF`, the return value should be `NaN` and must be either `NaN` or `0.0`.
+  vec2 modf(vec2 x, out vec2 i);
+  // Returns the fractional part of `x` and sets `i` to the integer part (as a whole number floating point value).
+  // Both the return value and the output parameter will have the same sign as `x`.
+  // If `x` has the value `+/- INF`, the return value should be `NaN` and must be either `NaN` or `0.0`.
+  vec3 modf(vec3 x, out vec3 i);
+  // Returns the fractional part of `x` and sets `i` to the integer part (as a whole number floating point value).
+  // Both the return value and the output parameter will have the same sign as `x`.
+  // If `x` has the value `+/- INF`, the return value should be `NaN` and must be either `NaN` or `0.0`.
+  vec4 modf(vec4 x, out vec4 i);
+
+  // Returns `y` if `y < x`, otherwise it returns `x`.
+  float min(float x, float y);
+  // Returns `y` if `y < x`, otherwise it returns `x`.
+  vec2 min(vec2 x, float y);
+  // Returns `y` if `y < x`, otherwise it returns `x`.
+  vec2 min(vec2 x, vec2 y);
+  // Returns `y` if `y < x`, otherwise it returns `x`.
+  vec3 min(vec3 x, float y);
+  // Returns `y` if `y < x`, otherwise it returns `x`.
+  vec3 min(vec3 x, vec3 y);
+  // Returns `y` if `y < x`, otherwise it returns `x`.
+  vec4 min(vec4 x, float y);
+  // Returns `y` if `y < x`, otherwise it returns `x`.
+  vec4 min(vec4 x, vec4 y);
+
+  // Returns `y` if `y < x`, otherwise it returns `x`.
+  int min(int x, int y);
+  // Returns `y` if `y < x`, otherwise it returns `x`.
+  ivec2 min(ivec2 x, int y);
+  // Returns `y` if `y < x`, otherwise it returns `x`.
+  ivec2 min(ivec2 x, ivec2 y);
+  // Returns `y` if `y < x`, otherwise it returns `x`.
+  ivec3 min(ivec3 x, int y);
+  // Returns `y` if `y < x`, otherwise it returns `x`.
+  ivec3 min(ivec3 x, ivec3 y);
+  // Returns `y` if `y < x`, otherwise it returns `x`.
+  ivec4 min(ivec4 x, int y);
+  // Returns `y` if `y < x`, otherwise it returns `x`.
+  ivec4 min(ivec4 x, ivec4 y);
+
+  // Returns `y` if `y < x`, otherwise it returns `x`.
+  uint min(uint x, uint y);
+  // Returns `y` if `y < x`, otherwise it returns `x`.
+  uvec2 min(uvec2 x, uint y);
+  // Returns `y` if `y < x`, otherwise it returns `x`.
+  uvec2 min(uvec2 x, uvec2 y);
+  // Returns `y` if `y < x`, otherwise it returns `x`.
+  uvec3 min(uvec3 x, uint y);
+  // Returns `y` if `y < x`, otherwise it returns `x`.
+  uvec3 min(uvec3 x, uvec3 y);
+  // Returns `y` if `y < x`, otherwise it returns `x`.
+  uvec4 min(uvec4 x, uint y);
+  // Returns `y` if `y < x`, otherwise it returns `x`.
+  uvec4 min(uvec4 x, uvec4 y);
+
+  // Returns `y` if `x < y`, otherwise it returns `x`.
+  float max(float x, float y);
+  // Returns `y` if `x < y`, otherwise it returns `x`.
+  vec2 max(vec2 x, float y);
+  // Returns `y` if `x < y`, otherwise it returns `x`.
+  vec2 max(vec2 x, vec2 y);
+  // Returns `y` if `x < y`, otherwise it returns `x`.
+  vec3 max(vec3 x, float y);
+  // Returns `y` if `x < y`, otherwise it returns `x`.
+  vec3 max(vec3 x, vec3 y);
+  // Returns `y` if `x < y`, otherwise it returns `x`.
+  vec4 max(vec4 x, float y);
+  // Returns `y` if `x < y`, otherwise it returns `x`.
+  vec4 max(vec4 x, vec4 y);
+
+  // Returns `y` if `x < y`, otherwise it returns `x`.
+  int max(int x, int y);
+  // Returns `y` if `x < y`, otherwise it returns `x`.
+  ivec2 max(ivec2 x, int y);
+  // Returns `y` if `x < y`, otherwise it returns `x`.
+  ivec2 max(ivec2 x, ivec2 y);
+  // Returns `y` if `x < y`, otherwise it returns `x`.
+  ivec3 max(ivec3 x, int y);
+  // Returns `y` if `x < y`, otherwise it returns `x`.
+  ivec3 max(ivec3 x, ivec3 y);
+  // Returns `y` if `x < y`, otherwise it returns `x`.
+  ivec4 max(ivec4 x, int y);
+  // Returns `y` if `x < y`, otherwise it returns `x`.
+  ivec4 max(ivec4 x, ivec4 y);
+
+  // Returns `y` if `x < y`, otherwise it returns `x`.
+  uint max(uint x, uint y);
+  // Returns `y` if `x < y`, otherwise it returns `x`.
+  uvec2 max(uvec2 x, uint y);
+  // Returns `y` if `x < y`, otherwise it returns `x`.
+  uvec2 max(uvec2 x, uvec2 y);
+  // Returns `y` if `x < y`, otherwise it returns `x`.
+  uvec3 max(uvec3 x, uint y);
+  // Returns `y` if `x < y`, otherwise it returns `x`.
+  uvec3 max(uvec3 x, uvec3 y);
+  // Returns `y` if `x < y`, otherwise it returns `x`.
+  uvec4 max(uvec4 x, uint y);
+  // Returns `y` if `x < y`, otherwise it returns `x`.
+  uvec4 max(uvec4 x, uvec4 y);
+
+  // Returns `min(max(x, minVal), maxVal)`. Results are undefined if `minVal > maxVal`.
+  float clamp(float x, float minVal, float maxVal);
+  // Returns `min(max(x, minVal), maxVal)`. Results are undefined if `minVal > maxVal`.
+  vec2 clamp(vec2 x, float minVal, float maxVal);
+  // Returns `min(max(x, minVal), maxVal)`. Results are undefined if `minVal > maxVal`.
+  vec2 clamp(vec2 x, vec2 minVal, vec2 maxVal);
+  // Returns `min(max(x, minVal), maxVal)`. Results are undefined if `minVal > maxVal`.
+  vec3 clamp(vec3 x, float minVal, float maxVal);
+  // Returns `min(max(x, minVal), maxVal)`. Results are undefined if `minVal > maxVal`.
+  vec3 clamp(vec3 x, vec3 minVal, vec3 maxVal);
+  // Returns `min(max(x, minVal), maxVal)`. Results are undefined if `minVal > maxVal`.
+  vec4 clamp(vec4 x, float minVal, float maxVal);
+  // Returns `min(max(x, minVal), maxVal)`. Results are undefined if `minVal > maxVal`.
+  vec4 clamp(vec4 x, vec4 minVal, vec4 maxVal);
+
+  // Returns `min(max(x, minVal), maxVal)`. Results are undefined if `minVal > maxVal`.
+  int clamp(int x, int minVal, int maxVal);
+  // Returns `min(max(x, minVal), maxVal)`. Results are undefined if `minVal > maxVal`.
+  ivec2 clamp(ivec2 x, int minVal, int maxVal);
+  // Returns `min(max(x, minVal), maxVal)`. Results are undefined if `minVal > maxVal`.
+  ivec2 clamp(ivec2 x, ivec2 minVal, ivec2 maxVal);
+  // Returns `min(max(x, minVal), maxVal)`. Results are undefined if `minVal > maxVal`.
+  ivec3 clamp(ivec3 x, int minVal, int maxVal);
+  // Returns `min(max(x, minVal), maxVal)`. Results are undefined if `minVal > maxVal`.
+  ivec3 clamp(ivec3 x, ivec3 minVal, ivec3 maxVal);
+  // Returns `min(max(x, minVal), maxVal)`. Results are undefined if `minVal > maxVal`.
+  ivec4 clamp(ivec4 x, int minVal, int maxVal);
+  // Returns `min(max(x, minVal), maxVal)`. Results are undefined if `minVal > maxVal`.
+  ivec4 clamp(ivec4 x, ivec4 minVal, ivec4 maxVal);
+
+  // Returns `min(max(x, minVal), maxVal)`. Results are undefined if `minVal > maxVal`.
+  uint clamp(uint x, uint minVal, uint maxVal);
+  // Returns `min(max(x, minVal), maxVal)`. Results are undefined if `minVal > maxVal`.
+  uvec2 clamp(uvec2 x, uint minVal, uint maxVal);
+  // Returns `min(max(x, minVal), maxVal)`. Results are undefined if `minVal > maxVal`.
+  uvec2 clamp(uvec2 x, uvec2 minVal, uvec2 maxVal);
+  // Returns `min(max(x, minVal), maxVal)`. Results are undefined if `minVal > maxVal`.
+  uvec3 clamp(uvec3 x, uint minVal, uint maxVal);
+  // Returns `min(max(x, minVal), maxVal)`. Results are undefined if `minVal > maxVal`.
+  uvec3 clamp(uvec3 x, uvec3 minVal, uvec3 maxVal);
+  // Returns `min(max(x, minVal), maxVal)`. Results are undefined if `minVal > maxVal`.
+  uvec4 clamp(uvec4 x, uint minVal, uint maxVal);
+  // Returns `min(max(x, minVal), maxVal)`. Results are undefined if `minVal > maxVal`.
+  uvec4 clamp(uvec4 x, uvec4 minVal, uvec4 maxVal);
+
+  // Returns the linear blend of `x` and `y`, i.e. `x * (1-a) + y * a`
+  float mix(float x, float y, float a);
+  // Returns the linear blend of `x` and `y`, i.e. `x * (1-a) + y * a`
+  vec2 mix(vec2 x, vec2 y, float a);
+  // Returns the linear blend of `x` and `y`, i.e. `x * (1-a) + y * a`
+  vec2 mix(vec2 x, vec2 y, vec2 a);
+  // Returns the linear blend of `x` and `y`, i.e. `x * (1-a) + y * a`
+  vec3 mix(vec3 x, vec3 y, float a);
+  // Returns the linear blend of `x` and `y`, i.e. `x * (1-a) + y * a`
+  vec3 mix(vec3 x, vec3 y, vec3 a);
+  // Returns the linear blend of `x` and `y`, i.e. `x * (1-a) + y * a`
+  vec4 mix(vec4 x, vec4 y, float a);
+  // Returns the linear blend of `x` and `y`, i.e. `x * (1-a) + y * a`
+  vec4 mix(vec4 x, vec4 y, vec4 a);
+
+  // Selects which vector each returned component comes from. For a component of `a` that is
+  // false, the corresponding component of `x` is returned. For a component of `a` that is true,
+  // the corresponding component of `y` is returned.
+  float mix(float x, float y, bool a);
+  // Selects which vector each returned component comes from. For a component of `a` that is
+  // false, the corresponding component of `x` is returned. For a component of `a` that is true,
+  // the corresponding component of `y` is returned.
+  vec2 mix(vec2 x, vec2 y, bvec2 a);
+  // Selects which vector each returned component comes from. For a component of `a` that is
+  // false, the corresponding component of `x` is returned. For a component of `a` that is true,
+  // the corresponding component of `y` is returned.
+  vec3 mix(vec3 x, vec3 y, bvec3 a);
+  // Selects which vector each returned component comes from. For a component of `a` that is
+  // false, the corresponding component of `x` is returned. For a component of `a` that is true,
+  // the corresponding component of `y` is returned.
+  vec4 mix(vec4 x, vec4 y, bvec4 a);
+
+  // Returns `0.0` if `x < edge`, otherwise it returns `1.0`
+  float step(float edge, float x);
+  // Returns `0.0` if `x < edge`, otherwise it returns `1.0`
+  vec2 step(float edge, vec2 x);
+  // Returns `0.0` if `x < edge`, otherwise it returns `1.0`
+  vec2 step(vec2 edge, vec2 x);
+  // Returns `0.0` if `x < edge`, otherwise it returns `1.0`
+  vec3 step(float edge, vec3 x);
+  // Returns `0.0` if `x < edge`, otherwise it returns `1.0`
+  vec3 step(vec3 edge, vec3 x);
+  // Returns `0.0` if `x < edge`, otherwise it returns `1.0`
+  vec4 step(float edge, vec4 x);
+  // Returns `0.0` if `x < edge`, otherwise it returns `1.0`
+  vec4 step(vec4 edge, vec4 x);
+
+  // Returns `0.0` if `x <= edge0` and `1.0` if `x >= edge1` and performs smooth Hermite interpolation between 0 and 1 when `edge0 < x < edge1`.
+  // This is useful in cases where you would want a threshold function with a smooth transition. This is equivalent to:
+  //
+  // ```glslx
+  // float t = clamp((x - edge0) / (edge1 - edge0), 0.0, 1.0);
+  // return t * t * (3.0 - 2.0 * t);
+  // ```
+  //
+  // Results are undefined if `edge0 >= edge1`.
+  float smoothstep(float edge0, float edge1, float x);
+  // Returns `0.0` if `x <= edge0` and `1.0` if `x >= edge1` and performs smooth Hermite interpolation between 0 and 1 when `edge0 < x < edge1`.
+  // This is useful in cases where you would want a threshold function with a smooth transition. This is equivalent to:
+  //
+  // ```glslx
+  // vec2 t = clamp((x - edge0) / (edge1 - edge0), 0.0, 1.0);
+  // return t * t * (3.0 - 2.0 * t);
+  // ```
+  //
+  // Results are undefined if `edge0 >= edge1`.
+  vec2 smoothstep(float edge0, float edge1, vec2 x);
+  // Returns `0.0` if `x <= edge0` and `1.0` if `x >= edge1` and performs smooth Hermite interpolation between 0 and 1 when `edge0 < x < edge1`.
+  // This is useful in cases where you would want a threshold function with a smooth transition. This is equivalent to:
+  //
+  // ```glslx
+  // vec2 t = clamp((x - edge0) / (edge1 - edge0), 0.0, 1.0);
+  // return t * t * (3.0 - 2.0 * t);
+  // ```
+  //
+  // Results are undefined if `edge0 >= edge1`.
+  vec2 smoothstep(vec2 edge0, vec2 edge1, vec2 x);
+  // Returns `0.0` if `x <= edge0` and `1.0` if `x >= edge1` and performs smooth Hermite interpolation between 0 and 1 when `edge0 < x < edge1`.
+  // This is useful in cases where you would want a threshold function with a smooth transition. This is equivalent to:
+  //
+  // ```glslx
+  // vec3 t = clamp((x - edge0) / (edge1 - edge0), 0.0, 1.0);
+  // return t * t * (3.0 - 2.0 * t);
+  // ```
+  //
+  // Results are undefined if `edge0 >= edge1`.
+  vec3 smoothstep(float edge0, float edge1, vec3 x);
+  // Returns `0.0` if `x <= edge0` and `1.0` if `x >= edge1` and performs smooth Hermite interpolation between 0 and 1 when `edge0 < x < edge1`.
+  // This is useful in cases where you would want a threshold function with a smooth transition. This is equivalent to:
+  //
+  // ```glslx
+  // vec3 t = clamp((x - edge0) / (edge1 - edge0), 0.0, 1.0);
+  // return t * t * (3.0 - 2.0 * t);
+  // ```
+  //
+  // Results are undefined if `edge0 >= edge1`.
+  vec3 smoothstep(vec3 edge0, vec3 edge1, vec3 x);
+  // Returns `0.0` if `x <= edge0` and `1.0` if `x >= edge1` and performs smooth Hermite interpolation between 0 and 1 when `edge0 < x < edge1`.
+  // This is useful in cases where you would want a threshold function with a smooth transition. This is equivalent to:
+  //
+  // ```glslx
+  // vec4 t = clamp((x - edge0) / (edge1 - edge0), 0.0, 1.0);
+  // return t * t * (3.0 - 2.0 * t);
+  // ```
+  //
+  // Results are undefined if `edge0 >= edge1`.
+  vec4 smoothstep(float edge0, float edge1, vec4 x);
+  // Returns `0.0` if `x <= edge0` and `1.0` if `x >= edge1` and performs smooth Hermite interpolation between 0 and 1 when `edge0 < x < edge1`.
+  // This is useful in cases where you would want a threshold function with a smooth transition. This is equivalent to:
+  //
+  // ```glslx
+  // vec4 t = clamp((x - edge0) / (edge1 - edge0), 0.0, 1.0);
+  // return t * t * (3.0 - 2.0 * t);
+  // ```
+  //
+  // Results are undefined if `edge0 >= edge1`.
+  vec4 smoothstep(vec4 edge0, vec4 edge1, vec4 x);
+
+  // Returns `true` if `x` holds a NaN. Returns `false` otherwise.
+  bool isnan(float x);
+  // Returns `true` if `x` holds a NaN. Returns `false` otherwise.
+  bvec2 isnan(vec2 x);
+  // Returns `true` if `x` holds a NaN. Returns `false` otherwise.
+  bvec3 isnan(vec3 x);
+  // Returns `true` if `x` holds a NaN. Returns `false` otherwise.
+  bvec4 isnan(vec4 x);
+
+  // Returns `true` if `x` holds a positive infinity or negative infinity. Returns `false` otherwise.
+  bool isinf(float x);
+  // Returns `true` if `x` holds a positive infinity or negative infinity. Returns `false` otherwise.
+  bvec2 isinf(vec2 x);
+  // Returns `true` if `x` holds a positive infinity or negative infinity. Returns `false` otherwise.
+  bvec3 isinf(vec3 x);
+  // Returns `true` if `x` holds a positive infinity or negative infinity. Returns `false` otherwise.
+  bvec4 isinf(vec4 x);
+
+  // Returns a signed or unsigned `highp` integer value representing the encoding of a floating-point value.
+  // For `highp` floating point, the value's bit level representation is preserved.
+  // For `mediump` and `lowp`, the value is first converted to `highp` floating point and the encoding of that value is returned.
+  int floatBitsToInt(float value);
+  // Returns a signed or unsigned `highp` integer value representing the encoding of a floating-point value.
+  // For `highp` floating point, the value's bit level representation is preserved.
+  // For `mediump` and `lowp`, the value is first converted to `highp` floating point and the encoding of that value is returned.
+  ivec2 floatBitsToInt(vec2 value);
+  // Returns a signed or unsigned `highp` integer value representing the encoding of a floating-point value.
+  // For `highp` floating point, the value's bit level representation is preserved.
+  // For `mediump` and `lowp`, the value is first converted to `highp` floating point and the encoding of that value is returned.
+  ivec3 floatBitsToInt(vec3 value);
+  // Returns a signed or unsigned `highp` integer value representing the encoding of a floating-point value.
+  // For `highp` floating point, the value's bit level representation is preserved.
+  // For `mediump` and `lowp`, the value is first converted to `highp` floating point and the encoding of that value is returned.
+  ivec4 floatBitsToInt(vec4 value);
+
+  // Returns a signed or unsigned `highp` integer value representing the encoding of a floating-point value.
+  // For `highp` floating point, the value's bit level representation is preserved.
+  // For `mediump` and `lowp`, the value is first converted to `highp` floating point and the encoding of that value is returned.
+  uint floatBitsToUint(float value);
+  // Returns a signed or unsigned `highp` integer value representing the encoding of a floating-point value.
+  // For `highp` floating point, the value's bit level representation is preserved.
+  // For `mediump` and `lowp`, the value is first converted to `highp` floating point and the encoding of that value is returned.
+  uvec2 floatBitsToUint(vec2 value);
+  // Returns a signed or unsigned `highp` integer value representing the encoding of a floating-point value.
+  // For `highp` floating point, the value's bit level representation is preserved.
+  // For `mediump` and `lowp`, the value is first converted to `highp` floating point and the encoding of that value is returned.
+  uvec3 floatBitsToUint(vec3 value);
+  // Returns a signed or unsigned `highp` integer value representing the encoding of a floating-point value.
+  // For `highp` floating point, the value's bit level representation is preserved.
+  // For `mediump` and `lowp`, the value is first converted to `highp` floating point and the encoding of that value is returned.
+  uvec4 floatBitsToUint(vec4 value);
+
+  // Returns a `highp` floating-point value corresponding to a signed or unsigned integer encoding of a floating-point
+  // value. If an `inf` or `NaN` is passed in, it will not signal, and the resulting floating point value is unspecified.
+  // Otherwise, the bit-level representation is preserved. For `lowp` and `mediump`, the value is first converted to the
+  // corresponding signed or unsigned `highp` integer and then reinterpreted as a `highp` floating point value as before.
+  float intBitsToFloat(int value);
+  // Returns a `highp` floating-point value corresponding to a signed or unsigned integer encoding of a floating-point
+  // value. If an `inf` or `NaN` is passed in, it will not signal, and the resulting floating point value is unspecified.
+  // Otherwise, the bit-level representation is preserved. For `lowp` and `mediump`, the value is first converted to the
+  // corresponding signed or unsigned `highp` integer and then reinterpreted as a `highp` floating point value as before.
+  vec2 intBitsToFloat(ivec2 value);
+  // Returns a `highp` floating-point value corresponding to a signed or unsigned integer encoding of a floating-point
+  // value. If an `inf` or `NaN` is passed in, it will not signal, and the resulting floating point value is unspecified.
+  // Otherwise, the bit-level representation is preserved. For `lowp` and `mediump`, the value is first converted to the
+  // corresponding signed or unsigned `highp` integer and then reinterpreted as a `highp` floating point value as before.
+  vec3 intBitsToFloat(ivec3 value);
+  // Returns a `highp` floating-point value corresponding to a signed or unsigned integer encoding of a floating-point
+  // value. If an `inf` or `NaN` is passed in, it will not signal, and the resulting floating point value is unspecified.
+  // Otherwise, the bit-level representation is preserved. For `lowp` and `mediump`, the value is first converted to the
+  // corresponding signed or unsigned `highp` integer and then reinterpreted as a `highp` floating point value as before.
+  vec4 intBitsToFloat(ivec4 value);
+
+  // Returns a `highp` floating-point value corresponding to a signed or unsigned integer encoding of a floating-point
+  // value. If an `inf` or `NaN` is passed in, it will not signal, and the resulting floating point value is unspecified.
+  // Otherwise, the bit-level representation is preserved. For `lowp` and `mediump`, the value is first converted to the
+  // corresponding signed or unsigned `highp` integer and then reinterpreted as a `highp` floating point value as before.
+  float intBitsToFloat(uint value);
+  // Returns a `highp` floating-point value corresponding to a signed or unsigned integer encoding of a floating-point
+  // value. If an `inf` or `NaN` is passed in, it will not signal, and the resulting floating point value is unspecified.
+  // Otherwise, the bit-level representation is preserved. For `lowp` and `mediump`, the value is first converted to the
+  // corresponding signed or unsigned `highp` integer and then reinterpreted as a `highp` floating point value as before.
+  vec2 intBitsToFloat(uvec2 value);
+  // Returns a `highp` floating-point value corresponding to a signed or unsigned integer encoding of a floating-point
+  // value. If an `inf` or `NaN` is passed in, it will not signal, and the resulting floating point value is unspecified.
+  // Otherwise, the bit-level representation is preserved. For `lowp` and `mediump`, the value is first converted to the
+  // corresponding signed or unsigned `highp` integer and then reinterpreted as a `highp` floating point value as before.
+  vec3 intBitsToFloat(uvec3 value);
+  // Returns a `highp` floating-point value corresponding to a signed or unsigned integer encoding of a floating-point
+  // value. If an `inf` or `NaN` is passed in, it will not signal, and the resulting floating point value is unspecified.
+  // Otherwise, the bit-level representation is preserved. For `lowp` and `mediump`, the value is first converted to the
+  // corresponding signed or unsigned `highp` integer and then reinterpreted as a `highp` floating point value as before.
+  vec4 intBitsToFloat(uvec4 value);
+
+  ////////////////////////////////////////////////////////////////////////////////
+  // Floating-Point Pack and Unpack Functions
+
+  // First, converts each component of the normalized floating-point value `v` into 16-bit integer values. Then,
+  // the results are packed into the returned 32-bit unsigned integer. The conversion for component `c` of `v` to
+  // fixed point is done as follows:
+  //
+  // ```glslx
+  // packSnorm2x16: round(clamp(c, -1, +1) * 32767.0)
+  // ```
+  //
+  // The first component of the vector will be written to the least significant bits of the output; the last component
+  // will be written to the most significant bits.
+  highp uint packSnorm2x16(vec2 v);
+  // First, unpacks a single 32-bit unsigned integer `p` into a pair of 16-bit signed integers. Then, each component is
+  // converted to a normalized floating-point value to generate the returned two-component vector. The conversion for
+  // unpacked fixed-point value `f` to floating point is done as follows:
+  //
+  // ```glslx
+  // unpackSnorm2x16: clamp(f / 32767.0, -1, +1)
+  //
+  // The first component of the returned vector will be extracted from the least significant bits of the input; the
+  // last component will be extracted from the most significant bits.
+  highp vec2 unpackSnorm2x16(highp uint p);
+
+  // First, converts each component of the normalized floating-point value `v` into 16-bit integer values. Then,
+  // the results are packed into the returned 32-bit unsigned integer. The conversion for component `c` of `v` to
+  // fixed point is done as follows:
+  //
+  // ```glslx
+  // packUnorm2x16: round(clamp(c, 0, +1) * 65535.0)
+  // ```
+  //
+  // The first component of the vector will be written to the least significant bits of the output; the last component
+  // will be written to the most significant bits.
+  highp uint packUnorm2x16(vec2 v);
+  // First, unpacks a single 32-bit unsigned integer `p` into a pair of 16-bit unsigned integers. Then, each component
+  // is converted to a normalized floating-point value to generate the returned two-component vector. The conversion for
+  // unpacked fixed-point value `f` to floating point is done as follows:
+  //
+  // ```glslx
+  // unpackUnorm2x16: f / 65535.0
+  // ```
+  //
+  // The first component of the returned vector will be extracted from the least significant bits of the input; the
+  // last component will be extracted from the most significant bits.
+  highp vec2 unpackUnorm2x16(highp uint p);
+
+  // Returns an unsigned integer obtained by converting the components of a two-component floating-point vector to
+  // the 16-bit floating-point representation found in the OpenGL ES Specification, and then packing these two
+  // 16-bit integers into a 32-bit unsigned integer.
+  //
+  // The first vector component specifies the 16 least-significant bits of the result; the second component
+  // specifies the 16 most-significant bits.
+  highp uint packHalf2x16(mediump vec2 v);
+  // Returns a two-component floating-point vector with components obtained by unpacking a 32-bit unsigned
+  // integer into a pair of 16-bit values, interpreting those values as 16-bit floating-point numbers according to the
+  // OpenGL ES Specification, and converting them to 32-bit floating-point values.
+  //
+  // The first component of the vector is obtained from the 16 least-significant bits of `v`; the second component is
+  // obtained from the 16 most-significant bits of `v`.
+  mediump vec2 unpackHalf2x16(highp uint v);
+
+  ////////////////////////////////////////////////////////////////////////////////
+  // Geometric Functions
+
+  // Returns the length of vector `x`, i.e. `√x²`
+  float length(float x);
+  // Returns the length of vector `x`, i.e. `√x[0]² + x[1]²`
+  float length(vec2 x);
+  // Returns the length of vector `x`, i.e. `√x[0]² + x[1]² + x[2]²`
+  float length(vec3 x);
+  // Returns the length of vector `x`, i.e. `√x[0]² + x[1]² + x[2]² + x[3]²`
+  float length(vec4 x);
+
+  // Returns the distance between `p0` and `p1`, i.e. `length(p0 - p1)`
+  float distance(float p0, float p1);
+  // Returns the distance between `p0` and `p1`, i.e. `length(p0 - p1)`
+  float distance(vec2 p0, vec2 p1);
+  // Returns the distance between `p0` and `p1`, i.e. `length(p0 - p1)`
+  float distance(vec3 p0, vec3 p1);
+  // Returns the distance between `p0` and `p1`, i.e. `length(p0 - p1)`
+  float distance(vec4 p0, vec4 p1);
+
+  // Returns the dot product of `x` and `y`, i.e. `x*y`
+  float dot(float x, float y);
+  // Returns the dot product of `x` and `y`, i.e. `x[0]*y[0] + x[1]*y[1]`
+  float dot(vec2 x, vec2 y);
+  // Returns the dot product of `x` and `y`, i.e. `x[0]*y[0] + x[1]*y[1] + x[2]*y[2]`
+  float dot(vec3 x, vec3 y);
+  // Returns the dot product of `x` and `y`, i.e. `x[0]*y[0] + x[1]*y[1] + x[2]*y[2] + x[3]*y[3]`
+  float dot(vec4 x, vec4 y);
+
+  // Returns the cross product of `x` and `y`, i.e.
+  //
+  // ```glslx
+  // vec3(
+  //   x[1]*y[2] - y[1]*x[2],
+  //   x[2]*y[0] - y[2]*x[0],
+  //   x[0]*y[1] - y[0]*x[1])
+  // ```
+  vec3 cross(vec3 x, vec3 y);
+
+  // Returns a vector in the same direction as `x` but with a length of 1 i.e. `x / length(x)`
+  float normalize(float x);
+  // Returns a vector in the same direction as `x` but with a length of 1 i.e. `x / length(x)`
+  vec2 normalize(vec2 x);
+  // Returns a vector in the same direction as `x` but with a length of 1 i.e. `x / length(x)`
+  vec3 normalize(vec3 x);
+  // Returns a vector in the same direction as `x` but with a length of 1 i.e. `x / length(x)`
+  vec4 normalize(vec4 x);
+
+  // If `dot(Nref, I) < 0` return `N`, otherwise return `-N`
+  float faceforward(float N, float I, float Nref);
+  // If `dot(Nref, I) < 0` return `N`, otherwise return `-N`
+  vec2 faceforward(vec2 N, vec2 I, vec2 Nref);
+  // If `dot(Nref, I) < 0` return `N`, otherwise return `-N`
+  vec3 faceforward(vec3 N, vec3 I, vec3 Nref);
+  // If `dot(Nref, I) < 0` return `N`, otherwise return `-N`
+  vec4 faceforward(vec4 N, vec4 I, vec4 Nref);
+
+  // For the incident vector `I` and surface orientation `N`, returns the reflection direction: `I - 2 * dot(N, I) * N`.
+  // `N` must already be normalized in order to achieve the desired result.
+  float reflect(float I, float N);
+  // For the incident vector `I` and surface orientation `N`, returns the reflection direction: `I - 2 * dot(N, I) * N`.
+  // `N` must already be normalized in order to achieve the desired result.
+  vec2 reflect(vec2 I, vec2 N);
+  // For the incident vector `I` and surface orientation `N`, returns the reflection direction: `I - 2 * dot(N, I) * N`.
+  // `N` must already be normalized in order to achieve the desired result.
+  vec3 reflect(vec3 I, vec3 N);
+  // For the incident vector `I` and surface orientation `N`, returns the reflection direction: `I - 2 * dot(N, I) * N`.
+  // `N` must already be normalized in order to achieve the desired result.
+  vec4 reflect(vec4 I, vec4 N);
+
+  // For the incident vector `I` and surface normal `N`, and the ratio of indices of refraction `eta`, return the refraction vector.
+  // The result is computed by:
+  //
+  // ```glslx
+  // float k = 1.0 - eta * eta * (1.0 - dot(N, I) * dot(N, I));
+  // if (k < 0.0) return float(0.0);
+  // else return eta * I - (eta * dot(N, I) + sqrt(k)) * N;
+  // ```
+  //
+  // The input parameters for the incident vector `I` and the surface normal `N`.
+  float refract(float I, float N, float eta);
+  // For the incident vector `I` and surface normal `N`, and the ratio of indices of refraction `eta`, return the refraction vector.
+  // The result is computed by:
+  //
+  // ```glslx
+  // float k = 1.0 - eta * eta * (1.0 - dot(N, I) * dot(N, I));
+  // if (k < 0.0) return vec2(0.0);
+  // else return eta * I - (eta * dot(N, I) + sqrt(k)) * N;
+  // ```
+  //
+  // The input parameters for the incident vector `I` and the surface normal `N`.
+  vec2 refract(vec2 I, vec2 N, float eta);
+  // For the incident vector `I` and surface normal `N`, and the ratio of indices of refraction `eta`, return the refraction vector.
+  // The result is computed by:
+  //
+  // ```glslx
+  // float k = 1.0 - eta * eta * (1.0 - dot(N, I) * dot(N, I));
+  // if (k < 0.0) return vec3(0.0);
+  // else return eta * I - (eta * dot(N, I) + sqrt(k)) * N;
+  // ```
+  //
+  // The input parameters for the incident vector `I` and the surface normal `N`.
+  vec3 refract(vec3 I, vec3 N, float eta);
+  // For the incident vector `I` and surface normal `N`, and the ratio of indices of refraction `eta`, return the refraction vector.
+  // The result is computed by:
+  //
+  // ```glslx
+  // float k = 1.0 - eta * eta * (1.0 - dot(N, I) * dot(N, I));
+  // if (k < 0.0) return vec4(0.0);
+  // else return eta * I - (eta * dot(N, I) + sqrt(k)) * N;
+  // ```
+  //
+  // The input parameters for the incident vector `I` and the surface normal `N`.
+  vec4 refract(vec4 I, vec4 N, float eta);
+
+  ////////////////////////////////////////////////////////////////////////////////
+  // Matrix Functions
+
+  // Multiply matrix `x` by matrix `y` component-wise, i.e., `result[i][j]` is the scalar product of `x[i][j]` and `y[i][j]`.
+  // Note: to get linear algebraic matrix multiplication, use the multiply operator (`*`).
+  mat2 matrixCompMult(mat2 x, mat2 y);
+  // Multiply matrix `x` by matrix `y` component-wise, i.e., `result[i][j]` is the scalar product of `x[i][j]` and `y[i][j]`.
+  // Note: to get linear algebraic matrix multiplication, use the multiply operator (`*`).
+  mat3 matrixCompMult(mat3 x, mat3 y);
+  // Multiply matrix `x` by matrix `y` component-wise, i.e., `result[i][j]` is the scalar product of `x[i][j]` and `y[i][j]`.
+  // Note: to get linear algebraic matrix multiplication, use the multiply operator (`*`).
+  mat4 matrixCompMult(mat4 x, mat4 y);
+
+  // Treats the first parameter `c` as a column vector (matrix with one column) and the second parameter `r` as a row
+  // vector (matrix with one row) and does a linear algebraic matrix multiply `c * r`, yielding a matrix whose number of
+  // rows is the number of components in `c` and whose number of columns is the number of components in `r`.
+  mat2 outerProduct(vec2 c, vec2 r);
+  // Treats the first parameter `c` as a column vector (matrix with one column) and the second parameter `r` as a row
+  // vector (matrix with one row) and does a linear algebraic matrix multiply `c * r`, yielding a matrix whose number of
+  // rows is the number of components in `c` and whose number of columns is the number of components in `r`.
+  mat3 outerProduct(vec3 c, vec3 r);
+  // Treats the first parameter `c` as a column vector (matrix with one column) and the second parameter `r` as a row
+  // vector (matrix with one row) and does a linear algebraic matrix multiply `c * r`, yielding a matrix whose number of
+  // rows is the number of components in `c` and whose number of columns is the number of components in `r`.
+  mat4 outerProduct(vec4 c, vec4 r);
+  // Treats the first parameter `c` as a column vector (matrix with one column) and the second parameter `r` as a row
+  // vector (matrix with one row) and does a linear algebraic matrix multiply `c * r`, yielding a matrix whose number of
+  // rows is the number of components in `c` and whose number of columns is the number of components in `r`.
+  mat2x3 outerProduct(vec3 c, vec2 r);
+  // Treats the first parameter `c` as a column vector (matrix with one column) and the second parameter `r` as a row
+  // vector (matrix with one row) and does a linear algebraic matrix multiply `c * r`, yielding a matrix whose number of
+  // rows is the number of components in `c` and whose number of columns is the number of components in `r`.
+  mat3x2 outerProduct(vec2 c, vec3 r);
+  // Treats the first parameter `c` as a column vector (matrix with one column) and the second parameter `r` as a row
+  // vector (matrix with one row) and does a linear algebraic matrix multiply `c * r`, yielding a matrix whose number of
+  // rows is the number of components in `c` and whose number of columns is the number of components in `r`.
+  mat2x4 outerProduct(vec4 c, vec2 r);
+  // Treats the first parameter `c` as a column vector (matrix with one column) and the second parameter `r` as a row
+  // vector (matrix with one row) and does a linear algebraic matrix multiply `c * r`, yielding a matrix whose number of
+  // rows is the number of components in `c` and whose number of columns is the number of components in `r`.
+  mat4x2 outerProduct(vec2 c, vec4 r);
+  // Treats the first parameter `c` as a column vector (matrix with one column) and the second parameter `r` as a row
+  // vector (matrix with one row) and does a linear algebraic matrix multiply `c * r`, yielding a matrix whose number of
+  // rows is the number of components in `c` and whose number of columns is the number of components in `r`.
+  mat3x4 outerProduct(vec4 c, vec3 r);
+  // Treats the first parameter `c` as a column vector (matrix with one column) and the second parameter `r` as a row
+  // vector (matrix with one row) and does a linear algebraic matrix multiply `c * r`, yielding a matrix whose number of
+  // rows is the number of components in `c` and whose number of columns is the number of components in `r`.
+  mat4x3 outerProduct(vec3 c, vec4 r);
+
+  // Returns a matrix that is the transpose of `m`. The input matrix `m` is not modified.
+  mat2 transpose(mat2 m);
+  // Returns a matrix that is the transpose of `m`. The input matrix `m` is not modified.
+  mat3 transpose(mat3 m);
+  // Returns a matrix that is the transpose of `m`. The input matrix `m` is not modified.
+  mat4 transpose(mat4 m);
+  // Returns a matrix that is the transpose of `m`. The input matrix `m` is not modified.
+  mat2x3 transpose(mat3x2 m);
+  // Returns a matrix that is the transpose of `m`. The input matrix `m` is not modified.
+  mat3x2 transpose(mat2x3 m);
+  // Returns a matrix that is the transpose of `m`. The input matrix `m` is not modified.
+  mat2x4 transpose(mat4x2 m);
+  // Returns a matrix that is the transpose of `m`. The input matrix `m` is not modified.
+  mat4x2 transpose(mat2x4 m);
+  // Returns a matrix that is the transpose of `m`. The input matrix `m` is not modified.
+  mat3x4 transpose(mat4x3 m);
+  // Returns a matrix that is the transpose of `m`. The input matrix `m` is not modified.
+  mat4x3 transpose(mat3x4 m);
+
+  // Returns the determinant of `m`.
+  float determinant(mat2 m);
+  // Returns the determinant of `m`.
+  float determinant(mat3 m);
+  // Returns the determinant of `m`.
+  float determinant(mat4 m);
+
+  // Returns a matrix that is the inverse of `m`. The input matrix `m` is not modified. The values in
+  // the returned matrix are undefined if `m` is singular or poorly-conditioned (nearly singular).
+  mat2 inverse(mat2 m);
+  // Returns a matrix that is the inverse of `m`. The input matrix `m` is not modified. The values in
+  // the returned matrix are undefined if `m` is singular or poorly-conditioned (nearly singular).
+  mat3 inverse(mat3 m);
+  // Returns a matrix that is the inverse of `m`. The input matrix `m` is not modified. The values in
+  // the returned matrix are undefined if `m` is singular or poorly-conditioned (nearly singular).
+  mat4 inverse(mat4 m);
+
+  ////////////////////////////////////////////////////////////////////////////////
+  // Vector Relational Functions
+
+  // Returns the component-wise compare of `x < y`.
+  bvec2 lessThan(vec2 x, vec2 y);
+  // Returns the component-wise compare of `x < y`.
+  bvec2 lessThan(ivec2 x, ivec2 y);
+  // Returns the component-wise compare of `x < y`.
+  bvec2 lessThan(uvec2 x, uvec2 y);
+  // Returns the component-wise compare of `x < y`.
+  bvec3 lessThan(vec3 x, vec3 y);
+  // Returns the component-wise compare of `x < y`.
+  bvec3 lessThan(ivec3 x, ivec3 y);
+  // Returns the component-wise compare of `x < y`.
+  bvec3 lessThan(uvec3 x, uvec3 y);
+  // Returns the component-wise compare of `x < y`.
+  bvec4 lessThan(vec4 x, vec4 y);
+  // Returns the component-wise compare of `x < y`.
+  bvec4 lessThan(ivec4 x, ivec4 y);
+  // Returns the component-wise compare of `x < y`.
+  bvec4 lessThan(uvec4 x, uvec4 y);
+
+  // Returns the component-wise compare of `x <= y`.
+  bvec2 lessThanEqual(vec2 x, vec2 y);
+  // Returns the component-wise compare of `x <= y`.
+  bvec2 lessThanEqual(ivec2 x, ivec2 y);
+  // Returns the component-wise compare of `x <= y`.
+  bvec2 lessThanEqual(uvec2 x, uvec2 y);
+  // Returns the component-wise compare of `x <= y`.
+  bvec3 lessThanEqual(vec3 x, vec3 y);
+  // Returns the component-wise compare of `x <= y`.
+  bvec3 lessThanEqual(ivec3 x, ivec3 y);
+  // Returns the component-wise compare of `x <= y`.
+  bvec3 lessThanEqual(uvec3 x, uvec3 y);
+  // Returns the component-wise compare of `x <= y`.
+  bvec4 lessThanEqual(vec4 x, vec4 y);
+  // Returns the component-wise compare of `x <= y`.
+  bvec4 lessThanEqual(ivec4 x, ivec4 y);
+  // Returns the component-wise compare of `x <= y`.
+  bvec4 lessThanEqual(uvec4 x, uvec4 y);
+
+  // Returns the component-wise compare of `x > y`.
+  bvec2 greaterThan(vec2 x, vec2 y);
+  // Returns the component-wise compare of `x > y`.
+  bvec2 greaterThan(ivec2 x, ivec2 y);
+  // Returns the component-wise compare of `x > y`.
+  bvec2 greaterThan(uvec2 x, uvec2 y);
+  // Returns the component-wise compare of `x > y`.
+  bvec3 greaterThan(vec3 x, vec3 y);
+  // Returns the component-wise compare of `x > y`.
+  bvec3 greaterThan(ivec3 x, ivec3 y);
+  // Returns the component-wise compare of `x > y`.
+  bvec3 greaterThan(uvec3 x, uvec3 y);
+  // Returns the component-wise compare of `x > y`.
+  bvec4 greaterThan(vec4 x, vec4 y);
+  // Returns the component-wise compare of `x > y`.
+  bvec4 greaterThan(ivec4 x, ivec4 y);
+  // Returns the component-wise compare of `x > y`.
+  bvec4 greaterThan(uvec4 x, uvec4 y);
+
+  // Returns the component-wise compare of `x >= y`.
+  bvec2 greaterThanEqual(vec2 x, vec2 y);
+  // Returns the component-wise compare of `x >= y`.
+  bvec2 greaterThanEqual(ivec2 x, ivec2 y);
+  // Returns the component-wise compare of `x >= y`.
+  bvec2 greaterThanEqual(uvec2 x, uvec2 y);
+  // Returns the component-wise compare of `x >= y`.
+  bvec3 greaterThanEqual(vec3 x, vec3 y);
+  // Returns the component-wise compare of `x >= y`.
+  bvec3 greaterThanEqual(ivec3 x, ivec3 y);
+  // Returns the component-wise compare of `x >= y`.
+  bvec3 greaterThanEqual(uvec3 x, uvec3 y);
+  // Returns the component-wise compare of `x >= y`.
+  bvec4 greaterThanEqual(vec4 x, vec4 y);
+  // Returns the component-wise compare of `x >= y`.
+  bvec4 greaterThanEqual(ivec4 x, ivec4 y);
+  // Returns the component-wise compare of `x >= y`.
+  bvec4 greaterThanEqual(uvec4 x, uvec4 y);
+
+  // Returns the component-wise compare of `x == y`.
+  bvec2 equal(vec2 x, vec2 y);
+  // Returns the component-wise compare of `x == y`.
+  bvec2 equal(ivec2 x, ivec2 y);
+  // Returns the component-wise compare of `x == y`.
+  bvec2 equal(uvec2 x, uvec2 y);
+  // Returns the component-wise compare of `x == y`.
+  bvec2 equal(bvec2 x, bvec2 y);
+  // Returns the component-wise compare of `x == y`.
+  bvec3 equal(vec3 x, vec3 y);
+  // Returns the component-wise compare of `x == y`.
+  bvec3 equal(ivec3 x, ivec3 y);
+  // Returns the component-wise compare of `x == y`.
+  bvec3 equal(uvec3 x, uvec3 y);
+  // Returns the component-wise compare of `x == y`.
+  bvec3 equal(bvec3 x, bvec3 y);
+  // Returns the component-wise compare of `x == y`.
+  bvec4 equal(vec4 x, vec4 y);
+  // Returns the component-wise compare of `x == y`.
+  bvec4 equal(ivec4 x, ivec4 y);
+  // Returns the component-wise compare of `x == y`.
+  bvec4 equal(uvec4 x, uvec4 y);
+  // Returns the component-wise compare of `x == y`.
+  bvec4 equal(bvec4 x, bvec4 y);
+
+  // Returns the component-wise compare of `x != y`.
+  bvec2 notEqual(vec2 x, vec2 y);
+  // Returns the component-wise compare of `x != y`.
+  bvec2 notEqual(ivec2 x, ivec2 y);
+  // Returns the component-wise compare of `x != y`.
+  bvec2 notEqual(uvec2 x, uvec2 y);
+  // Returns the component-wise compare of `x != y`.
+  bvec2 notEqual(bvec2 x, bvec2 y);
+  // Returns the component-wise compare of `x != y`.
+  bvec3 notEqual(vec3 x, vec3 y);
+  // Returns the component-wise compare of `x != y`.
+  bvec3 notEqual(ivec3 x, ivec3 y);
+  // Returns the component-wise compare of `x != y`.
+  bvec3 notEqual(uvec3 x, uvec3 y);
+  // Returns the component-wise compare of `x != y`.
+  bvec3 notEqual(bvec3 x, bvec3 y);
+  // Returns the component-wise compare of `x != y`.
+  bvec4 notEqual(vec4 x, vec4 y);
+  // Returns the component-wise compare of `x != y`.
+  bvec4 notEqual(ivec4 x, ivec4 y);
+  // Returns the component-wise compare of `x != y`.
+  bvec4 notEqual(uvec4 x, uvec4 y);
+  // Returns the component-wise compare of `x != y`.
+  bvec4 notEqual(bvec4 x, bvec4 y);
+
+  // Returns true if any component of `x` is `true`.
+  bool any(bvec2 x);
+  // Returns true if any component of `x` is `true`.
+  bool any(bvec3 x);
+  // Returns true if any component of `x` is `true`.
+  bool any(bvec4 x);
+
+  // Returns true only if all components of `x` are `true`.
+  bool all(bvec2 x);
+  // Returns true only if all components of `x` are `true`.
+  bool all(bvec3 x);
+  // Returns true only if all components of `x` are `true`.
+  bool all(bvec4 x);
+
+  // Returns the component-wise logical complement of `x`.
+  bvec2 not(bvec2 x);
+  // Returns the component-wise logical complement of `x`.
+  bvec3 not(bvec3 x);
+  // Returns the component-wise logical complement of `x`.
+  bvec4 not(bvec4 x);
+
+  ////////////////////////////////////////////////////////////////////////////////
+  // Texture Lookup Functions
+
+  // Returns the dimensions of level `lod` for the texture bound to `sampler`.
+  highp ivec2 textureSize(sampler2D sampler, int lod);
+  // Returns the dimensions of level `lod` for the texture bound to `sampler`.
+  highp ivec2 textureSize(isampler2D sampler, int lod);
+  // Returns the dimensions of level `lod` for the texture bound to `sampler`.
+  highp ivec2 textureSize(usampler2D sampler, int lod);
+  // Returns the dimensions of level `lod` for the texture bound to `sampler`.
+  highp ivec3 textureSize(sampler3D sampler, int lod);
+  // Returns the dimensions of level `lod` for the texture bound to `sampler`.
+  highp ivec3 textureSize(isampler3D sampler, int lod);
+  // Returns the dimensions of level `lod` for the texture bound to `sampler`.
+  highp ivec3 textureSize(usampler3D sampler, int lod);
+  // Returns the dimensions of level `lod` for the texture bound to `sampler`.
+  highp ivec2 textureSize(samplerCube sampler, int lod);
+  // Returns the dimensions of level `lod` for the texture bound to `sampler`.
+  highp ivec2 textureSize(isamplerCube sampler, int lod);
+  // Returns the dimensions of level `lod` for the texture bound to `sampler`.
+  highp ivec2 textureSize(usamplerCube sampler, int lod);
+  // Returns the dimensions of level `lod` for the texture bound to `sampler`.
+  highp ivec2 textureSize(sampler2DShadow sampler, int lod);
+  // Returns the dimensions of level `lod` for the texture bound to `sampler`.
+  highp ivec2 textureSize(samplerCubeShadow sampler, int lod);
+  // Returns the dimensions of level `lod` for the texture bound to `sampler`.
+  highp ivec3 textureSize(sampler2DArray sampler, int lod);
+  // Returns the dimensions of level `lod` for the texture bound to `sampler`.
+  highp ivec3 textureSize(isampler2DArray sampler, int lod);
+  // Returns the dimensions of level `lod` for the texture bound to `sampler`.
+  highp ivec3 textureSize(usampler2DArray sampler, int lod);
+  // Returns the dimensions of level `lod` for the texture bound to `sampler`.
+  highp ivec3 textureSize(sampler2DArrayShadow sampler, int lod);
+
+  // Use the texture coordinate `P` to do a texture lookup in the texture currently bound to `sampler`.
+  vec4 texture(sampler2D sampler, vec2 P);
+  // Use the texture coordinate `P` to do a texture lookup in the texture currently bound to `sampler`.
+  ivec4 texture(isampler2D sampler, vec2 P);
+  // Use the texture coordinate `P` to do a texture lookup in the texture currently bound to `sampler`.
+  uvec4 texture(usampler2D sampler, vec2 P);
+  // Use the texture coordinate `P` to do a texture lookup in the texture currently bound to `sampler`.
+  vec4 texture(sampler2D sampler, vec2 P, float bias);
+  // Use the texture coordinate `P` to do a texture lookup in the texture currently bound to `sampler`.
+  ivec4 texture(isampler2D sampler, vec2 P, float bias);
+  // Use the texture coordinate `P` to do a texture lookup in the texture currently bound to `sampler`.
+  uvec4 texture(usampler2D sampler, vec2 P, float bias);
+
+  // Use the texture coordinate `P` to do a texture lookup in the texture currently bound to `sampler`.
+  vec4 texture(sampler3D sampler, vec3 P);
+  // Use the texture coordinate `P` to do a texture lookup in the texture currently bound to `sampler`.
+  ivec4 texture(isampler3D sampler, vec3 P);
+  // Use the texture coordinate `P` to do a texture lookup in the texture currently bound to `sampler`.
+  uvec4 texture(usampler3D sampler, vec3 P);
+  // Use the texture coordinate `P` to do a texture lookup in the texture currently bound to `sampler`.
+  vec4 texture(sampler3D sampler, vec3 P, float bias);
+  // Use the texture coordinate `P` to do a texture lookup in the texture currently bound to `sampler`.
+  ivec4 texture(isampler3D sampler, vec3 P, float bias);
+  // Use the texture coordinate `P` to do a texture lookup in the texture currently bound to `sampler`.
+  uvec4 texture(usampler3D sampler, vec3 P, float bias);
+
+  // Use the texture coordinate `P` to do a texture lookup in the texture currently bound to `sampler`.
+  vec4 texture(samplerCube sampler, vec3 P);
+  // Use the texture coordinate `P` to do a texture lookup in the texture currently bound to `sampler`.
+  ivec4 texture(isamplerCube sampler, vec3 P);
+  // Use the texture coordinate `P` to do a texture lookup in the texture currently bound to `sampler`.
+  uvec4 texture(usamplerCube sampler, vec3 P);
+  // Use the texture coordinate `P` to do a texture lookup in the texture currently bound to `sampler`.
+  vec4 texture(samplerCube sampler, vec3 P, float bias);
+  // Use the texture coordinate `P` to do a texture lookup in the texture currently bound to `sampler`.
+  ivec4 texture(isamplerCube sampler, vec3 P, float bias);
+  // Use the texture coordinate `P` to do a texture lookup in the texture currently bound to `sampler`.
+  uvec4 texture(usamplerCube sampler, vec3 P, float bias);
+
+  // Use the texture coordinate `P` to do a texture lookup in the texture currently bound to `sampler`.
+  float texture(sampler2DShadow sampler, vec3 P);
+  // Use the texture coordinate `P` to do a texture lookup in the texture currently bound to `sampler`.
+  float texture(sampler2DShadow sampler, vec3 P, float bias);
+  // Use the texture coordinate `P` to do a texture lookup in the texture currently bound to `sampler`.
+  float texture(samplerCubeShadow sampler, vec4 P);
+  // Use the texture coordinate `P` to do a texture lookup in the texture currently bound to `sampler`.
+  float texture(samplerCubeShadow sampler, vec4 P, float bias);
+
+  // Use the texture coordinate `P` to do a texture lookup in the texture currently bound to `sampler`.
+  vec4 texture(sampler2DArray sampler, vec3 P);
+  // Use the texture coordinate `P` to do a texture lookup in the texture currently bound to `sampler`.
+  ivec4 texture(isampler2DArray sampler, vec3 P);
+  // Use the texture coordinate `P` to do a texture lookup in the texture currently bound to `sampler`.
+  uvec4 texture(usampler2DArray sampler, vec3 P);
+  // Use the texture coordinate `P` to do a texture lookup in the texture currently bound to `sampler`.
+  vec4 texture(sampler2DArray sampler, vec3 P, float bias);
+  // Use the texture coordinate `P` to do a texture lookup in the texture currently bound to `sampler`.
+  ivec4 texture(isampler2DArray sampler, vec3 P, float bias);
+  // Use the texture coordinate `P` to do a texture lookup in the texture currently bound to `sampler`.
+  uvec4 texture(usampler2DArray sampler, vec3 P, float bias);
+
+  // Use the texture coordinate `P` to do a texture lookup in the texture currently bound to `sampler`.
+  float texture(sampler2DArrayShadow sampler, vec4 P);
+
+  // Do a texture lookup with projection. The texture coordinates consumed from `P`, not including the last
+  // component of `P`, are divided by the last component of `P` to form projected coordinates `P'`.
+  vec4 textureProj(sampler2D sampler, vec3 P);
+  // Do a texture lookup with projection. The texture coordinates consumed from `P`, not including the last
+  // component of `P`, are divided by the last component of `P` to form projected coordinates `P'`.
+  ivec4 textureProj(isampler2D sampler, vec3 P);
+  // Do a texture lookup with projection. The texture coordinates consumed from `P`, not including the last
+  // component of `P`, are divided by the last component of `P` to form projected coordinates `P'`.
+  uvec4 textureProj(usampler2D sampler, vec3 P);
+  // Do a texture lookup with projection. The texture coordinates consumed from `P`, not including the last
+  // component of `P`, are divided by the last component of `P` to form projected coordinates `P'`.
+  vec4 textureProj(sampler2D sampler, vec3 P, float bias);
+  // Do a texture lookup with projection. The texture coordinates consumed from `P`, not including the last
+  // component of `P`, are divided by the last component of `P` to form projected coordinates `P'`.
+  ivec4 textureProj(isampler2D sampler, vec3 P, float bias);
+  // Do a texture lookup with projection. The texture coordinates consumed from `P`, not including the last
+  // component of `P`, are divided by the last component of `P` to form projected coordinates `P'`.
+  uvec4 textureProj(usampler2D sampler, vec3 P, float bias);
+
+  // Do a texture lookup with projection. The texture coordinates consumed from `P`, not including the last
+  // component of `P`, are divided by the last component of `P` to form projected coordinates `P'`.
+  vec4 textureProj(sampler2D sampler, vec4 P);
+  // Do a texture lookup with projection. The texture coordinates consumed from `P`, not including the last
+  // component of `P`, are divided by the last component of `P` to form projected coordinates `P'`.
+  ivec4 textureProj(isampler2D sampler, vec4 P);
+  // Do a texture lookup with projection. The texture coordinates consumed from `P`, not including the last
+  // component of `P`, are divided by the last component of `P` to form projected coordinates `P'`.
+  uvec4 textureProj(usampler2D sampler, vec4 P);
+  // Do a texture lookup with projection. The texture coordinates consumed from `P`, not including the last
+  // component of `P`, are divided by the last component of `P` to form projected coordinates `P'`.
+  vec4 textureProj(sampler2D sampler, vec4 P, float bias);
+  // Do a texture lookup with projection. The texture coordinates consumed from `P`, not including the last
+  // component of `P`, are divided by the last component of `P` to form projected coordinates `P'`.
+  ivec4 textureProj(isampler2D sampler, vec4 P, float bias);
+  // Do a texture lookup with projection. The texture coordinates consumed from `P`, not including the last
+  // component of `P`, are divided by the last component of `P` to form projected coordinates `P'`.
+  uvec4 textureProj(usampler2D sampler, vec4 P, float bias);
+
+  // Do a texture lookup with projection. The texture coordinates consumed from `P`, not including the last
+  // component of `P`, are divided by the last component of `P` to form projected coordinates `P'`.
+  vec4 textureProj(sampler3D sampler, vec4 P);
+  // Do a texture lookup with projection. The texture coordinates consumed from `P`, not including the last
+  // component of `P`, are divided by the last component of `P` to form projected coordinates `P'`.
+  ivec4 textureProj(isampler3D sampler, vec4 P);
+  // Do a texture lookup with projection. The texture coordinates consumed from `P`, not including the last
+  // component of `P`, are divided by the last component of `P` to form projected coordinates `P'`.
+  uvec4 textureProj(usampler3D sampler, vec4 P);
+  // Do a texture lookup with projection. The texture coordinates consumed from `P`, not including the last
+  // component of `P`, are divided by the last component of `P` to form projected coordinates `P'`.
+  vec4 textureProj(sampler3D sampler, vec4 P, float bias);
+  // Do a texture lookup with projection. The texture coordinates consumed from `P`, not including the last
+  // component of `P`, are divided by the last component of `P` to form projected coordinates `P'`.
+  ivec4 textureProj(isampler3D sampler, vec4 P, float bias);
+  // Do a texture lookup with projection. The texture coordinates consumed from `P`, not including the last
+  // component of `P`, are divided by the last component of `P` to form projected coordinates `P'`.
+  uvec4 textureProj(usampler3D sampler, vec4 P, float bias);
+
+  // Do a texture lookup with projection. The texture coordinates consumed from `P`, not including the last
+  // component of `P`, are divided by the last component of `P` to form projected coordinates `P'`.
+  float textureProj(sampler2DShadow sampler, vec4 P);
+  // Do a texture lookup with projection. The texture coordinates consumed from `P`, not including the last
+  // component of `P`, are divided by the last component of `P` to form projected coordinates `P'`.
+  float textureProj(sampler2DShadow sampler, vec4 P, float bias);
+
+  // Do a texture lookup as in `texture` but with explicit LOD; `lod` specifies `λbase` and sets the partial derivatives.
+  vec4 textureLod(sampler2D sampler, vec2 P, float lod);
+  // Do a texture lookup as in `texture` but with explicit LOD; `lod` specifies `λbase` and sets the partial derivatives.
+  ivec4 textureLod(isampler2D sampler, vec2 P, float lod);
+  // Do a texture lookup as in `texture` but with explicit LOD; `lod` specifies `λbase` and sets the partial derivatives.
+  uvec4 textureLod(usampler2D sampler, vec2 P, float lod);
+  // Do a texture lookup as in `texture` but with explicit LOD; `lod` specifies `λbase` and sets the partial derivatives.
+  vec4 textureLod(sampler3D sampler, vec3 P, float lod);
+  // Do a texture lookup as in `texture` but with explicit LOD; `lod` specifies `λbase` and sets the partial derivatives.
+  ivec4 textureLod(isampler3D sampler, vec3 P, float lod);
+  // Do a texture lookup as in `texture` but with explicit LOD; `lod` specifies `λbase` and sets the partial derivatives.
+  uvec4 textureLod(usampler3D sampler, vec3 P, float lod);
+  // Do a texture lookup as in `texture` but with explicit LOD; `lod` specifies `λbase` and sets the partial derivatives.
+  vec4 textureLod(samplerCube sampler, vec3 P, float lod);
+  // Do a texture lookup as in `texture` but with explicit LOD; `lod` specifies `λbase` and sets the partial derivatives.
+  ivec4 textureLod(isamplerCube sampler, vec3 P, float lod);
+  // Do a texture lookup as in `texture` but with explicit LOD; `lod` specifies `λbase` and sets the partial derivatives.
+  uvec4 textureLod(usamplerCube sampler, vec3 P, float lod);
+  // Do a texture lookup as in `texture` but with explicit LOD; `lod` specifies `λbase` and sets the partial derivatives.
+  float textureLod(sampler2DShadow sampler, vec3 P, float lod);
+  // Do a texture lookup as in `texture` but with explicit LOD; `lod` specifies `λbase` and sets the partial derivatives.
+  vec4 textureLod(sampler2DArray sampler, vec3 P, float lod);
+  // Do a texture lookup as in `texture` but with explicit LOD; `lod` specifies `λbase` and sets the partial derivatives.
+  ivec4 textureLod(isampler2DArray sampler, vec3 P, float lod);
+  // Do a texture lookup as in `texture` but with explicit LOD; `lod` specifies `λbase` and sets the partial derivatives.
+  uvec4 textureLod(usampler2DArray sampler, vec3 P, float lod);
+
+  // Do a texture lookup as in texture but with `offset` added to the `(u,v)` texel coordinates
+  // before looking up each texel. The offset value must be a constant expression.
+  vec4 textureOffset(sampler2D sampler, vec2 P, ivec2 offset);
+  // Do a texture lookup as in texture but with `offset` added to the `(u,v)` texel coordinates
+  // before looking up each texel. The offset value must be a constant expression.
+  ivec4 textureOffset(isampler2D sampler, vec2 P, ivec2 offset);
+  // Do a texture lookup as in texture but with `offset` added to the `(u,v)` texel coordinates
+  // before looking up each texel. The offset value must be a constant expression.
+  uvec4 textureOffset(usampler2D sampler, vec2 P, ivec2 offset);
+  // Do a texture lookup as in texture but with `offset` added to the `(u,v)` texel coordinates
+  // before looking up each texel. The offset value must be a constant expression.
+  vec4 textureOffset(sampler2D sampler, vec2 P, ivec2 offset, float bias);
+  // Do a texture lookup as in texture but with `offset` added to the `(u,v)` texel coordinates
+  // before looking up each texel. The offset value must be a constant expression.
+  ivec4 textureOffset(isampler2D sampler, vec2 P, ivec2 offset, float bias);
+  // Do a texture lookup as in texture but with `offset` added to the `(u,v)` texel coordinates
+  // before looking up each texel. The offset value must be a constant expression.
+  uvec4 textureOffset(usampler2D sampler, vec2 P, ivec2 offset, float bias);
+
+  // Do a texture lookup as in texture but with `offset` added to the `(u,v,w)` texel coordinates
+  // before looking up each texel. The offset value must be a constant expression.
+  vec4 textureOffset(sampler3D sampler, vec3 P, ivec3 offset);
+  // Do a texture lookup as in texture but with `offset` added to the `(u,v,w)` texel coordinates
+  // before looking up each texel. The offset value must be a constant expression.
+  ivec4 textureOffset(isampler3D sampler, vec3 P, ivec3 offset);
+  // Do a texture lookup as in texture but with `offset` added to the `(u,v,w)` texel coordinates
+  // before looking up each texel. The offset value must be a constant expression.
+  uvec4 textureOffset(usampler3D sampler, vec3 P, ivec3 offset);
+  // Do a texture lookup as in texture but with `offset` added to the `(u,v,w)` texel coordinates
+  // before looking up each texel. The offset value must be a constant expression.
+  vec4 textureOffset(sampler3D sampler, vec3 P, ivec3 offset, float bias);
+  // Do a texture lookup as in texture but with `offset` added to the `(u,v,w)` texel coordinates
+  // before looking up each texel. The offset value must be a constant expression.
+  ivec4 textureOffset(isampler3D sampler, vec3 P, ivec3 offset, float bias);
+  // Do a texture lookup as in texture but with `offset` added to the `(u,v,w)` texel coordinates
+  // before looking up each texel. The offset value must be a constant expression.
+  uvec4 textureOffset(usampler3D sampler, vec3 P, ivec3 offset, float bias);
+
+  // Do a texture lookup as in texture but with `offset` added to the `(u,v,w)` texel coordinates
+  // before looking up each texel. The offset value must be a constant expression.
+  float textureOffset(sampler2DShadow sampler, vec3 P, ivec2 offset);
+  // Do a texture lookup as in texture but with `offset` added to the `(u,v,w)` texel coordinates
+  // before looking up each texel. The offset value must be a constant expression.
+  float textureOffset(sampler2DShadow sampler, vec3 P, ivec2 offset, float bias);
+
+  // Do a texture lookup as in texture but with `offset` added to the `(u,v,w)` texel coordinates
+  // before looking up each texel. The offset value must be a constant expression. Note that
+  // `offset` does not apply to the layer coordinate for texture arrays.
+  vec4 textureOffset(sampler2DArray sampler, vec3 P, ivec2 offset);
+  // Do a texture lookup as in texture but with `offset` added to the `(u,v,w)` texel coordinates
+  // before looking up each texel. The offset value must be a constant expression. Note that
+  // `offset` does not apply to the layer coordinate for texture arrays.
+  ivec4 textureOffset(isampler2DArray sampler, vec3 P, ivec2 offset);
+  // Do a texture lookup as in texture but with `offset` added to the `(u,v,w)` texel coordinates
+  // before looking up each texel. The offset value must be a constant expression. Note that
+  // `offset` does not apply to the layer coordinate for texture arrays.
+  uvec4 textureOffset(usampler2DArray sampler, vec3 P, ivec2 offset);
+  // Do a texture lookup as in texture but with `offset` added to the `(u,v,w)` texel coordinates
+  // before looking up each texel. The offset value must be a constant expression. Note that
+  // `offset` does not apply to the layer coordinate for texture arrays.
+  vec4 textureOffset(sampler2DArray sampler, vec3 P, ivec2 offset, float bias);
+  // Do a texture lookup as in texture but with `offset` added to the `(u,v,w)` texel coordinates
+  // before looking up each texel. The offset value must be a constant expression. Note that
+  // `offset` does not apply to the layer coordinate for texture arrays.
+  ivec4 textureOffset(isampler2DArray sampler, vec3 P, ivec2 offset, float bias);
+  // Do a texture lookup as in texture but with `offset` added to the `(u,v,w)` texel coordinates
+  // before looking up each texel. The offset value must be a constant expression. Note that
+  // `offset` does not apply to the layer coordinate for texture arrays.
+  uvec4 textureOffset(usampler2DArray sampler, vec3 P, ivec2 offset, float bias);
+
+  // Use integer texture coordinate `P` to lookup a single texel from sampler.
+  vec4 texelFetch(sampler2D sampler, ivec2 P, int lod);
+  // Use integer texture coordinate `P` to lookup a single texel from sampler.
+  ivec4 texelFetch(isampler2D sampler, ivec2 P, int lod);
+  // Use integer texture coordinate `P` to lookup a single texel from sampler.
+  uvec4 texelFetch(usampler2D sampler, ivec2 P, int lod);
+  // Use integer texture coordinate `P` to lookup a single texel from sampler.
+  vec4 texelFetch(sampler3D sampler, ivec3 P, int lod);
+  // Use integer texture coordinate `P` to lookup a single texel from sampler.
+  ivec4 texelFetch(isampler3D sampler, ivec3 P, int lod);
+  // Use integer texture coordinate `P` to lookup a single texel from sampler.
+  uvec4 texelFetch(usampler3D sampler, ivec3 P, int lod);
+  // Use integer texture coordinate `P` to lookup a single texel from sampler.
+  vec4 texelFetch(sampler2DArray sampler, ivec3 P, int lod);
+  // Use integer texture coordinate `P` to lookup a single texel from sampler.
+  ivec4 texelFetch(isampler2DArray sampler, ivec3 P, int lod);
+  // Use integer texture coordinate `P` to lookup a single texel from sampler.
+  uvec4 texelFetch(usampler2DArray sampler, ivec3 P, int lod);
+
+  // Fetch a single texel as in `texelFetch` offset by `offset` as described in `textureOffset`.
+  vec4 texelFetchOffset(sampler2D sampler, ivec2 P, int lod, ivec2 offset);
+  // Fetch a single texel as in `texelFetch` offset by `offset` as described in `textureOffset`.
+  ivec4 texelFetchOffset(isampler2D sampler, ivec2 P, int lod, ivec2 offset);
+  // Fetch a single texel as in `texelFetch` offset by `offset` as described in `textureOffset`.
+  uvec4 texelFetchOffset(usampler2D sampler, ivec2 P, int lod, ivec2 offset);
+  // Fetch a single texel as in `texelFetch` offset by `offset` as described in `textureOffset`.
+  vec4 texelFetchOffset(sampler3D sampler, ivec3 P, int lod, ivec3 offset);
+  // Fetch a single texel as in `texelFetch` offset by `offset` as described in `textureOffset`.
+  ivec4 texelFetchOffset(isampler3D sampler, ivec3 P, int lod, ivec3 offset);
+  // Fetch a single texel as in `texelFetch` offset by `offset` as described in `textureOffset`.
+  uvec4 texelFetchOffset(usampler3D sampler, ivec3 P, int lod, ivec3 offset);
+  // Fetch a single texel as in `texelFetch` offset by `offset` as described in `textureOffset`.
+  vec4 texelFetchOffset(sampler2DArray sampler, ivec3 P, int lod, ivec2 offset);
+  // Fetch a single texel as in `texelFetch` offset by `offset` as described in `textureOffset`.
+  ivec4 texelFetchOffset(isampler2DArray sampler, ivec3 P, int lod, ivec2 offset);
+  // Fetch a single texel as in `texelFetch` offset by `offset` as described in `textureOffset`.
+  uvec4 texelFetchOffset(usampler2DArray sampler, ivec3 P, int lod, ivec2 offset);
+
+// Do a projective texture lookup as described in `textureProj` offset by `offset` as described in `textureOffset`.
+  vec4 textureProjOffset(sampler2D sampler, vec3 P, ivec2 offset);
+  // Do a projective texture lookup as described in `textureProj` offset by `offset` as described in `textureOffset`.
+  ivec4 textureProjOffset(isampler2D sampler, vec3 P, ivec2 offset);
+  // Do a projective texture lookup as described in `textureProj` offset by `offset` as described in `textureOffset`.
+  uvec4 textureProjOffset(usampler2D sampler, vec3 P, ivec2 offset);
+  // Do a projective texture lookup as described in `textureProj` offset by `offset` as described in `textureOffset`.
+  vec4 textureProjOffset(sampler2D sampler, vec3 P, ivec2 offset, float bias);
+  // Do a projective texture lookup as described in `textureProj` offset by `offset` as described in `textureOffset`.
+  ivec4 textureProjOffset(isampler2D sampler, vec3 P, ivec2 offset, float bias);
+  // Do a projective texture lookup as described in `textureProj` offset by `offset` as described in `textureOffset`.
+  uvec4 textureProjOffset(usampler2D sampler, vec3 P, ivec2 offset, float bias);
+  // Do a projective texture lookup as described in `textureProj` offset by `offset` as described in `textureOffset`.
+  vec4 textureProjOffset(sampler2D sampler, vec4 P, ivec2 offset);
+  // Do a projective texture lookup as described in `textureProj` offset by `offset` as described in `textureOffset`.
+  ivec4 textureProjOffset(isampler2D sampler, vec4 P, ivec2 offset);
+  // Do a projective texture lookup as described in `textureProj` offset by `offset` as described in `textureOffset`.
+  uvec4 textureProjOffset(usampler2D sampler, vec4 P, ivec2 offset);
+  // Do a projective texture lookup as described in `textureProj` offset by `offset` as described in `textureOffset`.
+  vec4 textureProjOffset(sampler2D sampler, vec4 P, ivec2 offset, float bias);
+  // Do a projective texture lookup as described in `textureProj` offset by `offset` as described in `textureOffset`.
+  ivec4 textureProjOffset(isampler2D sampler, vec4 P, ivec2 offset, float bias);
+  // Do a projective texture lookup as described in `textureProj` offset by `offset` as described in `textureOffset`.
+  uvec4 textureProjOffset(usampler2D sampler, vec4 P, ivec2 offset, float bias);
+  // Do a projective texture lookup as described in `textureProj` offset by `offset` as described in `textureOffset`.
+  vec4 textureProjOffset(sampler3D sampler, vec4 P, ivec3 offset);
+  // Do a projective texture lookup as described in `textureProj` offset by `offset` as described in `textureOffset`.
+  ivec4 textureProjOffset(isampler3D sampler, vec4 P, ivec3 offset);
+  // Do a projective texture lookup as described in `textureProj` offset by `offset` as described in `textureOffset`.
+  uvec4 textureProjOffset(usampler3D sampler, vec4 P, ivec3 offset);
+  // Do a projective texture lookup as described in `textureProj` offset by `offset` as described in `textureOffset`.
+  vec4 textureProjOffset(sampler3D sampler, vec4 P, ivec3 offset, float bias);
+  // Do a projective texture lookup as described in `textureProj` offset by `offset` as described in `textureOffset`.
+  ivec4 textureProjOffset(isampler3D sampler, vec4 P, ivec3 offset, float bias);
+  // Do a projective texture lookup as described in `textureProj` offset by `offset` as described in `textureOffset`.
+  uvec4 textureProjOffset(usampler3D sampler, vec4 P, ivec3 offset, float bias);
+  // Do a projective texture lookup as described in `textureProj` offset by `offset` as described in `textureOffset`.
+  float textureProjOffset(sampler2DShadow sampler, vec4 P, ivec2 offset);
+  // Do a projective texture lookup as described in `textureProj` offset by `offset` as described in `textureOffset`.
+  float textureProjOffset(sampler2DShadow sampler, vec4 P, ivec2 offset, float bias);
+
+  // Do an offset texture lookup with explicit LOD. See `textureLod` and `textureOffset`.
+  vec4 textureLodOffset(sampler2D sampler, vec2 P, float lod, ivec2 offset);
+  // Do an offset texture lookup with explicit LOD. See `textureLod` and `textureOffset`.
+  ivec4 textureLodOffset(isampler2D sampler, vec2 P, float lod, ivec2 offset);
+  // Do an offset texture lookup with explicit LOD. See `textureLod` and `textureOffset`.
+  uvec4 textureLodOffset(usampler2D sampler, vec2 P, float lod, ivec2 offset);
+  // Do an offset texture lookup with explicit LOD. See `textureLod` and `textureOffset`.
+  vec4 textureLodOffset(sampler3D sampler, vec3 P, float lod, ivec3 offset);
+  // Do an offset texture lookup with explicit LOD. See `textureLod` and `textureOffset`.
+  ivec4 textureLodOffset(isampler3D sampler, vec3 P, float lod, ivec3 offset);
+  // Do an offset texture lookup with explicit LOD. See `textureLod` and `textureOffset`.
+  uvec4 textureLodOffset(usampler3D sampler, vec3 P, float lod, ivec3 offset);
+  // Do an offset texture lookup with explicit LOD. See `textureLod` and `textureOffset`.
+  float textureLodOffset(sampler2DShadow sampler, vec3 P, float lod, ivec2 offset);
+  // Do an offset texture lookup with explicit LOD. See `textureLod` and `textureOffset`.
+  vec4 textureLodOffset(sampler2DArray sampler, vec3 P, float lod, ivec2 offset);
+  // Do an offset texture lookup with explicit LOD. See `textureLod` and `textureOffset`.
+  ivec4 textureLodOffset(isampler2DArray sampler, vec3 P, float lod, ivec2 offset);
+  // Do an offset texture lookup with explicit LOD. See `textureLod` and `textureOffset`.
+  uvec4 textureLodOffset(usampler2DArray sampler, vec3 P, float lod, ivec2 offset);
+
+  // Do a projective texture lookup with explicit LOD. See `textureProj` and `textureLod`.
+  vec4 textureProjLod(sampler2D sampler, vec3 P, float lod);
+  // Do a projective texture lookup with explicit LOD. See `textureProj` and `textureLod`.
+  ivec4 textureProjLod(isampler2D sampler, vec3 P, float lod);
+  // Do a projective texture lookup with explicit LOD. See `textureProj` and `textureLod`.
+  uvec4 textureProjLod(usampler2D sampler, vec3 P, float lod);
+  // Do a projective texture lookup with explicit LOD. See `textureProj` and `textureLod`.
+  vec4 textureProjLod(sampler2D sampler, vec4 P, float lod);
+  // Do a projective texture lookup with explicit LOD. See `textureProj` and `textureLod`.
+  ivec4 textureProjLod(isampler2D sampler, vec4 P, float lod);
+  // Do a projective texture lookup with explicit LOD. See `textureProj` and `textureLod`.
+  uvec4 textureProjLod(usampler2D sampler, vec4 P, float lod);
+  // Do a projective texture lookup with explicit LOD. See `textureProj` and `textureLod`.
+  vec4 textureProjLod(sampler3D sampler, vec4 P, float lod);
+  // Do a projective texture lookup with explicit LOD. See `textureProj` and `textureLod`.
+  ivec4 textureProjLod(isampler3D sampler, vec4 P, float lod);
+  // Do a projective texture lookup with explicit LOD. See `textureProj` and `textureLod`.
+  uvec4 textureProjLod(usampler3D sampler, vec4 P, float lod);
+  // Do a projective texture lookup with explicit LOD. See `textureProj` and `textureLod`.
+  float textureProjLod(sampler2DShadow sampler, vec4 P, float lod);
+
+  // Do an offset projective texture lookup with explicit LOD. See `textureProj`, `textureLod`, and `textureOffset`.
+  vec4 textureProjLodOffset(sampler2D sampler, vec3 P, float lod, ivec2 offset);
+  // Do an offset projective texture lookup with explicit LOD. See `textureProj`, `textureLod`, and `textureOffset`.
+  ivec4 textureProjLodOffset(isampler2D sampler, vec3 P, float lod, ivec2 offset);
+  // Do an offset projective texture lookup with explicit LOD. See `textureProj`, `textureLod`, and `textureOffset`.
+  uvec4 textureProjLodOffset(usampler2D sampler, vec3 P, float lod, ivec2 offset);
+  // Do an offset projective texture lookup with explicit LOD. See `textureProj`, `textureLod`, and `textureOffset`.
+  vec4 textureProjLodOffset(sampler2D sampler, vec4 P, float lod, ivec2 offset);
+  // Do an offset projective texture lookup with explicit LOD. See `textureProj`, `textureLod`, and `textureOffset`.
+  ivec4 textureProjLodOffset(isampler2D sampler, vec4 P, float lod, ivec2 offset);
+  // Do an offset projective texture lookup with explicit LOD. See `textureProj`, `textureLod`, and `textureOffset`.
+  uvec4 textureProjLodOffset(usampler2D sampler, vec4 P, float lod, ivec2 offset);
+  // Do an offset projective texture lookup with explicit LOD. See `textureProj`, `textureLod`, and `textureOffset`.
+  vec4 textureProjLodOffset(sampler3D sampler, vec4 P, float lod, ivec3 offset);
+  // Do an offset projective texture lookup with explicit LOD. See `textureProj`, `textureLod`, and `textureOffset`.
+  ivec4 textureProjLodOffset(isampler3D sampler, vec4 P, float lod, ivec3 offset);
+  // Do an offset projective texture lookup with explicit LOD. See `textureProj`, `textureLod`, and `textureOffset`.
+  uvec4 textureProjLodOffset(usampler3D sampler, vec4 P, float lod, ivec3 offset);
+  // Do an offset projective texture lookup with explicit LOD. See `textureProj`, `textureLod`, and `textureOffset`.
+  float textureProjLodOffset(sampler2DShadow sampler, vec4 P, float lod, ivec2 offset);
+
+  // Do a texture lookup as in texture but with explicit gradients. The partial derivatives of `P` are with respect to window `x` and window `y`.
+  vec4 textureGrad(sampler2D sampler, vec2 P, vec2 dPdx, vec2 dPdy);
+  // Do a texture lookup as in texture but with explicit gradients. The partial derivatives of `P` are with respect to window `x` and window `y`.
+  ivec4 textureGrad(isampler2D sampler, vec2 P, vec2 dPdx, vec2 dPdy);
+  // Do a texture lookup as in texture but with explicit gradients. The partial derivatives of `P` are with respect to window `x` and window `y`.
+  uvec4 textureGrad(usampler2D sampler, vec2 P, vec2 dPdx, vec2 dPdy);
+  // Do a texture lookup as in texture but with explicit gradients. The partial derivatives of `P` are with respect to window `x` and window `y`.
+  vec4 textureGrad(sampler3D sampler, vec3 P, vec3 dPdx, vec3 dPdy);
+  // Do a texture lookup as in texture but with explicit gradients. The partial derivatives of `P` are with respect to window `x` and window `y`.
+  ivec4 textureGrad(isampler3D sampler, vec3 P, vec3 dPdx, vec3 dPdy);
+  // Do a texture lookup as in texture but with explicit gradients. The partial derivatives of `P` are with respect to window `x` and window `y`.
+  uvec4 textureGrad(usampler3D sampler, vec3 P, vec3 dPdx, vec3 dPdy);
+  // Do a texture lookup as in texture but with explicit gradients. The partial derivatives of `P` are with respect to window `x` and window `y`.
+  vec4 textureGrad(samplerCube sampler, vec3 P, vec3 dPdx, vec3 dPdy);
+  // Do a texture lookup as in texture but with explicit gradients. The partial derivatives of `P` are with respect to window `x` and window `y`.
+  ivec4 textureGrad(isamplerCube sampler, vec3 P, vec3 dPdx, vec3 dPdy);
+  // Do a texture lookup as in texture but with explicit gradients. The partial derivatives of `P` are with respect to window `x` and window `y`.
+  uvec4 textureGrad(usamplerCube sampler, vec3 P, vec3 dPdx, vec3 dPdy);
+  // Do a texture lookup as in texture but with explicit gradients. The partial derivatives of `P` are with respect to window `x` and window `y`.
+  float textureGrad(sampler2DShadow sampler, vec3 P, vec2 dPdx, vec2 dPdy);
+  // Do a texture lookup as in texture but with explicit gradients. The partial derivatives of `P` are with respect to window `x` and window `y`.
+  float textureGrad(samplerCubeShadow sampler, vec4 P, vec3 dPdx, vec3 dPdy);
+  // Do a texture lookup as in texture but with explicit gradients. The partial derivatives of `P` are with respect to window `x` and window `y`.
+  vec4 textureGrad(sampler2DArray sampler, vec3 P, vec2 dPdx, vec2 dPdy);
+  // Do a texture lookup as in texture but with explicit gradients. The partial derivatives of `P` are with respect to window `x` and window `y`.
+  ivec4 textureGrad(isampler2DArray sampler, vec3 P, vec2 dPdx, vec2 dPdy);
+  // Do a texture lookup as in texture but with explicit gradients. The partial derivatives of `P` are with respect to window `x` and window `y`.
+  uvec4 textureGrad(usampler2DArray sampler, vec3 P, vec2 dPdx, vec2 dPdy);
+  // Do a texture lookup as in texture but with explicit gradients. The partial derivatives of `P` are with respect to window `x` and window `y`.
+  float textureGrad(sampler2DArrayShadow sampler, vec4 P, vec2 dPdx, vec2 dPdy);
+
+  // Do a texture lookup with both explicit gradient and offset, as described in `textureGrad` and `textureOffset`.
+  vec4 textureGradOffset(sampler2D sampler, vec2 P, vec2 dPdx, vec2 dPdy, ivec2 offset);
+  // Do a texture lookup with both explicit gradient and offset, as described in `textureGrad` and `textureOffset`.
+  ivec4 textureGradOffset(isampler2D sampler, vec2 P, vec2 dPdx, vec2 dPdy, ivec2 offset);
+  // Do a texture lookup with both explicit gradient and offset, as described in `textureGrad` and `textureOffset`.
+  uvec4 textureGradOffset(usampler2D sampler, vec2 P, vec2 dPdx, vec2 dPdy, ivec2 offset);
+  // Do a texture lookup with both explicit gradient and offset, as described in `textureGrad` and `textureOffset`.
+  vec4 textureGradOffset(sampler3D sampler, vec3 P, vec3 dPdx, vec3 dPdy, ivec3 offset);
+  // Do a texture lookup with both explicit gradient and offset, as described in `textureGrad` and `textureOffset`.
+  ivec4 textureGradOffset(isampler3D sampler, vec3 P, vec3 dPdx, vec3 dPdy, ivec3 offset);
+  // Do a texture lookup with both explicit gradient and offset, as described in `textureGrad` and `textureOffset`.
+  uvec4 textureGradOffset(usampler3D sampler, vec3 P, vec3 dPdx, vec3 dPdy, ivec3 offset);
+  // Do a texture lookup with both explicit gradient and offset, as described in `textureGrad` and `textureOffset`.
+  float textureGradOffset(sampler2DShadow sampler, vec3 P, vec2 dPdx, vec2 dPdy, ivec2 offset);
+  // Do a texture lookup with both explicit gradient and offset, as described in `textureGrad` and `textureOffset`.
+  vec4 textureGradOffset(sampler2DArray sampler, vec3 P, vec2 dPdx, vec2 dPdy, ivec2 offset);
+  // Do a texture lookup with both explicit gradient and offset, as described in `textureGrad` and `textureOffset`.
+  ivec4 textureGradOffset(isampler2DArray sampler, vec3 P, vec2 dPdx, vec2 dPdy, ivec2 offset);
+  // Do a texture lookup with both explicit gradient and offset, as described in `textureGrad` and `textureOffset`.
+  uvec4 textureGradOffset(usampler2DArray sampler, vec3 P, vec2 dPdx, vec2 dPdy, ivec2 offset);
+  // Do a texture lookup with both explicit gradient and offset, as described in `textureGrad` and `textureOffset`.
+  float textureGradOffset(sampler2DArrayShadow sampler, vec4 P, vec2 dPdx, vec2 dPdy, ivec2 offset);
+
+  // Do a texture lookup both projectively, as described in `textureProj`, and with explicit gradient as
+  // described in `textureGrad`. The partial derivatives `dPdx` and `dPdy` are assumed to be already projected.
+  vec4 textureProjGrad(sampler2D sampler, vec3 P, vec2 dPdx, vec2 dPdy);
+  // Do a texture lookup both projectively, as described in `textureProj`, and with explicit gradient as
+  // described in `textureGrad`. The partial derivatives `dPdx` and `dPdy` are assumed to be already projected.
+  ivec4 textureProjGrad(isampler2D sampler, vec3 P, vec2 dPdx, vec2 dPdy);
+  // Do a texture lookup both projectively, as described in `textureProj`, and with explicit gradient as
+  // described in `textureGrad`. The partial derivatives `dPdx` and `dPdy` are assumed to be already projected.
+  uvec4 textureProjGrad(usampler2D sampler, vec3 P, vec2 dPdx, vec2 dPdy);
+  // Do a texture lookup both projectively, as described in `textureProj`, and with explicit gradient as
+  // described in `textureGrad`. The partial derivatives `dPdx` and `dPdy` are assumed to be already projected.
+  vec4 textureProjGrad(sampler2D sampler, vec4 P, vec2 dPdx, vec2 dPdy);
+  // Do a texture lookup both projectively, as described in `textureProj`, and with explicit gradient as
+  // described in `textureGrad`. The partial derivatives `dPdx` and `dPdy` are assumed to be already projected.
+  ivec4 textureProjGrad(isampler2D sampler, vec4 P, vec2 dPdx, vec2 dPdy);
+  // Do a texture lookup both projectively, as described in `textureProj`, and with explicit gradient as
+  // described in `textureGrad`. The partial derivatives `dPdx` and `dPdy` are assumed to be already projected.
+  uvec4 textureProjGrad(usampler2D sampler, vec4 P, vec2 dPdx, vec2 dPdy);
+  // Do a texture lookup both projectively, as described in `textureProj`, and with explicit gradient as
+  // described in `textureGrad`. The partial derivatives `dPdx` and `dPdy` are assumed to be already projected.
+  vec4 textureProjGrad(sampler3D sampler, vec4 P, vec3 dPdx, vec3 dPdy);
+  // Do a texture lookup both projectively, as described in `textureProj`, and with explicit gradient as
+  // described in `textureGrad`. The partial derivatives `dPdx` and `dPdy` are assumed to be already projected.
+  ivec4 textureProjGrad(isampler3D sampler, vec4 P, vec3 dPdx, vec3 dPdy);
+  // Do a texture lookup both projectively, as described in `textureProj`, and with explicit gradient as
+  // described in `textureGrad`. The partial derivatives `dPdx` and `dPdy` are assumed to be already projected.
+  uvec4 textureProjGrad(usampler3D sampler, vec4 P, vec3 dPdx, vec3 dPdy);
+  // Do a texture lookup both projectively, as described in `textureProj`, and with explicit gradient as
+  // described in `textureGrad`. The partial derivatives `dPdx` and `dPdy` are assumed to be already projected.
+  float textureProjGrad(sampler2DShadow sampler, vec4 P, vec2 dPdx, vec2 dPdy);
+
+  // Do a texture lookup projectively and with explicit gradient as described in `textureProjGrad`, as well as with `offset`, as described in `textureOffset`.
+  vec4 textureProjGradOffset(sampler2D sampler, vec3 P, vec2 dPdx, vec2 dPdy, ivec2 offset);
+  // Do a texture lookup projectively and with explicit gradient as described in `textureProjGrad`, as well as with `offset`, as described in `textureOffset`.
+  ivec4 textureProjGradOffset(isampler2D sampler, vec3 P, vec2 dPdx, vec2 dPdy, ivec2 offset);
+  // Do a texture lookup projectively and with explicit gradient as described in `textureProjGrad`, as well as with `offset`, as described in `textureOffset`.
+  uvec4 textureProjGradOffset(usampler2D sampler, vec3 P, vec2 dPdx, vec2 dPdy, ivec2 offset);
+  // Do a texture lookup projectively and with explicit gradient as described in `textureProjGrad`, as well as with `offset`, as described in `textureOffset`.
+  vec4 textureProjGradOffset(sampler2D sampler, vec4 P, vec2 dPdx, vec2 dPdy, ivec2 offset);
+  // Do a texture lookup projectively and with explicit gradient as described in `textureProjGrad`, as well as with `offset`, as described in `textureOffset`.
+  ivec4 textureProjGradOffset(isampler2D sampler, vec4 P, vec2 dPdx, vec2 dPdy, ivec2 offset);
+  // Do a texture lookup projectively and with explicit gradient as described in `textureProjGrad`, as well as with `offset`, as described in `textureOffset`.
+  uvec4 textureProjGradOffset(usampler2D sampler, vec4 P, vec2 dPdx, vec2 dPdy, ivec2 offset);
+  // Do a texture lookup projectively and with explicit gradient as described in `textureProjGrad`, as well as with `offset`, as described in `textureOffset`.
+  vec4 textureProjGradOffset(sampler3D sampler, vec4 P, vec3 dPdx, vec3 dPdy, ivec3 offset);
+  // Do a texture lookup projectively and with explicit gradient as described in `textureProjGrad`, as well as with `offset`, as described in `textureOffset`.
+  ivec4 textureProjGradOffset(isampler3D sampler, vec4 P, vec3 dPdx, vec3 dPdy, ivec3 offset);
+  // Do a texture lookup projectively and with explicit gradient as described in `textureProjGrad`, as well as with `offset`, as described in `textureOffset`.
+  uvec4 textureProjGradOffset(usampler3D sampler, vec4 P, vec3 dPdx, vec3 dPdy, ivec3 offset);
+  // Do a texture lookup projectively and with explicit gradient as described in `textureProjGrad`, as well as with `offset`, as described in `textureOffset`.
+  float textureProjGradOffset(sampler2DShadow sampler, vec4 P, vec2 dPdx, vec2 dPdy, ivec2 offset);
+
+  ////////////////////////////////////////////////////////////////////////////////
+  // Fragment Processing Functions
+
+  // Returns the derivative in x using local differencing for the input argument `p`.
+  float dFdx(float p);
+  // Returns the derivative in x using local differencing for the input argument `p`.
+  vec2 dFdx(vec2 p);
+  // Returns the derivative in x using local differencing for the input argument `p`.
+  vec3 dFdx(vec3 p);
+  // Returns the derivative in x using local differencing for the input argument `p`.
+  vec4 dFdx(vec4 p);
+
+  // Returns the derivative in y using local differencing for the input argument `p`.
+  float dFdy(float p);
+  // Returns the derivative in y using local differencing for the input argument `p`.
+  vec2 dFdy(vec2 p);
+  // Returns the derivative in y using local differencing for the input argument `p`.
+  vec3 dFdy(vec3 p);
+  // Returns the derivative in y using local differencing for the input argument `p`.
+  vec4 dFdy(vec4 p);
+
+  // Returns the sum of the absolute derivative in x and y using local differencing for the input argument `p`, i.e., `abs(dFdx(p)) + abs(dFdy(p))`.
+  float fwidth(float p);
+  // Returns the sum of the absolute derivative in x and y using local differencing for the input argument `p`, i.e., `abs(dFdx(p)) + abs(dFdy(p))`.
+  vec2 fwidth(vec2 p);
+  // Returns the sum of the absolute derivative in x and y using local differencing for the input argument `p`, i.e., `abs(dFdx(p)) + abs(dFdy(p))`.
+  vec3 fwidth(vec3 p);
+  // Returns the sum of the absolute derivative in x and y using local differencing for the input argument `p`, i.e., `abs(dFdx(p)) + abs(dFdy(p))`.
+  vec4 fwidth(vec4 p);
+}
+"
+}
