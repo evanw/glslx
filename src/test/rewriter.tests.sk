@@ -966,5 +966,95 @@ void main() {
 }
 ").compactSyntaxTree
 
+# Avoid using the sequence operator with unsupported types in GLSL ES 3.0
+test("
+#version 300 es
+
+struct S1 {};
+struct S2 { float f[1]; };
+
+void fn_void() {}
+int fn_int() { return 0; }
+float[1] fn_array() { return float[1](0.0); }
+S1 fn_struct() { return S1(); }
+S2 fn_struct_array() { return S2(float[1](0.0)); }
+
+void main() {
+  fn_void(); fn_void();
+  fn_int(); fn_int();
+  fn_array(); fn_array();
+  fn_struct(); fn_struct();
+  fn_struct_array(); fn_struct_array();
+}
+", "
+#version 300 es
+
+struct S1 {
+};
+struct S2 {
+  float f[1];
+};
+
+void fn_void() {
+}
+
+int fn_int() {
+  return 0;
+}
+
+float fn_array() {
+  return float(0.0);
+}
+
+S1 fn_struct() {
+  return S1();
+}
+
+S2 fn_struct_array() {
+  return S2(float(0.0));
+}
+
+void main() {
+  fn_void();
+  fn_void();
+  fn_int(), fn_int();
+  fn_array();
+  fn_array();
+  fn_struct(), fn_struct();
+  fn_struct_array();
+  fn_struct_array();
+}
+").compactSyntaxTree
+
+# Avoid using the ternary operator with void in GLSL ES 3.0
+test("
+#version 300 es
+
+void fn_void(int x) {}
+int fn_int(int x) { return x; }
+
+void main(bool x) {
+  if (x) fn_void(1); else fn_void(2);
+  if (x) fn_int(1); else fn_int(2);
+}
+", "
+#version 300 es
+
+void fn_void(int x) {
+}
+
+int fn_int(int x) {
+  return x;
+}
+
+void main(bool x) {
+  if (x)
+    fn_void(1);
+  else
+    fn_void(2);
+  x ? fn_int(1) : fn_int(2);
+}
+").compactSyntaxTree
+
   }
 }

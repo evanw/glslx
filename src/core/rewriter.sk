@@ -1,7 +1,7 @@
 namespace GLSLX.Rewriter {
-  def rewrite(global Node, data CompilerData, options CompilerOptions) {
+  def rewrite(global Node, data CompilerData, options CompilerOptions, version Version) {
     while true {
-      var rewriter = Rewriter.new
+      var rewriter = Rewriter.new(version)
 
       if options.compactSyntaxTree {
         rewriter._compact(global)
@@ -75,6 +75,7 @@ namespace GLSLX.Rewriter {
 }
 
 class GLSLX.Rewriter {
+  const _version Version
   var _codeWasChanged = false
   var _variables List<VariableSymbol> = []
   var _useCounts IntMap<int> = {}
@@ -297,14 +298,18 @@ class GLSLX.Rewriter {
             return
           }
 
-          # Combine with a previous expression, if any (may open up more
-          # compacting opportunities in the future)
+          # Combine with a previous expression, if any (may open
+          # up more compacting opportunities in the future)
           var previous = node.previousSibling
           if previous != null && previous.kind == .EXPRESSION {
-            var value = node.expressionValue.remove
-            node.appendChild(Node.createSequence.appendChild(previous.remove.expressionValue.remove).appendChild(value))
-            _reportCodeChange
-            return
+            if _version == .ES_300 && (previous.expressionValue.resolvedType.isVoidOrContainsArray || node.expressionValue.resolvedType.isVoidOrContainsArray) {
+              # Avoid the GLSL compiler error: "sequence operator is not allowed for void, arrays, or structs containing arrays"
+            } else {
+              var value = node.expressionValue.remove
+              node.appendChild(Node.createSequence.appendChild(previous.remove.expressionValue.remove).appendChild(value).withType(value.resolvedType))
+              _reportCodeChange
+              return
+            }
           }
         }
       }
@@ -396,9 +401,13 @@ class GLSLX.Rewriter {
           var yes = node.ifTrue.expressionValue
           var no = node.ifFalse.expressionValue
           if yes.resolvedType == no.resolvedType {
-            node.replaceWith(Node.createExpression(Node.createHook(node.ifTest.remove, yes.remove, no.remove).withType(yes.resolvedType)))
-            _reportCodeChange
-            return
+            if _version == .ES_300 && yes.resolvedType == .VOID {
+              # Avoid the GLSL compiler error: "ternary operator is not allowed for void"
+            } else {
+              node.replaceWith(Node.createExpression(Node.createHook(node.ifTest.remove, yes.remove, no.remove).withType(yes.resolvedType)))
+              _reportCodeChange
+              return
+            }
           }
         }
 

@@ -130,6 +130,15 @@ namespace GLSLX {
       return !containsSampler && (!containsArray || version == .ES_300)
     }
 
+    def isVoidOrContainsArray bool {
+      # The sequence operator "," cannot necessarily be used with void. The
+      # standard says "Support for the void type with the sequence operator
+      # is not mandated in GLSL ES 3.0". Furthermore the GLSL compiler in
+      # Chrome and Firefox for WebGL 2 also strangely forbids this for both
+      # arrays and structs containing arrays.
+      return self == .VOID || containsArray
+    }
+
     def _setContainsSampler Type {
       containsSampler = true
       return self
