@@ -1,6 +1,19 @@
 namespace GLSLX.Tests {
   def testRewriter {
 
+# Remove empty statements
+test("
+void main() {
+  {;}
+  {0;}
+  {0.0;}
+  {false;}
+}
+", "
+void main() {
+}
+").compactSyntaxTree
+
 # Prefer greater than and less than operators when integer constants can be modified
 test("
 int main(int i) {
@@ -163,6 +176,30 @@ void main(bool a, bool b) {
         return;
   else
     bar();
+}
+").compactSyntaxTree
+
+# Trim empty "else"
+test("
+int main(bool x, bool y) {
+  if (x) return 1; else {}
+  return 0;
+}
+", "
+int main(bool x, bool y) {
+  return x ? 1 : 0;
+}
+").compactSyntaxTree
+
+# Combine nested "if" with empty "else"
+test("
+int main(bool x, bool y) {
+  if (x) if (y) return 1;
+  return 0;
+}
+", "
+int main(bool x, bool y) {
+  return x && y ? 1 : 0;
 }
 ").compactSyntaxTree
 
@@ -373,22 +410,27 @@ void main(bool a) {
 
 # Check constant folding of integers
 test("
-void foo();
+void foo(int x);
+void bar(int x);
 
 void main(int a) {
-  if (+ +a < 0) foo();
-  if (- -a < 0) foo();
-  if (- -1 == 1) foo();
+  if (+ +a < 0) foo(0);
+  if (- -a < 0) foo(1);
+  if (- -1 != 1) foo(2);
+  if (- -1 == 1) foo(3);
+  if (- -1 != 1) foo(4); else bar(4);
+  if (- -1 == 1) foo(5); else bar(5);
 }
 ", "
-void foo();
+void foo(int x);
+void bar(int x);
 
 void main(int a) {
   if (a < 0)
-    foo();
+    foo(0);
   if (a < 0)
-    foo();
-  foo();
+    foo(1);
+  foo(3), bar(4), foo(5);
 }
 ").compactSyntaxTree
 
