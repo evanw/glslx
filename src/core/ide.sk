@@ -369,7 +369,7 @@ namespace GLSLX.IDE {
     const _map StringMap<Completion> = {}
     var completions List<Completion> = []
 
-    def run(global Node, version Version) {
+    def run(global Node) {
       _addTextualCompletion("keyword", "false")
       _addTextualCompletion("keyword", "true")
 
@@ -384,7 +384,7 @@ namespace GLSLX.IDE {
         _addTextualCompletion("struct", type.symbol.name).detail = _tooltipForSymbol(type.symbol)
       }
 
-      if version == .ES_300 {
+      if source.tokenized.version == .ES_300 {
         for type in Type.BUILT_INS_300 {
           _addTextualCompletion("struct", type.symbol.name).detail = _tooltipForSymbol(type.symbol)
         }
@@ -442,10 +442,24 @@ namespace GLSLX.IDE {
 
           # Add global-level keywords when we're outside a function
           if !touchesFunction {
+            _addTextualCompletion("keyword", "@fragment")
+            _addTextualCompletion("keyword", "@vertex")
+            _addTextualCompletion("keyword", "invariant")
             _addTextualCompletion("keyword", "precision")
             _addTextualCompletion("keyword", "uniform")
-            _addTextualCompletion("keyword", "attribute")
-            _addTextualCompletion("keyword", "varying")
+
+            if source.tokenized.version == .ES_300 {
+              _addTextualCompletion("keyword", "centroid")
+              _addTextualCompletion("keyword", "flat")
+              _addTextualCompletion("keyword", "layout")
+              _addTextualCompletion("keyword", "location")
+              _addTextualCompletion("keyword", "smooth")
+            }
+
+            else {
+              _addTextualCompletion("keyword", "attribute")
+              _addTextualCompletion("keyword", "varying")
+            }
           }
         }
 

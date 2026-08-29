@@ -347,7 +347,7 @@ Advanced:
           var index = source.lineColumnToIndex(line, column)
           if index != -1 && result != null {
             var completionQuery = IDE.CompletionQuery.new(source, index)
-            completionQuery.run(result.global, source.tokenized.version)
+            completionQuery.run(result.global)
             completions = completionQuery.completions.map<dynamic>(completion => ({
               "kind": completion.kind,
               "name": completion.name,
