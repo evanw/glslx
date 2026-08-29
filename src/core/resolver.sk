@@ -55,19 +55,19 @@ class GLSLX.Resolver {
       case .VARIABLE {
         var symbol = node.symbol.asVariable
         _maybeMarkAsUnused(symbol)
-        resolveNode(symbol.type)
+        resolveNode(symbol.parsedType)
 
         # Variables must have a type
-        var type = symbol.type.resolvedType
+        var type = symbol.mergedType
         if type == .VOID {
-          _log.semanticErrorBadVariableType(symbol.type.range, type)
+          _log.semanticErrorBadVariableType(symbol.parsedType.range, type)
           type = .ERROR
         }
 
         # Array size
-        if symbol.arrayCount != null {
-          _resolveAsExpression(symbol.arrayCount)
-          checkConversion(symbol.arrayCount, .INT)
+        if symbol.arraySize != null && !symbol.arraySize.isEmptySequence {
+          _resolveAsExpression(symbol.arraySize)
+          checkConversion(symbol.arraySize, .INT)
         }
 
         # Initial value
@@ -136,7 +136,7 @@ class GLSLX.Resolver {
         var symbol = node.symbol.asFunction
         _maybeMarkAsUnused(symbol)
         for argument in symbol.arguments {
-          resolveNode(argument.type)
+          resolveNode(argument.parsedType)
         }
         resolveNode(symbol.returnType)
         if symbol.block != null {
@@ -182,7 +182,7 @@ class GLSLX.Resolver {
         # A struct loses operator "==" and "!=" when it contains a type without those operators
         var resolvedType = symbol.resolvedType
         for variable in symbol.asStruct.variables {
-          var type = variable.type.resolvedType
+          var type = variable.mergedType
           if type.containsArray { resolvedType.containsArray = true }
           if type.containsSampler { resolvedType.containsSampler = true }
         }
@@ -235,8 +235,8 @@ class GLSLX.Resolver {
         var symbol = node.symbol
 
         if symbol.isVariable {
-          resolveNode(symbol.asVariable.type)
-          node.resolvedType = symbol.asVariable.type.resolvedType
+          resolveNode(symbol.asVariable.parsedType)
+          node.resolvedType = symbol.asVariable.mergedType
         }
 
         else if symbol.isFunction && !node.isCallTarget {
@@ -544,8 +544,8 @@ class GLSLX.Resolver {
         for variable in type.symbol.asStruct.variables {
           if variable.name == name {
             node.symbol = variable
-            resolveNode(variable.type)
-            node.resolvedType = variable.type.resolvedType
+            resolveNode(variable.parsedType)
+            node.resolvedType = variable.mergedType
             break
           }
         }
@@ -577,7 +577,7 @@ class GLSLX.Resolver {
         var overloadsBeforeTypeFilter = overloads.clone
         overloads.removeIf(overload => {
           for i in 0..arguments.count {
-            if overload.arguments[i].type.resolvedType != arguments[i].resolvedType {
+            if overload.arguments[i].mergedType != arguments[i].resolvedType {
               return true
             }
           }
@@ -589,7 +589,7 @@ class GLSLX.Resolver {
           overloads = overloadsBeforeTypeFilter
           overloads.removeIf(overload => {
             for i in 0..arguments.count {
-              var from = overload.arguments[i].type.resolvedType
+              var from = overload.arguments[i].mergedType
               var to = arguments[i].resolvedType
               var fromSize = from.componentCount
               var toSize = to.componentCount
@@ -616,7 +616,7 @@ class GLSLX.Resolver {
         arguments.count, overload.name, overload.range)
     } else {
       for i in 0..arguments.count {
-        checkConversion(arguments[i], overload.arguments[i].type.resolvedType)
+        checkConversion(arguments[i], overload.arguments[i].mergedType)
       }
     }
     node.callTarget.symbol = overload
@@ -626,7 +626,7 @@ class GLSLX.Resolver {
   def _resolveArrayConstructor(type Type, node Node, arguments List<Node>) {
     node.resolvedType = type
 
-    if type.arrayCount > 0 && type.arrayCount != arguments.count {
+    if type.arraySize > 0 && type.arraySize != arguments.count {
       _log.semanticErrorBadConstructorCount(node.internalRange, type, arguments.count)
     }
   }
@@ -707,7 +707,7 @@ class GLSLX.Resolver {
 
     # Validate argument types
     for i in 0..variableCount {
-      checkConversion(arguments[i], variables[i].type.resolvedType)
+      checkConversion(arguments[i], variables[i].mergedType)
     }
   }
 

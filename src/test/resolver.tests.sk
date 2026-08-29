@@ -3625,16 +3625,16 @@ void main(float f, S s) {
 ", "
 #version 300 es
 
-float foo(float a) {
-  float b;
+float[5] foo(float[5] a) {
+  float[5] b;
   b = a;
-  b = float(1.0, 2.0, 3.0, 4.0, 5.0);
-  b = float(1.0, 2.0, 3.0, 4.0, 5.0);
+  b = float[](1.0, 2.0, 3.0, 4.0, 5.0);
+  b = float[5](1.0, 2.0, 3.0, 4.0, 5.0);
   b[0] = float(a.length());
   b[1] = float(a == b);
   b[2] = float(a != b);
-  float c = a;
-  float d = a;
+  float[] c = a;
+  float d[] = a;
   return b;
 }
 
@@ -3643,21 +3643,21 @@ struct S {
   int b;
 };
 
-S bar(S a, S p, S q) {
-  S b;
+S[2] bar(S[2] a, S p, S q) {
+  S[2] b;
   b = a;
-  b = S(p, q);
-  b = S(p, q);
+  b = S[](p, q);
+  b = S[2](p, q);
   b[0] = S(float(a.length()), b.length());
   b[1] = S(float(a == b), int(a != b));
-  S c = a;
-  S d = a;
+  S[] c = a;
+  S d[] = a;
   return b;
 }
 
 void main(float f, S s) {
-  foo(float(f, f, f, f, f));
-  bar(S(s, s), s, s);
+  foo(float[5](f, f, f, f, f));
+  bar(S[2](s, s), s, s);
 }
 ")
 

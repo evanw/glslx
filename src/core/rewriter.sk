@@ -158,14 +158,14 @@ class GLSLX.Rewriter {
             _trimSymbols(node.variableInitializer)
           }
 
-          # The array count "int x[1]" is not in the AST and will not be
+          # The array size "int x[1]" is not in the AST and will not be
           # visited during an AST traversal. Special-case it here so constants
           # inside it are still replaced.
-          var arrayCount = node.symbol.asVariable.arrayCount
-          if arrayCount != null && arrayCount.kind == .NAME {
-            var clone = _literalConstantForSymbol(arrayCount.symbol)
+          var arraySize = node.symbol.asVariable.arraySize
+          if arraySize != null && arraySize.kind == .NAME {
+            var clone = _literalConstantForSymbol(arraySize.symbol)
             if clone != null {
-              node.symbol.asVariable.arrayCount = clone
+              node.symbol.asVariable.arraySize = clone
               _reportCodeChange
             }
           }
@@ -674,6 +674,15 @@ class GLSLX.Rewriter {
                 }
               }
             }
+          }
+        }
+
+        # Optimize array lengths
+        else if node.resolvedType == .INT && target.kind == .DOT && target.asString == "length" && node.hasOneChild {
+          var arrayType = target.dotTarget.resolvedType
+          if arrayType.isArrayOf != null && arrayType.arraySize > 0 {
+            node.become(Node.createInt(arrayType.arraySize).withType(.INT))
+            _reportCodeChange
           }
         }
       }

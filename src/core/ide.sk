@@ -72,10 +72,10 @@ namespace GLSLX.IDE {
   }
 
   def _variableTooltipText(variable VariableSymbol) string {
-    var type = variable.type.resolvedType
+    var type = variable.mergedType
     var text = "\(variable.flags.emitAsString(" "))\(type.isArrayOf ?? type) \(variable.name)"
     if type.isArrayOf != null {
-      text += type.arrayCount > 0 ? "[\(type.arrayCount)]" : "[]"
+      text += type.arraySize > 0 ? "[\(type.arraySize)]" : "[]"
     }
     return text
   }
@@ -160,7 +160,7 @@ namespace GLSLX.IDE {
     }
 
     def _visitVariable(variable VariableSymbol) bool {
-      return _visitSymbol(variable) || _visit(variable.type) || _visit(variable.arrayCount) || _visit(variable.value)
+      return _visitSymbol(variable) || _visit(variable.parsedType) || _visit(variable.arraySize) || _visit(variable.value)
     }
 
     def _visitFunction(function FunctionSymbol) bool {
@@ -314,8 +314,8 @@ namespace GLSLX.IDE {
 
     def _visitVariable(variable VariableSymbol) {
       _appendRange(variable.range, variable)
-      _visit(variable.type)
-      _visit(variable.arrayCount)
+      _visit(variable.parsedType)
+      _visit(variable.arraySize)
       _visit(variable.value)
     }
 
@@ -668,7 +668,7 @@ namespace GLSLX.IDE {
                   nextFilteredOverloads.removeIf(overloadIndex => {
                     var fromArguments = overloads[overloadIndex].arguments
                     for i in 0..Math.min(fromArguments.count, arguments.count) {
-                      var from = fromArguments[i].type.resolvedType
+                      var from = fromArguments[i].mergedType
                       var to = arguments[i].resolvedType
                       if to != .ERROR && from != to {
                         return true
@@ -683,7 +683,7 @@ namespace GLSLX.IDE {
                     nextFilteredOverloads.removeIf(overloadIndex => {
                       var fromArguments = overloads[overloadIndex].arguments
                       for i in 0..Math.min(fromArguments.count, arguments.count) {
-                        var from = fromArguments[i].type.resolvedType
+                        var from = fromArguments[i].mergedType
                         var to = arguments[i].resolvedType
                         var fromSize = from.componentCount
                         var toSize = to.componentCount

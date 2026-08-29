@@ -708,6 +708,12 @@ namespace GLSLX {
       return new(.TYPE).withType(type)
     }
 
+    def createArrayType(type Type, arraySize Node) Node {
+      assert(type.isArrayOf != null)
+      assert(arraySize.kind.isExpression)
+      return new(.TYPE).appendChild(arraySize).withType(type)
+    }
+
     def createUnknownConstant(type Type) Node {
       return new(.UNKNOWN_CONSTANT).withType(type)
     }
@@ -929,6 +935,13 @@ namespace GLSLX {
       assert(childCount == 3)
       assert(_lastChild.kind.isExpression)
       return _lastChild
+    }
+
+    def typeArraySize Node {
+      assert(kind == .TYPE)
+      assert(childCount <= 1)
+      assert(_firstChild == null || _firstChild.kind.isExpression)
+      return _firstChild
     }
 
     def asString string {

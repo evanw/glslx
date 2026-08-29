@@ -826,7 +826,7 @@ vec2 main() {
 }
 ").trimSymbols
 
-# Test removing global constants in array count position
+# Test removing global constants in array size position
 test("
 const int COUNT = 100;
 uniform float data[COUNT];
@@ -1044,8 +1044,8 @@ int fn_int() {
   return 0;
 }
 
-float fn_array() {
-  return float(0.0);
+float[1] fn_array() {
+  return float[1](0.0);
 }
 
 S1 fn_struct() {
@@ -1053,7 +1053,7 @@ S1 fn_struct() {
 }
 
 S2 fn_struct_array() {
-  return S2(float(0.0));
+  return S2(float[1](0.0));
 }
 
 void main() {
@@ -1095,6 +1095,23 @@ void main(bool x) {
   else
     fn_void(2);
   x ? fn_int(1) : fn_int(2);
+}
+").compactSyntaxTree
+
+# Inline calls to the array length() method in GLSL ES 3.0
+test("
+#version 300 es
+const int LENGTH;
+float main(bool x[3], bool y[LENGTH]) {
+  return float(x.length()) + float(y.length());
+}
+", "
+#version 300 es
+
+const int LENGTH;
+
+float main(bool x[3], bool y[LENGTH]) {
+  return 3.0 + float(y.length());
 }
 ").compactSyntaxTree
 

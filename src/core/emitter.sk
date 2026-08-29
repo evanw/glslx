@@ -208,7 +208,7 @@ class GLSLX.Emitter {
             _emit("," + _space)
           }
           _emit(argument.flags.emitAsString(_space))
-          _emit(argument.type, .LOWEST)
+          _emit(argument.parsedType, .LOWEST)
           _emit(" ")
           _emit(argument)
         }
@@ -350,9 +350,9 @@ class GLSLX.Emitter {
 
   def _emit(variable VariableSymbol) {
     _emit(variable.name)
-    if variable.arrayCount != null {
+    if variable.arraySize != null {
       _emit("[")
-      _emit(variable.arrayCount, .LOWEST)
+      _emit(variable.arraySize, .LOWEST)
       _emit("]")
     }
     if variable.value != null {
@@ -407,7 +407,13 @@ class GLSLX.Emitter {
       }
 
       case .TYPE {
+        var arraySize = node.typeArraySize
         _emit(node.resolvedType.rootType.symbol.name)
+        if arraySize != null {
+          _emit("[")
+          _emit(arraySize, .LOWEST)
+          _emit("]")
+        }
       }
 
       case .BOOL {

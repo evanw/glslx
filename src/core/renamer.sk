@@ -83,7 +83,7 @@ class GLSLX.Renamer {
     switch node.kind {
       case .VARIABLE {
         var variable = node.symbol.asVariable
-        _scanForSymbols(variable.type)
+        _scanForSymbols(variable.parsedType)
         if variable.value != null {
           _scanForSymbols(variable.value)
         }
@@ -99,7 +99,7 @@ class GLSLX.Renamer {
         _scanForSymbols(function.returnType)
         for argument in function.arguments {
           _recordSymbol(argument).useCount++
-          _scanForSymbols(argument.type)
+          _scanForSymbols(argument.parsedType)
         }
         if function.block != null {
           _scanForSymbols(function.block)

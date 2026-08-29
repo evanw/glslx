@@ -202,8 +202,8 @@ namespace GLSLX.Parser {
         return Node.createParseError.withRange(context.spanSince(token.range))
       }
 
-      # Automatically fill in the omitted array count for array constructors
-      if left.kind == .TYPE && left.resolvedType.isArrayOf != null && left.resolvedType.arrayCount == ARRAY_COUNT_OMITTED {
+      # Automatically fill in the omitted array size for array constructors
+      if left.kind == .TYPE && left.resolvedType.isArrayOf != null && left.typeArraySize.isEmptySequence {
         left.resolvedType = left.resolvedType.isArrayOf.arrayType(node.childCount - 1)
       }
 
@@ -1055,47 +1055,102 @@ namespace GLSLX.Parser {
 
     context.next
 
-    # Parse an optional array length
-    if context.version == .ES_300 && context.eat(.LEFT_BRACKET) {
-      if context.eat(.RIGHT_BRACKET) {
-        type = type.arrayType(ARRAY_COUNT_OMITTED)
-      } else {
-        var arrayCount = context.pratt.parse(context, .LOWEST)
-        if arrayCount == null || !context.expect(.RIGHT_BRACKET) {
-          return null
+    # Parse an optional array size
+    if context.version == .ES_300 {
+      const arraySize = parseOptionalArraySize(context, true, true)
+      if arraySize != null {
+        if arraySize == .ERROR {
+          type = .ERROR
+        } else {
+          return Node.createArrayType(type.arrayType(arraySize.value), arraySize.node).withRange(context.spanSince(token.range))
         }
-
-        # The array size must be resolved immediately
-        var count = ARRAY_COUNT_UNKNOWN
-        context.resolver.resolveNode(arrayCount)
-        context.resolver.checkConversion(arrayCount, .INT)
-        if arrayCount.resolvedType != .ERROR {
-          var folded = Folder.fold(arrayCount)
-          if folded == null {
-            context.log.syntaxErrorConstantRequired(arrayCount.range)
-          } else if folded.kind == .INT {
-            var value = folded.asInt
-            if value < 1 {
-              context.log.syntaxErrorInvalidArraySize(arrayCount.range, value)
-            } else {
-              count = value
-            }
-          }
-        }
-        type = type.arrayType(count)
-      }
-
-      # Multidimensional arrays are not supported
-      while context.peek(.LEFT_BRACKET) {
-        token = context.next
-        if !context.peek(.RIGHT_BRACKET) && context.pratt.parse(context, .LOWEST) == null || !context.expect(.RIGHT_BRACKET) {
-          return null
-        }
-        context.log.syntaxErrorMultidimensionalArray(context.spanSince(token.range))
       }
     }
 
     return Node.createType(type).withRange(context.spanSince(token.range))
+  }
+
+  class ArraySize {
+    const node Node
+    const value int
+  }
+
+  namespace ArraySize {
+    const ERROR = ArraySize.new(null, -1)
+  }
+
+  def parseOptionalArraySize(context ParserContext, allowEmpty bool, allowFull bool) ArraySize {
+    if !allowFull {
+      parseMultidimensionalArray(context)
+      return null
+    }
+
+    # Parse an optional array size
+    var token = context.current
+    if !context.eat(.LEFT_BRACKET) {
+      return null
+    }
+
+    var node Node
+    var value = 0
+
+    # Handle an omitted array size
+    if context.eat(.RIGHT_BRACKET) {
+      if !allowEmpty {
+        context.log.syntaxErrorMissingArraySize(context.spanSince(token.range))
+        parseMultidimensionalArray(context)
+        return .ERROR
+      }
+
+      # Use a placeholder for an omitted array size
+      node = Node.createSequence
+    }
+
+    else {
+      node = context.pratt.parse(context, .LOWEST)
+      if node == null || !context.expect(.RIGHT_BRACKET) {
+        return .ERROR
+      }
+
+      # The array size must be resolved immediately
+      context.resolver.resolveNode(node)
+      context.resolver.checkConversion(node, .INT)
+      if node.resolvedType != .ERROR {
+        var folded = Folder.fold(node)
+        if folded == null {
+          context.log.syntaxErrorConstantRequired(node.range)
+        } else if folded.kind == .INT {
+          value = folded.asInt
+          if value < 1 {
+            context.log.syntaxErrorInvalidArraySize(node.range, value)
+            value = 0
+          }
+        }
+      }
+
+      # Multidimensional arrays are not supported
+      if parseMultidimensionalArray(context) {
+        return .ERROR
+      }
+    }
+
+    return ArraySize.new(node, value)
+  }
+
+  def parseMultidimensionalArray(context ParserContext) bool {
+    if !context.peek(.LEFT_BRACKET) {
+      return false
+    }
+    while true {
+      var token = context.next
+      if !context.peek(.RIGHT_BRACKET) && context.pratt.parse(context, .LOWEST) == null || !context.expect(.RIGHT_BRACKET) {
+        return true
+      }
+      context.log.syntaxErrorMultidimensionalArray(context.spanSince(token.range))
+      if !context.peek(.LEFT_BRACKET) {
+        return true
+      }
+    }
   }
 
   def parseFunction(flags SymbolFlags, type Node, name Range, context ParserContext, comments List<string>) Node {
@@ -1134,14 +1189,11 @@ namespace GLSLX.Parser {
         # Create the argument
         var argument = VariableSymbol.new(context.compilationData.nextSymbolID, argumentName, argumentName.toString, context.scope, .ARGUMENT)
         argument.flags |= argumentFlags
-        argument.type = argumentType
+        argument.parsedType = argumentType
+        argument.mergedType = argumentType.resolvedType
         function.arguments.append(argument)
         tryToDefineUniquelyInScope(context, argument)
-
-        # Array size
-        if !parseArraySize(context, argument) {
-          return null
-        }
+        parseArraySizeAfterSymbol(context, argument)
 
         # Parse another argument?
         if !context.eat(.COMMA) {
@@ -1211,61 +1263,16 @@ namespace GLSLX.Parser {
     return Node.createFunction(function).withRange(context.spanSince(type.range))
   }
 
-  def parseArraySize(context ParserContext, variable VariableSymbol) bool {
-    var token = context.current
-
-    if token.kind == .LEFT_BRACKET {
-      var variableType = variable.type.resolvedType
-      if variableType.isArrayOf == null {
-        context.next
-
-        # The "[]" syntax isn't valid but skip over it and recover
-        if context.eat(.RIGHT_BRACKET) {
-          if context.version == .ES_300 {
-            variable.type = Node.createType(variableType.arrayType(ARRAY_COUNT_OMITTED)).withRange(variable.type.range)
-          } else {
-            context.log.syntaxErrorMissingArraySize(context.spanSince(token.range))
-          }
-          return true
-        }
-
-        variable.arrayCount = context.pratt.parse(context, .LOWEST)
-        if variable.arrayCount == null || !context.expect(.RIGHT_BRACKET) {
-          return false
-        }
-
-        # The array size must be resolved immediately
-        var count = ARRAY_COUNT_UNKNOWN
-        context.resolver.resolveNode(variable.arrayCount)
-        context.resolver.checkConversion(variable.arrayCount, .INT)
-        if variable.arrayCount.resolvedType != .ERROR {
-          var folded = Folder.fold(variable.arrayCount)
-          if folded == null {
-            context.log.syntaxErrorConstantRequired(variable.arrayCount.range)
-          } else if folded.kind == .INT {
-            var value = folded.asInt
-            if value < 1 {
-              context.log.syntaxErrorInvalidArraySize(variable.arrayCount.range, value)
-            } else {
-              count = value
-            }
-          }
-        }
-
-        variable.type = Node.createType(variableType.arrayType(count)).withRange(variable.type.range)
-      }
-
-      # Multidimensional arrays are not supported
-      while context.peek(.LEFT_BRACKET) {
-        token = context.next
-        if !context.peek(.RIGHT_BRACKET) && context.pratt.parse(context, .LOWEST) == null || !context.expect(.RIGHT_BRACKET) {
-          return false
-        }
-        context.log.syntaxErrorMultidimensionalArray(context.spanSince(token.range))
+  def parseArraySizeAfterSymbol(context ParserContext, variable VariableSymbol) {
+    const arraySize = parseOptionalArraySize(context, variable.kind != .ARGUMENT, variable.mergedType.isArrayOf == null)
+    if arraySize == .ERROR {
+      variable.mergedType = .ERROR
+    } else if arraySize != null {
+      variable.arraySize = arraySize.node
+      if variable.mergedType != .ERROR {
+        variable.mergedType = variable.mergedType.arrayType(arraySize.value)
       }
     }
-
-    return true
   }
 
   def parseVariables(flags int, type Node, name Range, context ParserContext, comments List<string>) Node {
@@ -1277,12 +1284,8 @@ namespace GLSLX.Parser {
         .LOCAL)
       symbol.flags |= context.flags | flags
       symbol.comments = comments
-      symbol.type = type
-
-      # Array size
-      if !parseArraySize(context, symbol) {
-        return null
-      }
+      symbol.parsedType = type
+      parseArraySizeAfterSymbol(context, symbol)
 
       # Initial value
       var assign = context.current.range
@@ -1303,13 +1306,17 @@ namespace GLSLX.Parser {
         # Constants must be resolved immediately
         context.resolver.resolveNode(variable)
       } else {
-        # Try to eagerly resolve omitted array counts
-        context.resolver.resolveNode(symbol.type)
-        var resolvedType = symbol.type.resolvedType
-        if resolvedType.isArrayOf != null && resolvedType.arrayCount == ARRAY_COUNT_OMITTED && value != null {
-          context.resolver.resolveNode(value)
-          if value.resolvedType.isArrayOf != null && value.resolvedType.arrayCount > 0 {
-            symbol.type.resolvedType = resolvedType.isArrayOf.arrayType(value.resolvedType.arrayCount)
+        # Try to eagerly resolve omitted array sizes
+        context.resolver.resolveNode(symbol.parsedType)
+        var mergedType = symbol.mergedType
+        if mergedType.isArrayOf != null && value != null {
+          var typeArraySize = symbol.parsedType.typeArraySize
+          var symbolArraySize = symbol.arraySize
+          if typeArraySize != null && typeArraySize.isEmptySequence || symbolArraySize != null && symbolArraySize.isEmptySequence {
+            context.resolver.resolveNode(value)
+            if value.resolvedType.isArrayOf != null && value.resolvedType.arraySize > 0 {
+              symbol.mergedType = mergedType.isArrayOf.arrayType(value.resolvedType.arraySize)
+            }
           }
         }
       }

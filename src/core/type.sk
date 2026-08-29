@@ -1,11 +1,8 @@
 namespace GLSLX {
-  const ARRAY_COUNT_OMITTED = -1
-  const ARRAY_COUNT_UNKNOWN = -2
-
   class Type {
     const symbol Symbol
     const isArrayOf Type
-    const arrayCount int
+    const arraySize int
     var containsArray = false
     var containsSampler = false
     var _arrayTypes IntMap<Type> = null
@@ -19,7 +16,7 @@ namespace GLSLX {
 
     # A count of "0" means an array with an unknown size
     def arrayType(count int) Type {
-      assert(count > 0 || count == ARRAY_COUNT_OMITTED || count == ARRAY_COUNT_UNKNOWN)
+      assert(count >= 0)
       assert(isArrayOf == null)
       _arrayTypes ?= {}
       var arrayType = _arrayTypes.get(count, null)
@@ -33,7 +30,7 @@ namespace GLSLX {
 
     def toString string {
       if isArrayOf != null {
-        return arrayCount > 0 ? "\(isArrayOf)[\(arrayCount)]" : "\(isArrayOf)[]"
+        return arraySize > 0 ? "\(isArrayOf)[\(arraySize)]" : "\(isArrayOf)[]"
       }
       return symbol.name
     }
@@ -44,7 +41,7 @@ namespace GLSLX {
         case BVEC2, VEC2, IVEC2, UVEC2, MAT2, MAT2X3, MAT2X4 { return 2 }
         case BVEC3, VEC3, IVEC3, UVEC3, MAT3, MAT3X2, MAT3X4 { return 3 }
         case BVEC4, VEC4, IVEC4, UVEC4, MAT4, MAT4X2, MAT4X3 { return 4 }
-        default { return arrayCount }
+        default { return arraySize }
       }
     }
 

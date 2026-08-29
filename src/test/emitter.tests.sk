@@ -425,5 +425,24 @@ export const GLSLX_NAME_MATERIAL_COLOR = \"d\"
 export const GLSLX_NAME_MATERIAL_TEXTURE = \"e\"
 ").removeWhitespace.renameAll.trimSymbols.generateOutput(.JS)
 
+# Test arrays in GLSL ES 3.0
+test("
+#version 300 es
+
+export float[2+3] main(float[2+3] a, float b[2+3]) {
+  float[2+3] c;
+  float d[2+3];
+  return a;
+}
+", "
+#version 300 es
+
+float[2 + 3] main(float[2 + 3] a, float b[2 + 3]) {
+  float[2 + 3] c;
+  float d[2 + 3];
+  return a;
+}
+")
+
   }
 }

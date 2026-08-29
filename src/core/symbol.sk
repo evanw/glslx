@@ -151,7 +151,7 @@ namespace GLSLX {
         return false
       }
       for i in 0..arguments.count {
-        if arguments[i].type.resolvedType != function.arguments[i].type.resolvedType {
+        if arguments[i].mergedType != function.arguments[i].mergedType {
           return false
         }
       }
@@ -168,9 +168,18 @@ namespace GLSLX {
 
   class VariableSymbol : Symbol {
     var kind VariableKind
-    var type Node = null
+    var parsedType Node = null
     var node Node = null
-    var arrayCount Node = null
+    var arraySize Node = null
+    var _mergedType Type = null
+
+    # This represents "parsedType" merged with "arraySize" and defaults to "parsedType" unless overwritten by the resolver
+    def mergedType Type {
+      return _mergedType ?? parsedType.resolvedType
+    }
+    def mergedType=(type Type) {
+      _mergedType = type
+    }
 
     def value Node {
       return node?.variableInitializer
