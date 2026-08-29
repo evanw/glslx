@@ -3449,12 +3449,12 @@ int main(float a[5], float b, vec2 c) {
 <stdin>:3:25: error: Cannot find \"length\" on type \"float\"
   return a.length() + b.length() + c.length() + a.length(0) + a.length;
                         ~~~~~~
-<stdin>:3:38: error: Invalid swizzle \"length\" on type \"vec2\"
+<stdin>:3:38: error: Cannot find \"length\" on type \"vec2\"
   return a.length() + b.length() + c.length() + a.length(0) + a.length;
                                      ~~~~~~
-<stdin>:3:51: error: Cannot find \"length\" on type \"float[5]\"
+<stdin>:3:57: error: Expected 0 arguments but found 1 argument when calling function \"length\"
   return a.length() + b.length() + c.length() + a.length(0) + a.length;
-                                                  ~~~~~~
+                                                        ~~~
 <stdin>:3:65: error: Cannot find \"length\" on type \"float[5]\"
   return a.length() + b.length() + c.length() + a.length(0) + a.length;
                                                                 ~~~~~~

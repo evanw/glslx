@@ -459,17 +459,24 @@ class GLSLX.Resolver {
   def _resolveCall(node Node) {
     var callTarget = node.callTarget
 
-    # Special-case array length
-    if _version == .ES_300 && node.hasOneChild && callTarget.kind == .DOT && callTarget.asString == "length" {
+    # Special-case the "length" method
+    if _version == .ES_300 && callTarget.kind == .DOT && callTarget.asString == "length" {
       var dotTarget = callTarget.dotTarget
       _resolveAsExpression(dotTarget)
-      if dotTarget.resolvedType.isArrayOf != null {
-        node.resolvedType = .INT
-        return
-      }
-    }
 
-    resolveNode(callTarget)
+      # The target must be an array type
+      var type = dotTarget.resolvedType
+      if type.isArrayOf != null {
+        var arrayLength = _data.arrayLengthMethod
+        callTarget.resolvedType = arrayLength.resolvedType
+        node.symbol = arrayLength
+      } else {
+        _log.semanticErrorBadMember(callTarget.internalRange, type, callTarget.asString)
+        callTarget.resolvedType = .ERROR
+      }
+    } else {
+      resolveNode(callTarget)
+    }
 
     var type = callTarget.resolvedType
     var symbol = type.symbol

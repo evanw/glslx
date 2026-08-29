@@ -424,5 +424,6 @@ export const GLSLX_NAME_POSITION = \"c\"
 export const GLSLX_NAME_MATERIAL_COLOR = \"d\"
 export const GLSLX_NAME_MATERIAL_TEXTURE = \"e\"
 ").removeWhitespace.renameAll.trimSymbols.generateOutput(.JS)
+
   }
 }
