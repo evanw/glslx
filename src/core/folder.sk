@@ -233,6 +233,14 @@ namespace GLSLX.Folder {
   def _foldCall(node Node) Node {
     var target = node.callTarget
 
+    # Handle the array length method
+    if node.resolvedType == .INT && target.kind == .DOT && target.asString == "length" && node.hasOneChild {
+      var arrayType = target.dotTarget.resolvedType
+      if arrayType.isArrayOf != null && arrayType.arrayCount > 0 {
+        return Node.createInt(arrayType.arrayCount).withType(.INT)
+      }
+    }
+
     # Only constructor calls are considered constants
     if target.kind != .TYPE {
       return null

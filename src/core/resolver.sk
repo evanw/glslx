@@ -463,11 +463,7 @@ class GLSLX.Resolver {
     if _version == .ES_300 && node.hasOneChild && callTarget.kind == .DOT && callTarget.asString == "length" {
       var dotTarget = callTarget.dotTarget
       _resolveAsExpression(dotTarget)
-      var type = dotTarget.resolvedType
-      if type.isArrayOf != null {
-        if type.arrayCount > 0 {
-          node.become(Node.createInt(type.arrayCount).withRange(node.range))
-        }
+      if dotTarget.resolvedType.isArrayOf != null {
         node.resolvedType = .INT
         return
       }

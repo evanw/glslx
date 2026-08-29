@@ -3472,7 +3472,7 @@ float main(float a[5]) {
 #version 300 es
 
 float main(float a[5]) {
-  float b[5];
+  float b[a.length()];
   b[0] = 1.0;
   return b[0];
 }
@@ -3630,7 +3630,7 @@ float foo(float a) {
   b = a;
   b = float(1.0, 2.0, 3.0, 4.0, 5.0);
   b = float(1.0, 2.0, 3.0, 4.0, 5.0);
-  b[0] = float(5);
+  b[0] = float(a.length());
   b[1] = float(a == b);
   b[2] = float(a != b);
   float c = a;
@@ -3648,7 +3648,7 @@ S bar(S a, S p, S q) {
   b = a;
   b = S(p, q);
   b = S(p, q);
-  b[0] = S(float(2), 2);
+  b[0] = S(float(a.length()), b.length());
   b[1] = S(float(a == b), int(a != b));
   S c = a;
   S d = a;
