@@ -254,6 +254,9 @@ class GLSLX.Rewriter {
     switch node.kind {
       case .VARIABLE {
         var variable = node.symbol.asVariable
+        if variable.arraySize != null {
+          _compact(variable.arraySize)
+        }
         if variable.value != null {
           _compact(variable.value)
         }
@@ -356,6 +359,13 @@ class GLSLX.Rewriter {
 
       case .FUNCTION {
         var function = node.symbol.asFunction
+        _compact(function.returnType)
+        for argument in function.arguments {
+          _compact(argument.parsedType)
+          if argument.arraySize != null {
+            _compact(argument.arraySize)
+          }
+        }
         if function.block != null {
           _compact(function.block)
         }

@@ -1115,5 +1115,23 @@ float main(bool x[3], bool y[LENGTH]) {
 }
 ").compactSyntaxTree
 
+# Test array size minification in GLSL ES 3.0
+test("
+#version 300 es
+export float[2+3] main(float[2+3] a, float b[2+3]) {
+  float[2+3] c;
+  float d[2+3];
+  return a;
+}
+", "
+#version 300 es
+
+float[5] main(float[5] a, float b[5]) {
+  float[5] c;
+  float d[5];
+  return a;
+}
+").compactSyntaxTree
+
   }
 }
