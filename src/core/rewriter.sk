@@ -94,6 +94,9 @@ class GLSLX.Rewriter {
     switch node.kind {
       case .VARIABLE {
         var variable = node.symbol.asVariable
+        if variable.arraySize != null {
+          _scanSymbols(variable.arraySize)
+        }
         if variable.value != null {
           _scanSymbols(variable.value)
         }
@@ -107,6 +110,13 @@ class GLSLX.Rewriter {
       case .FUNCTION {
         var function = node.symbol.asFunction
         _useCounts[function.id] = 0
+        _scanSymbols(function.returnType)
+        for argument in function.arguments {
+          _scanSymbols(argument.parsedType)
+          if argument.arraySize != null {
+            _scanSymbols(argument.arraySize)
+          }
+        }
         if function.block != null {
           _scanSymbols(function.block)
         }

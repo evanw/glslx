@@ -1133,5 +1133,29 @@ float[5] main(float[5] a, float b[5]) {
 }
 ").compactSyntaxTree
 
+# Test array constant retention in GLSL ES 3.0
+test("
+#version 300 es
+const int A, B, C, D, R, U;
+export float[R] main(float[A] a, float b[B]) {
+  float[C] c = a;
+  float d[D] = b;
+  if (a[0] < b[0]) return c;
+  return d;
+}
+", "
+#version 300 es
+
+const int A, B, C, D, R;
+
+float[R] main(float[A] a, float b[B]) {
+  float[C] c = a;
+  float d[D] = b;
+  if (a[0] < b[0])
+    return c;
+  return d;
+}
+").trimSymbols
+
   }
 }
