@@ -327,7 +327,7 @@ namespace GLSLX.Formatter {
           consumeIf(kind => true)
         }
 
-        case .EXTENSION, .VERSION, .INCLUDE, .PRAGMA {
+        case .EXTENSION, .INCLUDE, .PREPROCESSOR_DIRECTIVE, .VERSION {
           consumeIf(kind => true)
           while consumeIf(kind => !hasNewlineBefore(tokenIndex)) {
           }

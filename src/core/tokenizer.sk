@@ -143,9 +143,9 @@ namespace GLSLX {
 
     # Pragmas
     EXTENSION
-    VERSION
     INCLUDE
-    PRAGMA
+    PREPROCESSOR_DIRECTIVE
+    VERSION
 
     # Literals
     FLOAT_LITERAL
@@ -256,11 +256,15 @@ namespace GLSLX.Tokenizer {
 
         # Pragma
         else if c == '#' {
-          var kind = TokenKind.PRAGMA
-          switch part {
-            case "#version" { kind = .VERSION }
-            case "#extension" { kind = .EXTENSION }
-            case "#include" { kind = .INCLUDE }
+          var kind = TokenKind.PREPROCESSOR_DIRECTIVE
+          var j = 1
+          while j < part.count && (part[j] == ' ' || part[j] == '\t') {
+            j += 1
+          }
+          switch part.slice(j) {
+            case "extension" { kind = .EXTENSION }
+            case "include" { kind = .INCLUDE }
+            case "version" { kind = .VERSION }
           }
           tokens.append(Token.new(range, kind, comments))
         }
@@ -346,7 +350,7 @@ namespace GLSLX.Tokenizer {
     "//.*|" + # Single-line comment
     "&&|\\|\\||\\^\\^|\\+\\+|--|<<=?|>>=?|[()[\\]{}\\.,?:;]|[+\\-*/%=!<>&|^~]=?|" + # Operator
     "@?[A-Za-z_][A-Za-z0-9_]*\\b|" + # Identifier
-    "#\\w+\\b|" + # Pragma
+    "#\\s*\\w+\\b|" + # Preprocessor directive
     "\"(?:[^\"\\n\\\\]|\\\\.)*\"?" + # String literal
 
     ")"
