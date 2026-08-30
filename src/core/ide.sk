@@ -446,6 +446,7 @@ namespace GLSLX.IDE {
           if !touchesFunction {
             _addTextualCompletion("keyword", "@fragment")
             _addTextualCompletion("keyword", "@vertex")
+            _addTextualCompletion("keyword", "#version 300 es")
             _addTextualCompletion("keyword", "invariant")
             _addTextualCompletion("keyword", "precision")
             _addTextualCompletion("keyword", "uniform")
