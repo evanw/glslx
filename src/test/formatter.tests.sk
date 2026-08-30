@@ -252,6 +252,21 @@ namespace GLSLX.Tests {
 ")
 
     testFormatter("
+vec3 applyBumpToNormal(vec3 position,vec3 normal,float depth){
+return normalize(cross(
+dFdx(normal*depth)+projectOnto(dFdx(position),normal),
+dFdy(normal*depth)+projectOnto(dFdy(position),normal)
+));
+}
+","vec3 applyBumpToNormal(vec3 position, vec3 normal, float depth) {
+  return normalize(cross(
+    dFdx(normal * depth) + projectOnto(dFdx(position), normal),
+    dFdy(normal * depth) + projectOnto(dFdy(position), normal)
+  ));
+}
+")
+
+    testFormatter("
 if(true){foo();}
 if(true){
 foo();

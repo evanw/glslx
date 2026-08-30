@@ -207,6 +207,9 @@ namespace GLSLX.Formatter {
     var tokenIndex = 0
     var consumeIf fn(fn(TokenKind) bool) bool
 
+    # Don't indent multiple times for multiple nested parentheses with a single inner newline
+    var isWaitingForNewline = false
+
     var increaseIndent = () => {
       nesting++
       nestingAmounts.append(1)
@@ -216,8 +219,11 @@ namespace GLSLX.Formatter {
       nesting -= nestingAmounts.takeLast
     }
 
+    # In the case of "foo(bar( \n ))", this takes the indent from the outer '('
+    # and moves it to the inner ')' instead. That way we'll remove the indent
+    # when the inner ')' is closed and not when the outer ')' is closed.
     var stealPreviousIndent = () => {
-      if !nestingAmounts.isEmpty && nestingAmounts.last > 0 {
+      if isWaitingForNewline && !nestingAmounts.isEmpty && nestingAmounts.last > 0 {
         nestingAmounts.last = 0
         nestingAmounts.append(1)
       } else {
@@ -452,33 +458,26 @@ namespace GLSLX.Formatter {
       consumeIf(kind => kind == .RIGHT_BRACE)
     }
 
-    # Don't indent multiple times for multiple nested parentheses with a single inner newline
-    var isWaitingForNewline = false
-
     var handleParentheses = () => {
-      if isWaitingForNewline {
-        stealPreviousIndent()
-      } else {
-        increaseIndent()
-      }
+      var oldIsWaitingForNewline = isWaitingForNewline
+      stealPreviousIndent()
       isWaitingForNewline = true
       while consumeIf(kind => kind != .RIGHT_PARENTHESIS) {
       }
       decreaseIndent()
       consumeIf(kind => kind == .RIGHT_PARENTHESIS)
+      isWaitingForNewline = oldIsWaitingForNewline
     }
 
     var handleBrackets = () => {
-      if isWaitingForNewline {
-        stealPreviousIndent()
-      } else {
-        increaseIndent()
-      }
+      var oldIsWaitingForNewline = isWaitingForNewline
+      stealPreviousIndent()
       isWaitingForNewline = true
       while consumeIf(kind => kind != .RIGHT_BRACKET) {
       }
       decreaseIndent()
       consumeIf(kind => kind == .RIGHT_BRACKET)
+      isWaitingForNewline = oldIsWaitingForNewline
     }
 
     consumeIf = when => {
@@ -492,8 +491,8 @@ namespace GLSLX.Formatter {
         prevKind == .END_OF_FILE ? "" :
         _formatWhitespace(input.slice(prevEnd, token.range.start), indent, newline)
       tokenIndex++
-      text += newlines
       if newlines != "" {
+        text += newlines
         isStartOfLine = true
         isWaitingForNewline = false
       }
