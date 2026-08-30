@@ -149,6 +149,11 @@ namespace GLSLX.Tests {
     testFormatter("x(y[z(a+\nb)]);", "x(y[z(a +\n  b)]);")
     testFormatter("x(y[z(a+\nb]));", "x(y[z(a +\n  b]));")
 
+    testFormatter("foo(bar(\na,\nb\n));", "foo(bar(\n  a,\n  b\n));")
+    testFormatter("foo(bar(baz(\na,\nb\n)));", "foo(bar(baz(\n  a,\n  b\n)));")
+    testFormatter("foo(bar(\na,\nfoo(bar(\nb,\nc\n))\n));", "foo(bar(\n  a,\n  foo(bar(\n    b,\n    c\n  ))\n));")
+    testFormatter("foo(bar(baz(\na,\nfoo(bar(baz(\nb,\nc\n)))\n)));", "foo(bar(baz(\n  a,\n  foo(bar(baz(\n    b,\n    c\n  )))\n)));")
+
     testFormatter("int x();\nint y();", "int x();\nint y();")
     testFormatter("int x()\n{x();}", "int x()\n{ x(); }")
     testFormatter("int x(\nint y\n){\nx(y);\n}", "int x(\n  int y\n) {\n  x(y);\n}")

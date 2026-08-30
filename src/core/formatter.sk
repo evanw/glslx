@@ -202,9 +202,28 @@ namespace GLSLX.Formatter {
     var prevKind = TokenKind.END_OF_FILE
     var prevEnd = 0
     var nesting = 0
+    var nestingAmounts List<int> = []
     var isStartOfLine = true
     var tokenIndex = 0
     var consumeIf fn(fn(TokenKind) bool) bool
+
+    var increaseIndent = () => {
+      nesting++
+      nestingAmounts.append(1)
+    }
+
+    var decreaseIndent = () => {
+      nesting -= nestingAmounts.takeLast
+    }
+
+    var stealPreviousIndent = () => {
+      if !nestingAmounts.isEmpty && nestingAmounts.last > 0 {
+        nestingAmounts.last = 0
+        nestingAmounts.append(1)
+      } else {
+        increaseIndent()
+      }
+    }
 
     var hasNewlineBefore = (index int) bool => {
       return !_isAllWhitespace(input.slice(tokens[index - 1].range.end, tokens[index].range.start))
@@ -231,34 +250,44 @@ namespace GLSLX.Formatter {
 
     # Scan over non-block bodies until the ending ";"
     var handleBody = () => {
-      var intended = 1
+      var isIndented = true
       for i = tokenIndex; i < tokens.count; i++ {
         switch tokens[i].kind {
           # A comment doesn't count as a body
           case .SINGLE_LINE_COMMENT, .MULTI_LINE_COMMENT { continue }
-          case .LEFT_BRACE { intended = 0 }
+          case .LEFT_BRACE { isIndented = false }
         }
         break
       }
 
-      nesting += intended
+      if isIndented {
+        increaseIndent()
+      }
       handleStatement()
-      nesting -= intended
+      if isIndented {
+        decreaseIndent()
+      }
     }
 
     # "if" or "for" or "while"
     var handleBranch = () bool => {
       # Double-indent in parentheses unless they are followed by a newline
-      var doubleIndent = 1
+      var isDoubleIndented = true
       if tokens[tokenIndex].kind == .LEFT_PARENTHESIS && hasNewlineBefore(tokenIndex + 1) {
-        doubleIndent = 0
+        isDoubleIndented = false
       }
-      nesting += doubleIndent
+      if isDoubleIndented {
+        increaseIndent()
+      }
       if !consumeIf(kind => kind == .LEFT_PARENTHESIS) {
-        nesting -= doubleIndent
+        if isDoubleIndented {
+          decreaseIndent()
+        }
         return false
       }
-      nesting -= doubleIndent
+      if isDoubleIndented {
+        decreaseIndent()
+      }
       return true
     }
 
@@ -314,14 +343,14 @@ namespace GLSLX.Formatter {
           if tokens[tokenIndex].kind == .IF {
             var isOnNewLine = hasNewlineBefore(tokenIndex)
             if isOnNewLine {
-              nesting++
+              increaseIndent()
             }
             consumeIf(kind => true)
             if handleBranch() {
               handleBody()
             }
             if isOnNewLine {
-              nesting--
+              decreaseIndent()
             }
           } else {
             handleBody()
@@ -361,7 +390,7 @@ namespace GLSLX.Formatter {
             while true {
               if !isMultiLine && hasNewlineBefore(tokenIndex) {
                 isMultiLine = true
-                nesting++
+                increaseIndent()
               }
               if !consumeIf(kind => !isStatementEnd(kind, false)) {
                 break
@@ -369,7 +398,7 @@ namespace GLSLX.Formatter {
             }
             consumeIf(kind => kind == .SEMICOLON)
             if isMultiLine {
-              nesting--
+              decreaseIndent()
             }
           }
         }
@@ -413,10 +442,10 @@ namespace GLSLX.Formatter {
       if isMultiLine {
         forceMultiLine = tokenIndex
       }
-      nesting++
+      increaseIndent()
       while handleStatement() {
       }
-      nesting--
+      decreaseIndent()
       if isMultiLine {
         forceMultiLine = tokenIndex
       }
@@ -427,30 +456,28 @@ namespace GLSLX.Formatter {
     var isWaitingForNewline = false
 
     var handleParentheses = () => {
-      var shouldNest = !isWaitingForNewline
-      isWaitingForNewline = true
-      if shouldNest {
-        nesting++
+      if isWaitingForNewline {
+        stealPreviousIndent()
+      } else {
+        increaseIndent()
       }
+      isWaitingForNewline = true
       while consumeIf(kind => kind != .RIGHT_PARENTHESIS) {
       }
-      if shouldNest {
-        nesting--
-      }
+      decreaseIndent()
       consumeIf(kind => kind == .RIGHT_PARENTHESIS)
     }
 
     var handleBrackets = () => {
-      var shouldNest = !isWaitingForNewline
-      isWaitingForNewline = true
-      if shouldNest {
-        nesting++
+      if isWaitingForNewline {
+        stealPreviousIndent()
+      } else {
+        increaseIndent()
       }
+      isWaitingForNewline = true
       while consumeIf(kind => kind != .RIGHT_BRACKET) {
       }
-      if shouldNest {
-        nesting--
-      }
+      decreaseIndent()
       consumeIf(kind => kind == .RIGHT_BRACKET)
     }
 
