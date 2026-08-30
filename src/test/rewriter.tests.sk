@@ -1133,6 +1133,27 @@ float[5] main(float[5] a, float b[5]) {
 }
 ").compactSyntaxTree
 
+# Test array constant inlining in GLSL ES 3.0
+test("
+#version 300 es
+const int A = 1, B = 2, C = 1, D = 2, R = 1;
+export float[R] main(float[A] a, float b[B]) {
+  float[C] c = a;
+  float d[D] = b;
+  if (a[0] < b[0]) d[0] = c[0];
+  return c;
+}
+", "
+#version 300 es
+
+float[1] main(float[1] a, float b[2]) {
+  float[1] c = a;
+  float d[2] = b;
+  a[0] < b[0] ? d[0] = c[0] : 0.0;
+  return c;
+}
+").compactSyntaxTree.trimSymbols
+
 # Test array constant retention in GLSL ES 3.0
 test("
 #version 300 es

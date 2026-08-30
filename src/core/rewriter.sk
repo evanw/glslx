@@ -187,8 +187,17 @@ class GLSLX.Rewriter {
         if _isUnused(function) && !function.isExported {
           node.remove
           _reportCodeChange
-        } else if function.block != null {
-          _trimSymbols(function.block)
+        } else {
+          _trimSymbols(function.returnType)
+          for argument in function.arguments {
+            _trimSymbols(argument.parsedType)
+            if argument.arraySize != null {
+              _trimSymbols(argument.arraySize)
+            }
+          }
+          if function.block != null {
+            _trimSymbols(function.block)
+          }
         }
       }
 
@@ -212,7 +221,7 @@ class GLSLX.Rewriter {
       case .NAME {
         var clone = _literalConstantForSymbol(node.symbol)
         if clone != null {
-          node.replaceWith(clone)
+          node.become(clone)
           _reportCodeChange
         }
       }
