@@ -337,6 +337,11 @@ namespace GLSLX.Formatter {
           var couldBeType = tokens[tokenIndex].kind.isIdentifierOrType
           consumeIf(kind => true)
 
+          # Handle array return types
+          if couldBeType {
+            consumeIf(kind => kind == .LEFT_BRACKET)
+          }
+
           # Handle function declarations
           if couldBeType &&
               consumeIf(kind => kind == .IDENTIFIER) &&

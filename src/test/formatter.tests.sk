@@ -264,5 +264,22 @@ layout(location = 2) out float alpha;
 void fragmentShader() {}
 ")
 
+    testFormatter("
+#version 300 es
+float[1]foo() {
+return float[1](0.0);
+}
+float[2]bar() {
+return float[2](0.0, 0.0);
+}
+", "#version 300 es
+float[1] foo() {
+  return float[1](0.0);
+}
+float[2] bar() {
+  return float[2](0.0, 0.0);
+}
+")
+
   }
 }
