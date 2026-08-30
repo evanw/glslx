@@ -129,15 +129,19 @@ void main() {
 testIDE("
 #version 300 es
 int main() {
-  int array[3];
+  int array[3] = int[3](1, 2, 3);
   return array.length();
 }
 ", "
 ", (ide, expect) => {
+  expect("", "\n".join(ide.signatureQuery(2, 24))) # Check that we avoid a crash
   expect("int array[3];", ide.tooltipQuery(3, 9))
   expect("int array[3];", ide.tooltipQuery(3, 14))
   expect("int length();", ide.tooltipQuery(3, 15))
   expect("int length();", ide.tooltipQuery(3, 21))
+  expect("int length();", "\n".join(ide.signatureQuery(3, 22)))
+  expect("method:length", "\n".join(ide.completionQuery(3, 15)))
+  expect("method:length", "\n".join(ide.completionQuery(3, 21)))
 })
 
 # Check unused symbol detection for local symbols

@@ -33,14 +33,11 @@ namespace GLSLX {
 
   class CompilerData {
     const currentExtensions StringMap<ExtensionBehavior> = {}
-    const arrayLengthMethod FunctionSymbol
     var fileAccess fn(string, string) Source
     var _nextSymbolID = 0
 
     def new(fileAccess fn(string, string) Source) {
       self.fileAccess = fileAccess
-      arrayLengthMethod = FunctionSymbol.new(nextSymbolID, null, "length", null)
-      arrayLengthMethod.returnType = Node.createType(.INT)
     }
 
     def nextSymbolID int {

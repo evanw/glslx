@@ -100,6 +100,18 @@ namespace GLSLX.Tests {
       }
       return name + ": used"
     }
+
+    def completionQuery(line int, column int) List<string> {
+      var query = IDE.CompletionQuery.new(_source, _source.lineColumnToIndex(line, column))
+      query.run(_result.global)
+      return query.completions.map<string>(c => "\(c.kind):\(c.name)")
+    }
+
+    def signatureQuery(line int, column int) List<string> {
+      var query = IDE.SignatureQuery.new(_source, _source.lineColumnToIndex(line, column))
+      query.run(_result.global)
+      return query.signatures.map<string>(s => s.text)
+    }
   }
 
   class FormatterTest : Unit.Test {

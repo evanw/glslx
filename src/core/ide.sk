@@ -399,18 +399,20 @@ namespace GLSLX.IDE {
 
     def _addTextualCompletion(kind string, name string) Completion {
       var completion Completion
-      if name in _map {
-        completion = _map[name]
+      var key = "\(kind):\(name)"
+      if key in _map {
+        completion = _map[key]
       } else {
         completion = Completion.new(kind, name)
         completions.append(completion)
-        _map[name] = completion
+        _map[key] = completion
       }
       return completion
     }
 
     def _addSymbolCompletion(symbol Symbol) {
       const kind =
+        symbol == FunctionSymbol.arrayLengthMethod ? "method" :
         symbol.isFunction ? "function" :
         symbol.isStruct ? "struct" :
         "variable"
@@ -542,6 +544,10 @@ namespace GLSLX.IDE {
                     _addSymbolCompletion(variable)
                   }
                 }
+
+                else if type.isArrayOf != null {
+                  _addSymbolCompletion(FunctionSymbol.arrayLengthMethod)
+                }
               }
             }
 
@@ -611,124 +617,126 @@ namespace GLSLX.IDE {
             var firstArgument = callTarget.nextSibling
             var type = callTarget.resolvedType
             var symbol = type.symbol
-            var arguments List<Node> = []
 
-            for arg = firstArgument; arg != null; arg = arg.nextSibling {
-              arguments.append(arg)
-            }
-
-            if symbol.isFunction {
-              var overloads List<FunctionSymbol> = []
-
-              # Collect all relevant overloads but ignore forward-declared functions that also have an implementation
-              for overload = symbol.asFunction; overload != null; overload = overload.previousOverload {
-                if !(overload.sibling in overloads) {
-                  overloads.append(overload)
-                }
+            if symbol != null {
+              var arguments List<Node> = []
+              for arg = firstArgument; arg != null; arg = arg.nextSibling {
+                arguments.append(arg)
               }
 
-              # Show overloads in source order
-              overloads.reverse
+              if symbol.isFunction {
+                var overloads List<FunctionSymbol> = []
 
-              for overload in overloads {
-                signatures.append(Signature.new(
-                  _tooltipForSymbol(overload),
-                  overload.arguments.map<string>(arg => _variableTooltipText(arg)),
-                  _leadingCommentsToMarkdown(overload.comments)
-                ))
-              }
-
-              # Pick an active overload
-              if !signatures.isEmpty {
-                activeSignature = 0
-
-                # Start off with all overloads
-                var filteredOverloads List<int> = []
-                for i = 0; i < overloads.count; i++ {
-                  filteredOverloads.append(i)
-                }
-
-                # Try filtering by argument count
-                for limit = arguments.count; limit > 0; limit-- {
-                  var nextFilteredOverloads List<int> = []
-                  for index in filteredOverloads {
-                    if overloads[index].arguments.count >= limit {
-                      nextFilteredOverloads.append(index)
-                    }
-                  }
-                  if !nextFilteredOverloads.isEmpty {
-                    filteredOverloads = nextFilteredOverloads
-                    break
+                # Collect all relevant overloads but ignore forward-declared functions that also have an implementation
+                for overload = symbol.asFunction; overload != null; overload = overload.previousOverload {
+                  if !(overload.sibling in overloads) {
+                    overloads.append(overload)
                   }
                 }
 
-                # Narrow down by argument types
-                if filteredOverloads.count > 1 {
-                  var nextFilteredOverloads = filteredOverloads.clone
-                  nextFilteredOverloads.removeIf(overloadIndex => {
-                    var fromArguments = overloads[overloadIndex].arguments
-                    for i in 0..Math.min(fromArguments.count, arguments.count) {
-                      var from = fromArguments[i].mergedType
-                      var to = arguments[i].resolvedType
-                      if to != .ERROR && from != to {
-                        return true
+                # Show overloads in source order
+                overloads.reverse
+
+                for overload in overloads {
+                  signatures.append(Signature.new(
+                    _tooltipForSymbol(overload),
+                    overload.arguments.map<string>(arg => _variableTooltipText(arg)),
+                    _leadingCommentsToMarkdown(overload.comments)
+                  ))
+                }
+
+                # Pick an active overload
+                if !signatures.isEmpty {
+                  activeSignature = 0
+
+                  # Start off with all overloads
+                  var filteredOverloads List<int> = []
+                  for i = 0; i < overloads.count; i++ {
+                    filteredOverloads.append(i)
+                  }
+
+                  # Try filtering by argument count
+                  for limit = arguments.count; limit > 0; limit-- {
+                    var nextFilteredOverloads List<int> = []
+                    for index in filteredOverloads {
+                      if overloads[index].arguments.count >= limit {
+                        nextFilteredOverloads.append(index)
                       }
                     }
-                    return false
-                  })
+                    if !nextFilteredOverloads.isEmpty {
+                      filteredOverloads = nextFilteredOverloads
+                      break
+                    }
+                  }
 
-                  # Narrow down by argument types with "conversions" to get better error messages
-                  if nextFilteredOverloads.isEmpty {
-                    nextFilteredOverloads = filteredOverloads.clone
+                  # Narrow down by argument types
+                  if filteredOverloads.count > 1 {
+                    var nextFilteredOverloads = filteredOverloads.clone
                     nextFilteredOverloads.removeIf(overloadIndex => {
                       var fromArguments = overloads[overloadIndex].arguments
                       for i in 0..Math.min(fromArguments.count, arguments.count) {
                         var from = fromArguments[i].mergedType
                         var to = arguments[i].resolvedType
-                        var fromSize = from.componentCount
-                        var toSize = to.componentCount
-                        if to != .ERROR && from != to && (fromSize == 0 || toSize == 0 || fromSize != toSize) {
+                        if to != .ERROR && from != to {
                           return true
                         }
                       }
                       return false
                     })
+
+                    # Narrow down by argument types with "conversions" to get better error messages
+                    if nextFilteredOverloads.isEmpty {
+                      nextFilteredOverloads = filteredOverloads.clone
+                      nextFilteredOverloads.removeIf(overloadIndex => {
+                        var fromArguments = overloads[overloadIndex].arguments
+                        for i in 0..Math.min(fromArguments.count, arguments.count) {
+                          var from = fromArguments[i].mergedType
+                          var to = arguments[i].resolvedType
+                          var fromSize = from.componentCount
+                          var toSize = to.componentCount
+                          if to != .ERROR && from != to && (fromSize == 0 || toSize == 0 || fromSize != toSize) {
+                            return true
+                          }
+                        }
+                        return false
+                      })
+                    }
+
+                    if !nextFilteredOverloads.isEmpty {
+                      filteredOverloads = nextFilteredOverloads
+                    }
                   }
 
-                  if !nextFilteredOverloads.isEmpty {
-                    filteredOverloads = nextFilteredOverloads
+                  if !filteredOverloads.isEmpty {
+                    activeSignature = filteredOverloads[0]
                   }
                 }
+              }
 
-                if !filteredOverloads.isEmpty {
-                  activeSignature = filteredOverloads[0]
+              if symbol.isStruct && type.componentType == null {
+                # Generate the constructor call signature
+                var fields = symbol.asStruct.variables.map<string>(arg => _variableTooltipText(arg))
+                signatures.append(Signature.new(
+                  "\(symbol.name)(\(", ".join(fields)));",
+                  fields,
+                  _leadingCommentsToMarkdown(symbol.comments)
+                ))
+                activeSignature = 0
+              }
+
+              # Compute the active argument index
+              if !arguments.isEmpty {
+                activeArgument = 0
+                for arg in arguments {
+                  if index <= arg.range.end || arg.nextSibling == null {
+                    break
+                  }
+                  activeArgument++
                 }
               }
-            }
 
-            if symbol.isStruct && type.componentType == null {
-              # Generate the constructor call signature
-              var fields = symbol.asStruct.variables.map<string>(arg => _variableTooltipText(arg))
-              signatures.append(Signature.new(
-                "\(symbol.name)(\(", ".join(fields)));",
-                fields,
-                _leadingCommentsToMarkdown(symbol.comments)
-              ))
-              activeSignature = 0
+              return true
             }
-
-            # Compute the active argument index
-            if !arguments.isEmpty {
-              activeArgument = 0
-              for arg in arguments {
-                if index <= arg.range.end || arg.nextSibling == null {
-                  break
-                }
-                activeArgument++
-              }
-            }
-
-            return true
           }
         }
       }

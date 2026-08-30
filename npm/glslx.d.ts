@@ -107,7 +107,7 @@ export interface CompletionResponse {
 }
 
 export interface Completion {
-  kind: 'variable' | 'function' | 'struct' | 'keyword';
+  kind: 'variable' | 'function' | 'struct' | 'keyword' | 'method';
   name: string;
   detail: string;
   documentation: string;

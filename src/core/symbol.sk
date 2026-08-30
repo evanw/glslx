@@ -159,6 +159,18 @@ namespace GLSLX {
     }
   }
 
+  namespace FunctionSymbol {
+    var _arrayLengthMethod FunctionSymbol
+
+    def arrayLengthMethod FunctionSymbol {
+      if _arrayLengthMethod == null {
+        _arrayLengthMethod = FunctionSymbol.new(-999, null, "length", null)
+        _arrayLengthMethod.returnType = Node.createType(.INT)
+      }
+      return _arrayLengthMethod
+    }
+  }
+
   enum VariableKind {
     ARGUMENT
     GLOBAL

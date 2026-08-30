@@ -467,7 +467,7 @@ class GLSLX.Resolver {
       # The target must be an array type
       var type = dotTarget.resolvedType
       if type.isArrayOf != null {
-        var arrayLength = _data.arrayLengthMethod
+        var arrayLength = FunctionSymbol.arrayLengthMethod
         callTarget.resolvedType = arrayLength.resolvedType
         node.symbol = arrayLength
       } else {
