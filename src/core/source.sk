@@ -57,7 +57,7 @@ namespace GLSLX {
       _computeLineOffsets
       if line >= 0 && line < _lineOffsets.count {
         var index = _lineOffsets[line]
-        if column >= 0 && index + column < (line + 1 < _lineOffsets.count ? _lineOffsets[line + 1] : contents.count) {
+        if column >= 0 && (line + 1 < _lineOffsets.count ? index + column < _lineOffsets[line + 1] : index + column <= contents.count) {
           return index + column
         }
       }
