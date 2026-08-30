@@ -278,10 +278,16 @@ namespace GLSLX.IDE {
     }
   }
 
+  enum RangeKind {
+    USE
+    DEFINITION
+  }
+
   class RenameQuery {
     const source Source
     const index int
     const ranges List<Range> = []
+    const definitions List<Range> = []
     var symbol Symbol = null
 
     def run(global Node) {
@@ -293,35 +299,33 @@ namespace GLSLX.IDE {
         _visit(global)
 
         # Remove overlapping ranges just in case
-        var current Range = null
-        ranges.sort((a, b) => a.source == b.source
-          ? a.start <=> b.start
-          : a.source.name <=> b.source.name)
-        ranges.removeIf(range => {
-          var previous = current
-          current = range
-          return previous != null && current.overlaps(previous)
-        })
+        _removeOverlappingRanges(ranges)
+        _removeOverlappingRanges(definitions)
       }
     }
 
-    def _appendRange(range Range, check Symbol) {
+    def _appendRange(range Range, check Symbol, kind RangeKind) {
       # Sanity check the range to make sure it contains the target name
       if check == symbol && range != null && range.toString == symbol.name {
         ranges.append(range)
+
+        # The IDE may exclude definitions to jump straight to a single reference
+        if kind == .DEFINITION {
+          definitions.append(range)
+        }
       }
     }
 
     def _visitVariable(variable VariableSymbol) {
-      _appendRange(variable.range, variable)
+      _appendRange(variable.range, variable, .DEFINITION)
       _visit(variable.parsedType)
       _visit(variable.arraySize)
       _visit(variable.value)
     }
 
     def _visitFunction(function FunctionSymbol) {
-      _appendRange(function.range, function)
-      _appendRange(function.range, function.sibling)
+      _appendRange(function.range, function, .DEFINITION)
+      _appendRange(function.range, function.sibling, .DEFINITION)
       _visit(function.returnType)
       _visit(function.block)
 
@@ -331,7 +335,7 @@ namespace GLSLX.IDE {
     }
 
     def _visitStruct(struct StructSymbol) {
-      _appendRange(struct.range, struct)
+      _appendRange(struct.range, struct, .DEFINITION)
 
       for variable in struct.variables {
         _visitVariable(variable)
@@ -345,15 +349,27 @@ namespace GLSLX.IDE {
         }
 
         switch node.kind {
-          case .NAME { _appendRange(node.range, node.symbol) }
-          case .DOT { _appendRange(node.internalRange, node.symbol) }
-          case .TYPE { _appendRange(node.range, node.resolvedType.symbol) }
+          case .NAME { _appendRange(node.range, node.symbol, .USE) }
+          case .DOT { _appendRange(node.internalRange, node.symbol, .USE) }
+          case .TYPE { _appendRange(node.range, node.resolvedType.symbol, .USE) }
           case .VARIABLE { _visitVariable(node.symbol.asVariable) }
           case .FUNCTION { _visitFunction(node.symbol.asFunction) }
           case .STRUCT { _visitStruct(node.symbol.asStruct) }
         }
       }
     }
+  }
+
+  def _removeOverlappingRanges(ranges List<Range>) {
+    var current Range = null
+    ranges.sort((a, b) => a.source == b.source
+      ? a.start <=> b.start
+      : a.source.name <=> b.source.name)
+    ranges.removeIf(range => {
+      var previous = current
+      current = range
+      return previous != null && current.overlaps(previous)
+    })
   }
 
   class Completion {

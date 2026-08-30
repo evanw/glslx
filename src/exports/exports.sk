@@ -313,6 +313,7 @@ Advanced:
       var line int = message.line | 0
       var column int = message.column | 0
       var ranges List<dynamic> = null
+      var definitions List<dynamic> = null
       var symbol string = null
 
       for source in sources {
@@ -323,6 +324,7 @@ Advanced:
             renameQuery.run(result.global)
             if renameQuery.symbol != null && renameQuery.symbol.range != null && renameQuery.symbol.range.source.name != API_NAME {
               ranges = renameQuery.ranges.map<dynamic>(rangeToJSON)
+              definitions = renameQuery.definitions.map<dynamic>(rangeToJSON)
               symbol = renameQuery.symbol.name
             }
           }
@@ -332,6 +334,7 @@ Advanced:
 
       return {
         "ranges": ranges,
+        "definitions": definitions,
         "symbol": symbol,
       }
     }

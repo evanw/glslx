@@ -93,6 +93,7 @@ export interface RenameRequest {
 
 export interface RenameResponse {
   ranges: Range[] | null;
+  definitions: Range[] | null;
   symbol: string | null;
 }
 
