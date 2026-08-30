@@ -247,6 +247,61 @@ namespace GLSLX.Tests {
 ")
 
     testFormatter("
+if(true){foo();}
+if(true){
+foo();
+}
+if(true)
+{
+foo();
+}
+
+int foo(){return 0;}
+int foo(){
+return 0;
+}
+int foo()
+{
+return 0;
+}
+
+struct Foo{int foo;};
+struct Foo{
+int foo;
+};
+struct Foo
+{
+int foo;
+};
+", "if (true) { foo(); }
+if (true) {
+  foo();
+}
+if (true)
+{
+  foo();
+}
+
+int foo() { return 0; }
+int foo() {
+  return 0;
+}
+int foo()
+{
+  return 0;
+}
+
+struct Foo { int foo; };
+struct Foo {
+  int foo;
+};
+struct Foo
+{
+  int foo;
+};
+")
+
+    testFormatter("
       #version 300 es
       layout (location=2)out float alpha;
 ", "#version 300 es

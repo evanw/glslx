@@ -276,6 +276,11 @@ namespace GLSLX.Formatter {
           consumeIf(kind => true)
         }
 
+        case .STRUCT {
+          consumeIf(kind => true)
+          consumeIf(kind => kind == .IDENTIFIER)
+        }
+
         case .IF {
           consumeIf(kind => true)
           if handleBranch() {
