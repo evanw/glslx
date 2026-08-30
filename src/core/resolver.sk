@@ -629,6 +629,10 @@ class GLSLX.Resolver {
     if type.arraySize > 0 && type.arraySize != arguments.count {
       _log.semanticErrorBadConstructorCount(node.internalRange, type, arguments.count)
     }
+
+    for argument in arguments {
+      checkConversion(argument, type.isArrayOf)
+    }
   }
 
   def _resolveStructConstructor(type Type, node Node, arguments List<Node>) {

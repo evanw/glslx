@@ -3562,6 +3562,15 @@ void after() {
 <stdin>:8:15: error: Cannot convert from type \"int[4]\" to type \"int[3]\"
   int[3] b4 = int[](0, 1, 2, 3);
               ~~~~~~~~~~~~~~~~~
+<stdin>:15:23: error: Cannot convert from type \"float\" to type \"int\"
+  int[3] bad = int[3](0.0, 1u, false);
+                      ~~~
+<stdin>:15:28: error: Cannot convert from type \"uint\" to type \"int\"
+  int[3] bad = int[3](0.0, 1u, false);
+                           ~~
+<stdin>:15:32: error: Cannot convert from type \"bool\" to type \"int\"
+  int[3] bad = int[3](0.0, 1u, false);
+                               ~~~~~
 <stdin>:16:8: error: Cannot convert from type \"int[2]\" to type \"int[3]\"
   a2 = d2;
        ~~
@@ -3580,6 +3589,15 @@ void after() {
 <stdin>:26:15: error: Cannot convert from type \"int[4]\" to type \"int[3]\"
   int b4[3] = int[](0, 1, 2, 3);
               ~~~~~~~~~~~~~~~~~
+<stdin>:33:23: error: Cannot convert from type \"float\" to type \"int\"
+  int bad[3] = int[3](0.0, 1u, false);
+                      ~~~
+<stdin>:33:28: error: Cannot convert from type \"uint\" to type \"int\"
+  int bad[3] = int[3](0.0, 1u, false);
+                           ~~
+<stdin>:33:32: error: Cannot convert from type \"bool\" to type \"int\"
+  int bad[3] = int[3](0.0, 1u, false);
+                               ~~~~~
 <stdin>:34:8: error: Cannot convert from type \"int[2]\" to type \"int[3]\"
   a2 = d2;
        ~~
