@@ -809,7 +809,7 @@ namespace GLSLX.Parser {
     # See if there is a string literal
     var range = context.current.range
     if !context.expect(.STRING_LITERAL) {
-      return false
+      return true
     }
 
     # Decode the escapes
@@ -818,7 +818,7 @@ namespace GLSLX.Parser {
       path = dynamic.JSON.parse(range.toString)
     } catch {
       context.log.syntaxErrorInvalidString(range)
-      return false
+      return true
     }
 
     # Must have access to the file system

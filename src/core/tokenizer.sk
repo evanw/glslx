@@ -347,7 +347,7 @@ namespace GLSLX.Tokenizer {
     "&&|\\|\\||\\^\\^|\\+\\+|--|<<=?|>>=?|[()[\\]{}\\.,?:;]|[+\\-*/%=!<>&|^~]=?|" + # Operator
     "@?[A-Za-z_][A-Za-z0-9_]*\\b|" + # Identifier
     "#\\w+\\b|" + # Pragma
-    "\"(?:[^\"\\\\]|\\\\.)*\"" + # String literal
+    "\"(?:[^\"\\n\\\\]|\\\\.)*\"?" + # String literal
 
     ")"
   )

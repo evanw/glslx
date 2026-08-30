@@ -787,6 +787,19 @@ int main() {
       ^
 ")
 
+# Check #include with an unterminated string literal
+test("
+#include \"foo.glslx
+#include \"bar.glslx
+", "
+<stdin>:1:10: error: Invalid string literal
+#include \"foo.glslx
+         ~~~~~~~~~~
+<stdin>:2:10: error: Invalid string literal
+#include \"bar.glslx
+         ~~~~~~~~~~
+")
+
 # Check #include without file system access
 test("
 #include \"C:\\\\foo.glslx\"
