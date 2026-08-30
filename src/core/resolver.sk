@@ -543,6 +543,7 @@ class GLSLX.Resolver {
       if type.symbol != null && type.symbol.isStruct {
         for variable in type.symbol.asStruct.variables {
           if variable.name == name {
+            variable.useCount++
             node.symbol = variable
             resolveNode(variable.parsedType)
             node.resolvedType = variable.mergedType

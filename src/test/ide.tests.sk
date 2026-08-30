@@ -228,5 +228,29 @@ float foo() {
   expect("y: unused", ide.unusedStatusQuery("y"))
 })
 
+# Check unused symbol detection for global constants
+testIDE("
+struct S1 { int x; };
+struct S2 { int y, z; };
+int foo(int i) {
+  S2 s;
+  s.y = i;
+  return s.y;
+}
+struct S3 { int a, b; };
+int bar(int j, int k) {
+  return S3(j, k).a;
+}
+", "
+", (ide, expect) => {
+  expect("S1: unused", ide.unusedStatusQuery("S1"))
+  expect("S2: used", ide.unusedStatusQuery("S2"))
+  expect("y: used", ide.unusedStatusQuery("y"))
+  expect("z: unused", ide.unusedStatusQuery("z"))
+  expect("S3: used", ide.unusedStatusQuery("S3"))
+  expect("a: used", ide.unusedStatusQuery("a"))
+  expect("b: unused", ide.unusedStatusQuery("b"))
+})
+
   }
 }
